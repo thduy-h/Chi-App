@@ -25,8 +25,11 @@ export async function POST(request: Request) {
 
     if (!targetUrl) {
       return NextResponse.json(
-        { error: 'Order target is not configured on the server.' },
-        { status: 500 }
+        {
+          error:
+            'Order target is not configured. Set FORMSPREE_ORDER_URL or ORDER_WEBHOOK_URL.'
+        },
+        { status: 503 }
       )
     }
 

@@ -18,6 +18,7 @@ const navLinks = [
 export const Header = () => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const pathname = usePathname();
+	const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
 	return (<>
 		<nav className="sticky top-0 z-30 border-b border-rose-100/70 bg-white/90 shadow-sm backdrop-blur dark:border-rose-900/40 dark:bg-gray-900/90">
@@ -35,8 +36,9 @@ export const Header = () => {
 							<Link
 								key={item.href}
 								href={item.href}
-								className={`rounded-full px-4 py-2 text-sm font-medium transition ${pathname === item.href
-									? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+								aria-current={isActive(item.href) ? 'page' : undefined}
+								className={`rounded-full px-4 py-2 text-sm font-medium transition ${isActive(item.href)
+									? 'bg-rose-100 text-rose-700 ring-1 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-800'
 									: 'text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:text-gray-200 dark:hover:bg-gray-800'
 									}`}
 							>
@@ -93,8 +95,9 @@ export const Header = () => {
 							key={`mobile-${item.href}`}
 							href={item.href}
 							onClick={() => setIsMenuOpen(false)}
-							className={`rounded-xl px-4 py-3 text-sm font-medium transition ${pathname === item.href
-								? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+							aria-current={isActive(item.href) ? 'page' : undefined}
+							className={`rounded-xl px-4 py-3 text-sm font-medium transition ${isActive(item.href)
+								? 'bg-rose-100 text-rose-700 ring-1 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-800'
 								: 'bg-gray-50 text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-gray-800 dark:text-gray-200'
 								}`}
 						>

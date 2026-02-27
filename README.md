@@ -2,6 +2,46 @@
 
 This project is a simple e-commerce application built with Next.js. It utilizes the [Fake Store API](https://fakestoreapi.com/) for fetching product data. The user interface is designed using Tailwind CSS, with inspiration and components sourced from [Meraki UI](https://merakiui.com) and [Hyper UI](https://www.hyperui.dev).
 
+## LoveHub Quick Start
+
+### Setup
+1. Install dependencies:
+```bash
+npm install
+```
+2. Create local env file:
+```bash
+cp .env.example .env.local
+```
+3. Start development server:
+```bash
+npm run dev
+```
+4. Build for production check:
+```bash
+npm run build
+```
+
+### Environment Variables
+Add these in `.env.local` (or Vercel project settings):
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_URL` | Optional | Base URL for legacy product pages (default Fake Store API). |
+| `FORMSPREE_ORDER_URL` | Optional* | Destination for `/api/order` forwarding. |
+| `ORDER_WEBHOOK_URL` | Optional* | Fallback destination for `/api/order` when Formspree URL is missing. |
+| `FORMSPREE_LETTERS_URL` | Optional* | Destination for `/api/letters` forwarding. |
+| `LETTERS_WEBHOOK_URL` | Optional* | Fallback destination for `/api/letters` when Formspree URL is missing. |
+
+\* For each feature (`/food`, `/letters`), set at least one destination URL so submit actions can forward successfully.
+
+### Deploy To Vercel
+1. Push your branch to GitHub.
+2. In Vercel, click **Add New Project** and import this repo.
+3. Set the environment variables listed above in **Project Settings -> Environment Variables**.
+4. Deploy (Vercel runs `npm run build` automatically).
+5. Verify routes: `/food`, `/tasks`, `/finance`, `/letters`, `/cycle`.
+
 ## Features
 
 - Product listing and filtering
