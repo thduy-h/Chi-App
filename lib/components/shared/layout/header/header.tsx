@@ -3,57 +3,59 @@ import { Logo } from '@/lib/components/shared/logo'
 import { Cart } from '@/lib/components/shared/cart'
 import { UserMenu } from '@/lib/components/shared/layout/header/user-menu'
 import { DarkModeToggle } from '@/lib/components/shared/layout/header/dark-mode-toggle';
-
-import { IUser, TCategories } from '@/lib/definitions';
-
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { RootState } from '@/lib/store';
-import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
+const navLinks = [
+	{ href: '/food', label: 'Food' },
+	{ href: '/cycle', label: 'Cycle' },
+	{ href: '/tasks', label: 'Tasks' },
+	{ href: '/finance', label: 'Finance' },
+	{ href: '/letters', label: 'Letters' },
+];
 
 export const Header = () => {
-
-	const categories: TCategories = useSelector((state: RootState) => state.categories.categories);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-	const [currentCategory, setCurrentCategory] = useState('');
-
-	const searchParams = useSearchParams();
-	const categoryQuery = searchParams.get('category');
-
-	useEffect(() => {
-		if (categoryQuery?.includes(',')) {
-			setCurrentCategory(categoryQuery.split(',')[0]);
-		}
-		else {
-			setCurrentCategory(categoryQuery || '');
-		}
-	}, [categoryQuery]);
+	const pathname = usePathname();
 
 	return (<>
-		<nav className="relative bg-white shadow dark:bg-gray-800">
-			<div className="container mx-auto flex items-center justify-between px-6 py-4">
-				<Link href='/'>
-					<Logo />
-				</Link>
-				<div className="flex items-center justify-between md:order-2">
-					<div className="flex items-center justify-center">
+		<nav className="sticky top-0 z-30 border-b border-rose-100/70 bg-white/90 shadow-sm backdrop-blur dark:border-rose-900/40 dark:bg-gray-900/90">
+			<div className="container mx-auto px-4 sm:px-6">
+				<div className="flex h-16 items-center justify-between gap-3">
+					<Link href='/' className="flex items-center gap-2">
+						<Logo />
+						<span className="text-sm font-semibold tracking-wide text-gray-800 dark:text-white sm:text-base">
+							LoveHub
+						</span>
+					</Link>
+
+					<div className="hidden items-center gap-1 md:flex">
+						{navLinks.map((item) => (
+							<Link
+								key={item.href}
+								href={item.href}
+								className={`rounded-full px-4 py-2 text-sm font-medium transition ${pathname === item.href
+									? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+									: 'text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:text-gray-200 dark:hover:bg-gray-800'
+									}`}
+							>
+								{item.label}
+							</Link>
+						))}
+					</div>
+
+					<div className="flex items-center gap-1 sm:gap-2">
 						<DarkModeToggle></DarkModeToggle>
 						<Cart />
 						<UserMenu />
-					</div>
 
-					<div className="flex lg:hidden">
 						<button
-							onClick={() => {
-								document.body.classList.toggle('overflow-hidden');
-								setIsMenuOpen(!isMenuOpen);
-							}}
+							onClick={() => setIsMenuOpen(!isMenuOpen)}
 							type="button"
-							className="ml-4 text-gray-500 hover:text-gray-600 focus:text-gray-600 focus:outline-none dark:text-gray-200 dark:hover:text-gray-400 dark:focus:text-gray-400"
+							className="ml-1 text-gray-500 hover:text-gray-700 focus:text-gray-700 focus:outline-none dark:text-gray-200 dark:hover:text-gray-400 dark:focus:text-gray-400 md:hidden"
 							aria-label="toggle menu"
+							aria-expanded={isMenuOpen}
 						>
 							{!isMenuOpen && (
 								<svg
@@ -82,28 +84,23 @@ export const Header = () => {
 						</button>
 					</div>
 				</div>
-				<div
-					className={`${isMenuOpen
-						? 'translate-x-0 opacity-100 '
-						: '-translate-x-full opacity-0'} absolute inset-x-0 top-[70px] z-20 w-full bg-white px-6 py-4 transition-all duration-300 ease-in-out dark:bg-gray-800 md:relative md:top-0 md:top-[unset] md:order-1 md:mt-0 md:flex md:w-auto md:translate-x-0 md:items-center md:bg-transparent md:p-0 md:opacity-100`}
-				>
-					<div className="flex flex-col md:mx-6 md:flex-row">
-						{categories && categories.length > 0 && (
-							categories.map((category, i) => {
-								return (
-									<Link
-										key={`header-category-${i}`}
-										className={`${currentCategory === category
-											? 'text-blue-500 dark:text-blue-500 font-medium'
-											: 'text-gray-700 dark:text-gray-200'} my-2 transform capitalize transition-colors duration-300 hover:text-blue-500 dark:hover:text-blue-400 md:mx-4 md:my-0`}
-										href={`/products?category=${category}`}
-									>
-										{category}
-									</Link>
-								)
-							}
-							))}
-					</div>
+			</div>
+
+			<div className={`border-t border-rose-100/80 bg-white/95 transition-all duration-200 dark:border-rose-900/30 dark:bg-gray-900/95 md:hidden ${isMenuOpen ? 'max-h-80 opacity-100' : 'max-h-0 overflow-hidden opacity-0'}`}>
+				<div className="container mx-auto grid grid-cols-2 gap-2 px-4 py-3 sm:px-6">
+					{navLinks.map((item) => (
+						<Link
+							key={`mobile-${item.href}`}
+							href={item.href}
+							onClick={() => setIsMenuOpen(false)}
+							className={`rounded-xl px-4 py-3 text-sm font-medium transition ${pathname === item.href
+								? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+								: 'bg-gray-50 text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-gray-800 dark:text-gray-200'
+								}`}
+						>
+							{item.label}
+						</Link>
+					))}
 				</div>
 			</div>
 		</nav>
