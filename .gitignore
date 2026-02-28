@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# next.js build output
+.next/
+out/
+
+# local caches
+.npm-cache/
+
+# logs
+*.log
+dev.out.log
+dev.err.log
+
+# local env files (keep example tracked)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# reference repos
+_refs/
