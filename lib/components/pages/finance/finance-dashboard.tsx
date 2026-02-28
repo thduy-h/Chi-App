@@ -4,16 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { logGetMyCoupleRawOnce, normalizeRpcRow } from '@/lib/supabase/couples'
 import type { Database } from '@/lib/supabase/types'
 
 type EntryType = 'income' | 'expense'
 type SyncMode = 'local' | 'supabase'
 type FinanceRow = Database['public']['Tables']['finance_entries']['Row']
-
-interface CoupleResponse {
-  user: { id: string; email: string } | null
-  couple: { id: string; code: string } | null
-}
 
 interface FinanceEntry {
   id: string
@@ -26,6 +22,7 @@ interface FinanceEntry {
 }
 
 const STORAGE_KEY = 'lovehub.finance.entries.v1'
+const IMPORT_FLAG_PREFIX = 'lovehub_finance_imported_'
 
 const INCOME_CATEGORIES = ['Luong', 'Thuong', 'Qua tang', 'Khac']
 const EXPENSE_CATEGORIES = ['An uong', 'Di chuyen', 'Mua sam', 'Hen ho', 'Du lich', 'Hoa don', 'Khac']
@@ -49,7 +46,12 @@ const getToday = () => new Date().toISOString().slice(0, 10)
 const createId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random()}`
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+      const rand = Math.floor(Math.random() * 16)
+      const value = char === 'x' ? rand : (rand & 0x3) | 0x8
+      return value.toString(16)
+    })
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 const sanitizeType = (value: unknown): EntryType | null => {
   if (value === 'income' || value === 'expense') return value
@@ -103,23 +105,26 @@ const getRecentMonths = (baseMonth: string, count: number): string[] => {
   return results
 }
 
-const getMonthRangeForSeries = (selectedMonth: string, monthCount = 6) => {
-  const [yearRaw, monthRaw] = selectedMonth.split('-')
+const getMonthDateRange = (monthValue: string) => {
+  const [yearRaw, monthRaw] = monthValue.split('-')
   const year = Number(yearRaw)
   const month = Number(monthRaw)
   if (!Number.isFinite(year) || !Number.isFinite(month)) {
-    return { from: `${selectedMonth}-01`, to: `${selectedMonth}-31` }
+    return {
+      from: `${monthValue}-01`,
+      to: `${monthValue}-31`
+    }
   }
 
-  const start = new Date(year, month - monthCount, 1)
+  const start = new Date(year, month - 1, 1)
   const end = new Date(year, month, 0)
 
-  const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`
-  const to = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(
-    end.getDate()
-  ).padStart(2, '0')}`
-
-  return { from, to }
+  return {
+    from: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`,
+    to: `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(
+      end.getDate()
+    ).padStart(2, '0')}`
+  }
 }
 
 const parseImportEntries = (parsed: unknown): FinanceEntry[] => {
@@ -143,7 +148,11 @@ export const FinanceDashboard = () => {
   const [hydrated, setHydrated] = useState(false)
   const [syncMode, setSyncMode] = useState<SyncMode>('local')
   const [activeCoupleId, setActiveCoupleId] = useState<string | null>(null)
+  const [activeCoupleCode, setActiveCoupleCode] = useState<string | null>(null)
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null)
   const [isLoadingRemote, setIsLoadingRemote] = useState(false)
+  const [showImportBanner, setShowImportBanner] = useState(false)
+  const [isImportingOffline, setIsImportingOffline] = useState(false)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
   const [type, setType] = useState<EntryType>('expense')
@@ -176,27 +185,32 @@ export const FinanceDashboard = () => {
     setNote(entry.note || '')
   }
 
-  const loadLocalEntries = useCallback(() => {
+  const getLocalEntriesSnapshot = useCallback(() => {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
-      setEntries([])
-      return
+      return [] as FinanceEntry[]
     }
 
     try {
       const parsed = JSON.parse(raw) as unknown
-      setEntries(parseImportEntries(parsed))
+      return parseImportEntries(parsed)
     } catch {
-      setEntries([])
+      return [] as FinanceEntry[]
     }
   }, [])
+
+  const loadLocalEntries = useCallback(() => {
+    setEntries(getLocalEntriesSnapshot())
+  }, [getLocalEntriesSnapshot])
+
+  const hasLocalEntries = useCallback(() => getLocalEntriesSnapshot().length > 0, [getLocalEntriesSnapshot])
 
   const loadSupabaseEntries = useCallback(async () => {
     if (!supabase || !activeCoupleId) {
       return
     }
 
-    const range = getMonthRangeForSeries(selectedMonth, 6)
+    const range = getMonthDateRange(selectedMonth)
     setIsLoadingRemote(true)
     try {
       const { data, error } = await supabase
@@ -213,48 +227,100 @@ export const FinanceDashboard = () => {
       }
 
       setEntries((data || []).map((row) => mapRowToEntry(row as FinanceRow)))
-    } catch {
+    } catch (error) {
+      console.error('[finance/loadSupabaseEntries] failed', error)
       dispatch(
         setAlert({
           title: 'Load failed',
-          message: 'Cannot load finance data from Supabase. Using local fallback.',
+          message: 'Cannot load finance data from Supabase.',
+          type: 'warning'
+        })
+      )
+    } finally {
+      setIsLoadingRemote(false)
+    }
+  }, [activeCoupleId, dispatch, selectedMonth, supabase])
+
+  const loadCoupleContext = useCallback(async () => {
+    if (!supabase) {
+      setCurrentEmail(null)
+      setSyncMode('local')
+      setActiveCoupleId(null)
+      setActiveCoupleCode(null)
+      setShowImportBanner(false)
+      loadLocalEntries()
+      return
+    }
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser()
+
+    if (userError) {
+      console.error('[finance/loadCoupleContext] auth.getUser failed', userError)
+    }
+
+    if (!user) {
+      setCurrentEmail(null)
+      setSyncMode('local')
+      setActiveCoupleId(null)
+      setActiveCoupleCode(null)
+      setShowImportBanner(false)
+      loadLocalEntries()
+      return
+    }
+
+    setCurrentEmail(user.email ?? null)
+
+    const { data: coupleData, error: coupleError } = await supabase.rpc('get_my_couple')
+    logGetMyCoupleRawOnce('finance/loadCoupleContext', coupleData)
+    if (coupleError) {
+      console.error('[finance/loadCoupleContext] rpc.get_my_couple failed', {
+        code: coupleError.code,
+        message: coupleError.message,
+        details: coupleError.details,
+        hint: coupleError.hint
+      })
+      dispatch(
+        setAlert({
+          title: 'Canh bao',
+          message: `Khong the tai couple context (${coupleError.code ?? 'unknown'})`,
           type: 'warning'
         })
       )
       setSyncMode('local')
       setActiveCoupleId(null)
+      setActiveCoupleCode(null)
+      setShowImportBanner(false)
       loadLocalEntries()
-    } finally {
-      setIsLoadingRemote(false)
+      return
     }
-  }, [activeCoupleId, dispatch, loadLocalEntries, selectedMonth, supabase])
+
+    const couple = normalizeRpcRow(coupleData)
+    if (!couple?.id) {
+      setSyncMode('local')
+      setActiveCoupleId(null)
+      setActiveCoupleCode(null)
+      setShowImportBanner(false)
+      loadLocalEntries()
+      return
+    }
+
+    setSyncMode('supabase')
+    setActiveCoupleId(couple.id)
+    setActiveCoupleCode(couple.code ?? null)
+    const importedKey = `${IMPORT_FLAG_PREFIX}${couple.id}`
+    const imported = localStorage.getItem(importedKey) === 'true'
+    setShowImportBanner(!imported && hasLocalEntries())
+  }, [dispatch, hasLocalEntries, loadLocalEntries, supabase])
 
   useEffect(() => {
     let cancelled = false
 
     const bootstrap = async () => {
       try {
-        const response = await fetch('/api/couple/current', {
-          method: 'GET',
-          cache: 'no-store'
-        })
-        const payload = (await response.json()) as CoupleResponse
-        if (cancelled) return
-
-        if (payload.user?.id && payload.couple?.id && supabase) {
-          setSyncMode('supabase')
-          setActiveCoupleId(payload.couple.id)
-        } else {
-          setSyncMode('local')
-          setActiveCoupleId(null)
-          loadLocalEntries()
-        }
-      } catch {
-        if (!cancelled) {
-          setSyncMode('local')
-          setActiveCoupleId(null)
-          loadLocalEntries()
-        }
+        await loadCoupleContext()
       } finally {
         if (!cancelled) {
           setHydrated(true)
@@ -266,7 +332,7 @@ export const FinanceDashboard = () => {
     return () => {
       cancelled = true
     }
-  }, [loadLocalEntries, supabase])
+  }, [loadCoupleContext])
 
   useEffect(() => {
     if (!hydrated) return
@@ -382,6 +448,80 @@ export const FinanceDashboard = () => {
       throw error
     }
   }
+
+  const upsertEntriesBatch = useCallback(
+    async (rawEntries: FinanceEntry[], coupleId: string) => {
+      if (!supabase) {
+        throw new Error('Supabase client unavailable')
+      }
+
+      const payload = rawEntries.map((entry) => ({
+        id: UUID_PATTERN.test(entry.id) ? entry.id : createId(),
+        couple_id: coupleId,
+        type: entry.type,
+        amount: entry.amount,
+        category: entry.category,
+        date: entry.date,
+        note: entry.note ?? null
+      }))
+
+      for (let index = 0; index < payload.length; index += 50) {
+        const batch = payload.slice(index, index + 50)
+        const { error } = await supabase.from('finance_entries').upsert(batch, { onConflict: 'id' })
+        if (error) {
+          throw error
+        }
+      }
+    },
+    [supabase]
+  )
+
+  const handleImportOfflineToCloud = useCallback(async () => {
+    if (!supabase || !activeCoupleId || !isSupabaseMode) {
+      return
+    }
+
+    setIsImportingOffline(true)
+    try {
+      const localEntries = getLocalEntriesSnapshot()
+      if (localEntries.length < 1) {
+        localStorage.setItem(`${IMPORT_FLAG_PREFIX}${activeCoupleId}`, 'true')
+        setShowImportBanner(false)
+        dispatch(
+          setAlert({
+            title: 'Khong co du lieu',
+            message: 'Khong tim thay du lieu offline de import.',
+            type: 'info'
+          })
+        )
+        return
+      }
+
+      await upsertEntriesBatch(localEntries, activeCoupleId)
+      localStorage.setItem(`${IMPORT_FLAG_PREFIX}${activeCoupleId}`, 'true')
+      setShowImportBanner(false)
+      await loadSupabaseEntries()
+
+      dispatch(
+        setAlert({
+          title: 'Import thanh cong',
+          message: `Da import ${localEntries.length} giao dich len cloud.`,
+          type: 'success'
+        })
+      )
+    } catch (error) {
+      console.error('[finance/handleImportOfflineToCloud] failed', error)
+      dispatch(
+        setAlert({
+          title: 'Import that bai',
+          message: 'Khong the import du lieu offline len Supabase.',
+          type: 'error'
+        })
+      )
+    } finally {
+      setIsImportingOffline(false)
+    }
+  }, [activeCoupleId, dispatch, getLocalEntriesSnapshot, isSupabaseMode, loadSupabaseEntries, supabase, upsertEntriesBatch])
 
   const handleAddOrUpdateEntry = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -511,11 +651,10 @@ export const FinanceDashboard = () => {
         const previousEntries = entries
         setEntries(normalized)
         try {
-          for (const entry of normalized) {
-            // Keep sequential upserts for predictable error handling with small datasets.
-            // eslint-disable-next-line no-await-in-loop
-            await upsertSupabaseEntry(entry)
+          if (!activeCoupleId) {
+            throw new Error('Missing couple id')
           }
+          await upsertEntriesBatch(normalized, activeCoupleId)
         } catch {
           setEntries(previousEntries)
           throw new Error('Cannot sync imported entries to Supabase')
@@ -573,6 +712,12 @@ export const FinanceDashboard = () => {
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Data mode: {isSupabaseMode ? 'Supabase synced' : 'LocalStorage fallback'}
             </p>
+            {currentEmail && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>
+            )}
+            {activeCoupleCode && (
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -585,6 +730,33 @@ export const FinanceDashboard = () => {
             />
           </div>
         </div>
+
+        {isSupabaseMode && showImportBanner && (
+          <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+            <p className="font-semibold">Ban co du lieu finance offline. Import len cloud?</p>
+            <p className="mt-1 text-xs opacity-80">
+              Sau khi import, du lieu finance se uu tien doc tu Supabase cho couple hien tai.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleImportOfflineToCloud()}
+                disabled={isImportingOffline}
+                className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isImportingOffline ? 'Dang import...' : 'Import'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowImportBanner(false)}
+                disabled={isImportingOffline}
+                className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-900/30"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="grid gap-6 xl:grid-cols-3">
           <div className="space-y-6 xl:col-span-2">
