@@ -8,6 +8,7 @@ import { KanbanBoard } from '@/lib/components/pages/tasks/kanban-board'
 import { BoardState, ItineraryDay, KanbanColumn, KanbanTask } from '@/lib/components/pages/tasks/types'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { logGetMyCoupleRawOnce, normalizeRpcRow } from '@/lib/supabase/couples'
 import type { Database } from '@/lib/supabase/types'
 
 const SHARED_STORAGE_KEY = 'lovehub.tasks.shared.v1'
@@ -100,7 +101,6 @@ const itineraryDays: ItineraryDay[] = [
 
 type TaskTab = 'shared' | 'travel'
 type SyncMode = 'local' | 'supabase'
-type CoupleRpcResult = Database['public']['Functions']['get_my_couple']['Returns']
 type TaskInsert = Database['public']['Tables']['tasks']['Insert']
 
 const sanitizeStatus = (value: string) =>
@@ -226,6 +226,7 @@ export const TasksPage = () => {
     setCurrentEmail(user.email ?? null)
 
     const { data: coupleData, error: coupleError } = await supabase.rpc('get_my_couple')
+    logGetMyCoupleRawOnce('tasks/loadCoupleContext', coupleData)
     if (coupleError) {
       logSupabaseError('rpc.get_my_couple', coupleError)
       dispatch(
@@ -242,7 +243,7 @@ export const TasksPage = () => {
       return
     }
 
-    const couple = coupleData as CoupleRpcResult
+    const couple = normalizeRpcRow(coupleData)
     if (!couple?.id) {
       setActiveCoupleId(null)
       setActiveCoupleCode(null)

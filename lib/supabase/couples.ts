@@ -24,6 +24,62 @@ interface CoupleRow {
   created_by: string | null
 }
 
+export type RpcRowType = 'array' | 'object' | 'null' | 'other'
+
+export interface NormalizedRpcCoupleRow {
+  id: string
+  code: string | null
+  created_by: string | null
+}
+
+let hasLoggedGetMyCoupleRawOnce = false
+
+export function getRpcRowType(payload: unknown): RpcRowType {
+  if (payload === null || payload === undefined) {
+    return 'null'
+  }
+
+  if (Array.isArray(payload)) {
+    return 'array'
+  }
+
+  if (typeof payload === 'object') {
+    return 'object'
+  }
+
+  return 'other'
+}
+
+export function normalizeRpcRow(payload: unknown): NormalizedRpcCoupleRow | null {
+  const candidate = Array.isArray(payload) ? (payload[0] ?? null) : payload
+  if (!candidate || typeof candidate !== 'object') {
+    return null
+  }
+
+  const row = candidate as { id?: unknown; code?: unknown; created_by?: unknown }
+  if (typeof row.id !== 'string' || !row.id.trim()) {
+    return null
+  }
+
+  return {
+    id: row.id,
+    code: typeof row.code === 'string' ? row.code : null,
+    created_by: typeof row.created_by === 'string' ? row.created_by : null
+  }
+}
+
+export function logGetMyCoupleRawOnce(source: string, payload: unknown) {
+  if (process.env.NODE_ENV !== 'development' || hasLoggedGetMyCoupleRawOnce) {
+    return
+  }
+
+  hasLoggedGetMyCoupleRawOnce = true
+  console.debug(`[${source}] get_my_couple raw`, {
+    rawType: getRpcRowType(payload),
+    data: payload
+  })
+}
+
 function isForbiddenCouplesSelectError(error: PostgrestError | null) {
   if (!error) {
     return false

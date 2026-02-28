@@ -6,7 +6,13 @@ import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import { generateCoupleCode, normalizeCoupleCode } from '@/lib/supabase/couples'
+import {
+  generateCoupleCode,
+  getRpcRowType,
+  logGetMyCoupleRawOnce,
+  normalizeCoupleCode,
+  normalizeRpcRow
+} from '@/lib/supabase/couples'
 
 interface CouplePayload {
   id: string
@@ -25,6 +31,8 @@ interface SetupClientProps {
 
 interface QueryDebugState {
   data: unknown
+  rawType: string
+  normalizedCoupleId: string | null
   error: {
     code: string | null
     message: string | null
@@ -130,39 +138,6 @@ function parseCreatedCouple(payload: unknown): CouplePayload | null {
   }
 
   return null
-}
-
-function parseMyCouplePayload(payload: unknown): {
-  id: string
-  code: string
-  createdBy: string | null
-} | null {
-  if (!payload) {
-    return null
-  }
-
-  const parseCandidate = (candidate: unknown) => {
-    if (!candidate || typeof candidate !== 'object') {
-      return null
-    }
-
-    const row = candidate as { id?: unknown; code?: unknown; created_by?: unknown }
-    if (typeof row.id !== 'string' || typeof row.code !== 'string') {
-      return null
-    }
-
-    return {
-      id: row.id,
-      code: row.code,
-      createdBy: typeof row.created_by === 'string' ? row.created_by : null
-    }
-  }
-
-  if (Array.isArray(payload)) {
-    return parseCandidate(payload[0] ?? null)
-  }
-
-  return parseCandidate(payload)
 }
 
 function isSameCoupleState(current: CoupleState, next: CoupleState) {
@@ -271,6 +246,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami')
         setWhoamiDebug({
           data: whoamiData ?? null,
+          rawType: getRpcRowType(whoamiData),
+          normalizedCoupleId: null,
           error: whoamiError
             ? {
                 code: whoamiError.code ?? null,
@@ -280,8 +257,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         })
 
         const { data: myCoupleData, error: myCoupleError } = await supabase.rpc('get_my_couple')
+        logGetMyCoupleRawOnce('setup/loadCoupleState', myCoupleData)
+        const normalizedMyCouple = normalizeRpcRow(myCoupleData)
         setMyCoupleDebug({
           data: myCoupleData ?? null,
+          rawType: getRpcRowType(myCoupleData),
+          normalizedCoupleId: normalizedMyCouple?.id ?? null,
           error: myCoupleError
             ? {
                 code: myCoupleError.code ?? null,
@@ -299,7 +280,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           return null
         }
 
-        const myCouple = parseMyCouplePayload(myCoupleData)
+        const myCouple = normalizedMyCouple
         if (!myCouple) {
           setLoadError(null)
           if (!expectedCoupleId) {
@@ -312,8 +293,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const nextState: CoupleState = {
           status: 'active',
           coupleId: myCouple.id,
-          code: myCouple.code,
-          isOwner: Boolean(myCouple.createdBy && myCouple.createdBy === user.id)
+          code: myCouple.code ?? '',
+          isOwner: Boolean(myCouple.created_by && myCouple.created_by === user.id)
         }
 
         if (!expectedCoupleId || expectedCoupleId === nextState.coupleId) {
