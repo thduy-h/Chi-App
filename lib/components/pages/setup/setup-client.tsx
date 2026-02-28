@@ -132,6 +132,50 @@ function parseCreatedCouple(payload: unknown): CouplePayload | null {
   return null
 }
 
+function parseMembershipCoupleId(payload: unknown): string | null {
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload
+  }
+
+  if (Array.isArray(payload)) {
+    const first = payload[0]
+    if (typeof first === 'string' && first.trim()) {
+      return first
+    }
+    if (first && typeof first === 'object') {
+      const candidate = first as { couple_id?: unknown; id?: unknown; get_my_membership?: unknown }
+      if (typeof candidate.couple_id === 'string' && candidate.couple_id.trim()) {
+        return candidate.couple_id
+      }
+      if (typeof candidate.id === 'string' && candidate.id.trim()) {
+        return candidate.id
+      }
+      if (
+        typeof candidate.get_my_membership === 'string' &&
+        candidate.get_my_membership.trim()
+      ) {
+        return candidate.get_my_membership
+      }
+    }
+    return null
+  }
+
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as { couple_id?: unknown; id?: unknown; get_my_membership?: unknown }
+    if (typeof candidate.couple_id === 'string' && candidate.couple_id.trim()) {
+      return candidate.couple_id
+    }
+    if (typeof candidate.id === 'string' && candidate.id.trim()) {
+      return candidate.id
+    }
+    if (typeof candidate.get_my_membership === 'string' && candidate.get_my_membership.trim()) {
+      return candidate.get_my_membership
+    }
+  }
+
+  return null
+}
+
 function isSameCoupleState(current: CoupleState, next: CoupleState) {
   if (current.status !== next.status) {
     return false
@@ -164,7 +208,9 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [orphanedCoupleId, setOrphanedCoupleId] = useState<string | null>(null)
   const [debugUserId, setDebugUserId] = useState<string | null>(null)
+  const [whoamiDebug, setWhoamiDebug] = useState<QueryDebugState | null>(null)
   const [membershipDebug, setMembershipDebug] = useState<QueryDebugState | null>(null)
+  const [rpcCoupleId, setRpcCoupleId] = useState<string | null>(null)
   const [couplesDebug, setCouplesDebug] = useState<QueryDebugState | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
@@ -185,6 +231,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     isDeletingCouple ||
     isResettingCouple ||
     isRotatingCoupleCode
+  const hasMembership = Boolean(rpcCoupleId)
 
   const applyCoupleState = useCallback((next: CoupleState) => {
     setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
@@ -221,7 +268,9 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const user = userData.user
         if (userError || !user) {
           setDebugUserId(null)
+          setWhoamiDebug(null)
           setMembershipDebug(null)
+          setRpcCoupleId(null)
           setCouplesDebug(null)
           setAuthUser({ id: null, email: initialEmail || null })
           setEmail(initialEmail || '')
@@ -239,16 +288,28 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           setEmail(user.email)
         }
 
-        const { data: membership, error: membershipError } = await supabase
-          .from('couple_members')
-          .select('couple_id,created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
+        const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami')
+        setWhoamiDebug({
+          data: whoamiData ?? null,
+          error: whoamiError
+            ? {
+                code: whoamiError.code ?? null,
+                message: whoamiError.message ?? null
+              }
+            : null
+        })
+
+        const { data: membershipRpcData, error: membershipError } = await supabase.rpc(
+          'get_my_membership'
+        )
+        const membershipCoupleId = parseMembershipCoupleId(membershipRpcData)
+        setRpcCoupleId(membershipCoupleId)
 
         setMembershipDebug({
-          data: membership ?? null,
+          data: {
+            raw: membershipRpcData ?? null,
+            coupleId: membershipCoupleId
+          },
           error: membershipError
             ? {
                 code: membershipError.code ?? null,
@@ -261,17 +322,14 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           setCouplesDebug(null)
           setOrphanedCoupleId(null)
           setLoadError(
-            `Membership query failed: ${membershipError.message}${
+            `get_my_membership failed: ${membershipError.message}${
               membershipError.code ? ` (${membershipError.code})` : ''
             }`
           )
-          if (isInitial && !expectedCoupleId) {
-            applyCoupleState({ status: 'none' })
-          }
           return null
         }
 
-        if (!membership?.couple_id) {
+        if (!membershipCoupleId) {
           setCouplesDebug(null)
           setOrphanedCoupleId(null)
           setLoadError(null)
@@ -284,7 +342,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const { data: couple, error: coupleError } = await supabase
           .from('couples')
           .select('id,code,created_by')
-          .eq('id', membership.couple_id)
+          .eq('id', membershipCoupleId)
           .maybeSingle()
 
         setCouplesDebug({
@@ -302,15 +360,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           setLoadError(
             `Couples query failed: ${coupleError.message}${coupleError.code ? ` (${coupleError.code})` : ''}`
           )
-          if (isInitial && !expectedCoupleId) {
-            applyCoupleState({ status: 'none' })
-          }
           return null
         }
 
         if (!couple) {
-          setOrphanedCoupleId(membership.couple_id)
-          setLoadError('Membership orphaned: couple not found. Please clean up membership row.')
+          setOrphanedCoupleId(membershipCoupleId)
+          setLoadError('Membership orphaned: couple not found. Please use Leave / cleanup.')
           if (!expectedCoupleId) {
             applyCoupleState({ status: 'none' })
           }
@@ -335,9 +390,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const loadStateError = mapCreateError(error, 'Unable to load couple state')
         console.error('[setup/loadCoupleState] failed:', loadStateError)
         setLoadError(`${loadStateError.message}${loadStateError.code ? ` (${loadStateError.code})` : ''}`)
-        if (isInitial) {
-          applyCoupleState({ status: 'none' })
-        }
         return null
       } finally {
         setIsRefreshing(false)
@@ -358,7 +410,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      if (coupleState.status === 'active') {
+      if (coupleState.status === 'active' || hasMembership) {
         dispatch(
           setAlert({
             type: 'info',
@@ -883,7 +935,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }
 
-  if (coupleState.status === 'loading') {
+  if (coupleState.status === 'loading' && !loadError) {
     return (
       <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
@@ -908,7 +960,11 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           <p className="text-sm text-gray-700 dark:text-gray-200">
             Trạng thái:{' '}
             <span className="font-semibold text-rose-700 dark:text-rose-200">
-              {coupleState.status === 'active' ? 'Đã ghép đôi' : 'Chưa ghép đôi'}
+              {coupleState.status === 'active'
+                ? 'Đã ghép đôi'
+                : coupleState.status === 'none'
+                  ? 'Chưa ghép đôi'
+                  : 'Lỗi tải trạng thái'}
             </span>
           </p>
           {activeCouple ? (
@@ -938,7 +994,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                   disabled={isBusy}
                   className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-gray-900 dark:text-red-200 dark:hover:bg-gray-800"
                 >
-                  {isCleaningOrphaned ? 'Dang don membership...' : 'Xoa membership mo coi'}
+                  {isCleaningOrphaned ? 'Dang cleanup...' : 'Leave / cleanup'}
                 </button>
               </div>
             ) : null}
@@ -951,7 +1007,9 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             {JSON.stringify(
               {
                 userId: debugUserId,
-                membership: membershipDebug,
+                whoami: whoamiDebug,
+                membershipRpc: membershipDebug,
+                coupleIdFromRpc: rpcCoupleId,
                 couples: couplesDebug
               },
               null,
@@ -1043,7 +1101,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             <button
               type="button"
               onClick={onCreateCouple}
-              disabled={isBusy || coupleState.status === 'active'}
+              disabled={isBusy || hasMembership}
               className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
             >
               {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
@@ -1063,11 +1121,11 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 placeholder="VD: A9K2QX"
                 maxLength={12}
-                disabled={isBusy || coupleState.status === 'active'}
+                disabled={isBusy || hasMembership}
               />
               <button
                 type="submit"
-                disabled={isBusy || coupleState.status === 'active'}
+                disabled={isBusy || hasMembership}
                 className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
               >
                 {isSubmitting ? 'Đang xử lý...' : 'Join couple'}

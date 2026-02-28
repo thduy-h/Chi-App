@@ -222,6 +222,10 @@ export type Database = {
         }
         Returns: string | null
       }
+      get_my_membership: {
+        Args: Record<string, never>
+        Returns: string | { couple_id?: string | null; id?: string | null } | null
+      }
       leave_couple: {
         Args: {
           p_couple_id: string
