@@ -100,7 +100,7 @@ export type Database = {
           type: 'income' | 'expense'
           amount: number
           category: string
-          date: string
+          entry_date: string
           note: string | null
           created_at: string | null
           updated_at: string | null
@@ -111,7 +111,7 @@ export type Database = {
           type: 'income' | 'expense'
           amount: number
           category: string
-          date: string
+          entry_date: string
           note?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -122,7 +122,7 @@ export type Database = {
           type?: 'income' | 'expense'
           amount?: number
           category?: string
-          date?: string
+          entry_date?: string
           note?: string | null
           created_at?: string | null
           updated_at?: string | null

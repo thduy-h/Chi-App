@@ -52,6 +52,33 @@ const createId = () =>
       return value.toString(16)
     })
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+const toIsoDateString = (value: string) => {
+  const trimmed = String(value || '').trim()
+  if (ISO_DATE_PATTERN.test(trimmed)) {
+    return trimmed
+  }
+
+  const parsed = new Date(trimmed)
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed.toISOString().slice(0, 10)
+  }
+
+  return getToday()
+}
+
+const logFinanceQueryError = (context: string, error: unknown) => {
+  const candidate = error as {
+    message?: string | null
+    details?: string | null
+    code?: string | null
+  }
+  console.error(`[finance/${context}] ${candidate?.message ?? 'unknown error'}`, {
+    details: candidate?.details ?? null,
+    code: candidate?.code ?? null
+  })
+}
 
 const sanitizeType = (value: unknown): EntryType | null => {
   if (value === 'income' || value === 'expense') return value
@@ -60,11 +87,11 @@ const sanitizeType = (value: unknown): EntryType | null => {
 
 const normalizeEntry = (value: unknown): FinanceEntry | null => {
   if (!value || typeof value !== 'object') return null
-  const raw = value as Partial<FinanceEntry>
+  const raw = value as Partial<FinanceEntry> & { entry_date?: unknown }
   const type = sanitizeType(raw.type)
   const amount = Number(raw.amount)
   const category = String(raw.category || '').trim()
-  const date = String(raw.date || '').trim()
+  const date = String(raw.date || raw.entry_date || '').trim()
 
   if (!type || !Number.isFinite(amount) || amount <= 0 || !category || !date) return null
 
@@ -84,7 +111,7 @@ const mapRowToEntry = (row: FinanceRow): FinanceEntry => ({
   type: row.type,
   amount: Number(row.amount),
   category: row.category,
-  date: row.date,
+  date: row.entry_date,
   note: row.note ?? undefined,
   createdAt: row.created_at ?? new Date().toISOString()
 })
@@ -215,11 +242,11 @@ export const FinanceDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('finance_entries')
-        .select('id, couple_id, type, amount, category, date, note, created_at, updated_at')
+        .select('id, couple_id, type, amount, category, entry_date, note, created_at, updated_at')
         .eq('couple_id', activeCoupleId)
-        .gte('date', range.from)
-        .lte('date', range.to)
-        .order('date', { ascending: false })
+        .gte('entry_date', range.from)
+        .lte('entry_date', range.to)
+        .order('entry_date', { ascending: false })
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -228,7 +255,7 @@ export const FinanceDashboard = () => {
 
       setEntries((data || []).map((row) => mapRowToEntry(row as FinanceRow)))
     } catch (error) {
-      console.error('[finance/loadSupabaseEntries] failed', error)
+      logFinanceQueryError('load_entries', error)
       dispatch(
         setAlert({
           title: 'Load failed',
@@ -427,7 +454,7 @@ export const FinanceDashboard = () => {
         type: entry.type,
         amount: entry.amount,
         category: entry.category,
-        date: entry.date,
+        entry_date: toIsoDateString(entry.date),
         note: entry.note ?? null
       },
       { onConflict: 'id' }
@@ -461,7 +488,7 @@ export const FinanceDashboard = () => {
         type: entry.type,
         amount: entry.amount,
         category: entry.category,
-        date: entry.date,
+        entry_date: toIsoDateString(entry.date),
         note: entry.note ?? null
       }))
 
@@ -510,7 +537,7 @@ export const FinanceDashboard = () => {
         })
       )
     } catch (error) {
-      console.error('[finance/handleImportOfflineToCloud] failed', error)
+      logFinanceQueryError('import_offline', error)
       dispatch(
         setAlert({
           title: 'Import that bai',
@@ -544,7 +571,7 @@ export const FinanceDashboard = () => {
       type,
       amount: amountValue,
       category: category.trim(),
-      date,
+      date: toIsoDateString(date),
       note: note.trim() || undefined,
       createdAt: existing?.createdAt || new Date().toISOString()
     }
@@ -569,7 +596,8 @@ export const FinanceDashboard = () => {
           type: 'success'
         })
       )
-    } catch {
+    } catch (error) {
+      logFinanceQueryError('upsert_entry', error)
       setEntries(previousEntries)
       dispatch(
         setAlert({
@@ -599,7 +627,8 @@ export const FinanceDashboard = () => {
           type: 'info'
         })
       )
-    } catch {
+    } catch (error) {
+      logFinanceQueryError('delete_entry', error)
       setEntries(previousEntries)
       dispatch(
         setAlert({
@@ -670,7 +699,8 @@ export const FinanceDashboard = () => {
           type: 'success'
         })
       )
-    } catch {
+    } catch (error) {
+      logFinanceQueryError('import_json', error)
       dispatch(
         setAlert({
           title: 'Nhap du lieu that bai',
