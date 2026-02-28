@@ -75,6 +75,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     email: initialEmail || null
   })
   const [hasAccessToken, setHasAccessToken] = useState(false)
+  const [isCheckingWhoami, setIsCheckingWhoami] = useState(false)
+  const [whoamiJson, setWhoamiJson] = useState('')
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
@@ -303,16 +305,101 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         'error.details': diagnosticsError.details,
         'error.hint': diagnosticsError.hint
       })
+      const fullErrorForToast = [
+        `error.code: ${diagnosticsError.code}`,
+        `error.message: ${diagnosticsError.message}`,
+        `error.details: ${diagnosticsError.details ?? 'null'}`,
+        `error.hint: ${diagnosticsError.hint ?? 'null'}`
+      ].join(' | ')
 
       dispatch(
         setAlert({
           type: 'error',
           title: 'Create failed',
-          message: `${diagnosticsError.message} (code: ${diagnosticsError.code})`
+          message: fullErrorForToast
         })
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const onCheckWhoami = async () => {
+    try {
+      setIsCheckingWhoami(true)
+      const rpcContextLabel = 'client-component:createBrowserClient'
+
+      if (!supabase) {
+        setWhoamiJson(
+          JSON.stringify(
+            {
+              error: {
+                code: 'missing_env',
+                message: 'Supabase env is missing',
+                details: null,
+                hint: null
+              }
+            },
+            null,
+            2
+          )
+        )
+        return
+      }
+
+      console.debug('[setup/whoami] rpc context label:', rpcContextLabel)
+
+      const { data, error } = await supabase.rpc('whoami')
+      if (error) {
+        const diagnosticsError = mapCreateError(error, 'whoami failed')
+        console.error('[setup/whoami] rpc error:', {
+          'error.code': diagnosticsError.code,
+          'error.message': diagnosticsError.message,
+          'error.details': diagnosticsError.details,
+          'error.hint': diagnosticsError.hint
+        })
+        setWhoamiJson(
+          JSON.stringify(
+            {
+              error: {
+                code: diagnosticsError.code,
+                message: diagnosticsError.message,
+                details: diagnosticsError.details,
+                hint: diagnosticsError.hint
+              }
+            },
+            null,
+            2
+          )
+        )
+        return
+      }
+
+      setWhoamiJson(JSON.stringify(data ?? null, null, 2))
+    } catch (error) {
+      const diagnosticsError = mapCreateError(error, 'whoami failed')
+      console.error('[setup/whoami] unexpected error:', {
+        'error.code': diagnosticsError.code,
+        'error.message': diagnosticsError.message,
+        'error.details': diagnosticsError.details,
+        'error.hint': diagnosticsError.hint
+      })
+      setWhoamiJson(
+        JSON.stringify(
+          {
+            error: {
+              code: diagnosticsError.code,
+              message: diagnosticsError.message,
+              details: diagnosticsError.details,
+              hint: diagnosticsError.hint
+            }
+          },
+          null,
+          2
+        )
+      )
+    } finally {
+      setIsCheckingWhoami(false)
     }
   }
 
@@ -411,6 +498,19 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 User: {authUser.email ?? 'unknown'} ({authUser.id ?? 'unknown'})
               </p>
               <p className="mt-1">Session access_token: {String(hasAccessToken)}</p>
+              <button
+                type="button"
+                onClick={onCheckWhoami}
+                disabled={isCheckingWhoami}
+                className="mt-2 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-rose-700 dark:bg-gray-900 dark:text-rose-200 dark:hover:bg-gray-700"
+              >
+                {isCheckingWhoami ? 'Checking...' : 'Check whoami'}
+              </button>
+              {whoamiJson ? (
+                <pre className="mt-2 overflow-x-auto rounded-md border border-rose-100 bg-white/90 p-2 text-[11px] leading-relaxed text-gray-700 dark:border-rose-900/50 dark:bg-gray-900 dark:text-gray-200">
+                  {whoamiJson}
+                </pre>
+              ) : null}
             </div>
             <button
               type="button"
