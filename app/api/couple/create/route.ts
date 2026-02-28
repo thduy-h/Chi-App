@@ -22,6 +22,7 @@ export async function POST() {
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    console.debug('[couple/create] current user id:', user.id)
 
     const existing = await getCurrentCoupleForUser(supabase, user.id)
     if (existing.coupleId && existing.coupleCode) {
@@ -53,6 +54,7 @@ export async function POST() {
     if (!couple) {
       return NextResponse.json({ error: lastErrorMessage }, { status: 500 })
     }
+    console.debug('[couple/create] created couple row:', couple)
 
     const { error: membershipError } = await supabase
       .from('couple_members')
