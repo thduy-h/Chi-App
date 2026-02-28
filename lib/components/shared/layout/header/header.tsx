@@ -1,8 +1,8 @@
 'use client'
 import { Logo } from '@/lib/components/shared/logo'
 import { Cart } from '@/lib/components/shared/cart'
-import { UserMenu } from '@/lib/components/shared/layout/header/user-menu'
 import { DarkModeToggle } from '@/lib/components/shared/layout/header/dark-mode-toggle';
+import { CoupleAuthWidget } from '@/lib/components/shared/layout/header/couple-auth-widget';
 import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
@@ -48,9 +48,15 @@ export const Header = () => {
 					</div>
 
 					<div className="flex items-center gap-1 sm:gap-2">
+						<CoupleAuthWidget />
+						<Link
+							href="/auth"
+							className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-200 md:hidden"
+						>
+							Auth
+						</Link>
 						<DarkModeToggle></DarkModeToggle>
 						<Cart />
-						<UserMenu />
 
 						<button
 							onClick={() => setIsMenuOpen(!isMenuOpen)}
