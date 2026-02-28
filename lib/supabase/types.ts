@@ -225,10 +225,6 @@ export type Database = {
         }
         Returns: string | { code?: string | null; new_code?: string | null } | null
       }
-      whoami: {
-        Args: Record<string, never>
-        Returns: Json
-      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
