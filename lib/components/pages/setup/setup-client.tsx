@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -11,7 +11,6 @@ import {
   clearActiveCoupleCache,
   generateCoupleCode,
   normalizeCoupleCode,
-  readActiveCoupleCache,
   selectCoupleById
 } from '@/lib/supabase/couples'
 
@@ -19,6 +18,11 @@ interface CouplePayload {
   id: string
   code: string
 }
+
+type CoupleState =
+  | { status: 'loading' }
+  | { status: 'none' }
+  | { status: 'active'; coupleId: string; code: string; isOwner: boolean }
 
 interface SetupClientProps {
   initialEmail: string
@@ -126,295 +130,175 @@ function parseCreatedCouple(payload: unknown): CouplePayload | null {
   return null
 }
 
+function isSameCoupleState(current: CoupleState, next: CoupleState) {
+  if (current.status !== next.status) {
+    return false
+  }
+
+  if (current.status !== 'active' || next.status !== 'active') {
+    return true
+  }
+
+  return (
+    current.coupleId === next.coupleId &&
+    current.code === next.code &&
+    current.isOwner === next.isOwner
+  )
+}
+
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const router = useRouter()
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   const [email, setEmail] = useState(initialEmail)
-  const [activeCouple, setActiveCouple] = useState<CouplePayload | null>(initialCouple)
-  const [joinCode, setJoinCode] = useState('')
-  const [source, setSource] = useState<'server' | 'cache'>('server')
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [authUser, setAuthUser] = useState<{ id: string | null; email: string | null }>({
     id: null,
     email: initialEmail || null
   })
   const [hasAccessToken, setHasAccessToken] = useState(false)
-  const [isCoupleOwner, setIsCoupleOwner] = useState(false)
+  const [coupleState, setCoupleState] = useState<CoupleState>({ status: 'loading' })
+  const [joinCode, setJoinCode] = useState('')
+  const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
+
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLeavingCouple, setIsLeavingCouple] = useState(false)
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
   const [isResettingCouple, setIsResettingCouple] = useState(false)
   const [isRotatingCoupleCode, setIsRotatingCoupleCode] = useState(false)
-  const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
-  const [createWhoamiResult, setCreateWhoamiResult] = useState<string>('')
-  const [recentCreatedCouple, setRecentCreatedCouple] = useState<CouplePayload | null>(null)
 
-  const hasCouple = Boolean(activeCouple?.id && activeCouple?.code)
-  const memberCoupleId = activeCouple?.id ?? null
+  const activeCouple = coupleState.status === 'active' ? coupleState : null
+  const isBusy =
+    isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple || isRotatingCoupleCode
 
-  const loadActiveCouple = useCallback(async (options?: { initial?: boolean; preferCouple?: CouplePayload | null }) => {
-    const isInitial = Boolean(options?.initial)
-    const preferCouple = options?.preferCouple ?? null
-    if (isInitial) {
-      setIsInitialLoading(true)
-    }
+  const applyCoupleState = useCallback((next: CoupleState) => {
+    setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
+  }, [])
 
-    if (!supabase) {
-      setActiveCouple(preferCouple)
-      setIsCoupleOwner(false)
-      if (!preferCouple) {
-        clearActiveCoupleCache()
-      }
+  const loadCoupleState = useCallback(
+    async (options?: { initial?: boolean; expectedCoupleId?: string | null }) => {
+      const isInitial = Boolean(options?.initial)
+      const expectedCoupleId = options?.expectedCoupleId ?? null
+
       if (isInitial) {
-        setIsInitialLoading(false)
-      }
-      return
-    }
-
-    try {
-      setIsRefreshing(true)
-      const [{ data: userData, error: userError }, { data: sessionData, error: sessionError }] =
-        await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
-
-      if (sessionError) {
-        console.error('[setup/loadActiveCouple] getSession error:', sessionError)
-      }
-      setHasAccessToken(Boolean(sessionData.session?.access_token))
-
-      const user = userData.user
-      if (userError || !user) {
-        setAuthUser({
-          id: null,
-          email: initialEmail || null
-        })
-        setEmail(initialEmail || '')
-        if (preferCouple) {
-          setActiveCouple(preferCouple)
-          cacheActiveCouple(preferCouple)
-          setSource('cache')
-        } else {
-          setActiveCouple(null)
-          setRecentCreatedCouple(null)
-          clearActiveCoupleCache()
-          setSource('server')
-        }
-        setIsCoupleOwner(false)
-        return
+        applyCoupleState({ status: 'loading' })
       }
 
-      setAuthUser({
-        id: user.id,
-        email: user.email ?? null
-      })
-      if (user.email) {
-        setEmail(user.email)
-      }
-
-      const { data: membership, error: membershipError } = await supabase
-        .from('couple_members')
-        .select('couple_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle()
-
-      if (membershipError) {
-        throw mapCreateError(membershipError, 'Unable to load current membership')
-      }
-
-      const currentCoupleId = membership?.couple_id ?? null
-      if (!currentCoupleId) {
-        if (preferCouple) {
-          setActiveCouple(preferCouple)
-          cacheActiveCouple(preferCouple)
-          setSource('cache')
-        } else {
-          setActiveCouple(null)
-          setRecentCreatedCouple(null)
-          clearActiveCoupleCache()
-          setSource('server')
-        }
-        setIsCoupleOwner(false)
-        return
-      }
-
-      const couple = await selectCoupleById(supabase, currentCoupleId, 'SetupClient.loadActiveCouple')
-      if (!couple) {
-        if (preferCouple && preferCouple.id === currentCoupleId) {
-          setActiveCouple(preferCouple)
-          cacheActiveCouple(preferCouple)
-          setSource('cache')
-        } else {
-          setActiveCouple(null)
-          setRecentCreatedCouple(null)
-          clearActiveCoupleCache()
-          setSource('server')
-        }
-        setIsCoupleOwner(false)
-        return
-      }
-
-      const nextCouple = {
-        id: couple.id,
-        code: couple.code
-      }
-      setActiveCouple((previous) =>
-        previous && previous.id === nextCouple.id && previous.code === nextCouple.code
-          ? previous
-          : nextCouple
-      )
-      setIsCoupleOwner(Boolean(couple.created_by && couple.created_by === user.id))
-      cacheActiveCouple(nextCouple)
-      setSource('server')
-    } catch {
-      const cached = readActiveCoupleCache()
-      if (cached) {
-        setActiveCouple({
-          id: cached.id,
-          code: cached.code ?? 'unknown'
-        })
-        setSource('cache')
-      } else if (preferCouple) {
-        setActiveCouple(preferCouple)
-        cacheActiveCouple(preferCouple)
-        setSource('cache')
-      } else {
-        setActiveCouple(null)
-        setRecentCreatedCouple(null)
-        setSource('server')
-      }
-      setIsCoupleOwner(false)
-    } finally {
-      setIsRefreshing(false)
-      if (isInitial) {
-        setIsInitialLoading(false)
-      }
-    }
-  }, [supabase, initialEmail])
-
-  const refreshMembershipFromCoupleMembers = useCallback(
-    async (userId: string) => {
       if (!supabase) {
-        throw mapCreateError(null, 'Supabase env is missing')
+        if (isInitial) {
+          applyCoupleState({ status: 'none' })
+        }
+        return null
       }
 
-      const { data: membership, error: membershipError } = await supabase
-        .from('couple_members')
-        .select('couple_id')
-        .eq('user_id', userId)
-        .limit(1)
-        .maybeSingle()
+      try {
+        setIsRefreshing(true)
 
-      if (membershipError) {
-        throw mapCreateError(membershipError, 'Unable to refresh membership from couple_members')
+        const [{ data: userData, error: userError }, { data: sessionData, error: sessionError }] =
+          await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
+
+        if (sessionError) {
+          console.error('[setup/loadCoupleState] getSession error:', sessionError)
+        }
+        setHasAccessToken(Boolean(sessionData.session?.access_token))
+
+        const user = userData.user
+        if (userError || !user) {
+          setAuthUser({ id: null, email: initialEmail || null })
+          setEmail(initialEmail || '')
+          if (!expectedCoupleId) {
+            applyCoupleState({ status: 'none' })
+          }
+          clearActiveCoupleCache()
+          return { status: 'none' } as CoupleState
+        }
+
+        setAuthUser({ id: user.id, email: user.email ?? null })
+        if (user.email) {
+          setEmail(user.email)
+        }
+
+        const { data: membership, error: membershipError } = await supabase
+          .from('couple_members')
+          .select('couple_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle()
+
+        if (membershipError) {
+          throw mapCreateError(membershipError, 'Unable to load current membership')
+        }
+
+        if (!membership?.couple_id) {
+          if (!expectedCoupleId) {
+            applyCoupleState({ status: 'none' })
+          }
+          clearActiveCoupleCache()
+          return { status: 'none' } as CoupleState
+        }
+
+        const couple = await selectCoupleById(supabase, membership.couple_id, 'SetupClient.loadCoupleState')
+        if (!couple) {
+          if (!expectedCoupleId) {
+            applyCoupleState({ status: 'none' })
+          }
+          clearActiveCoupleCache()
+          return { status: 'none' } as CoupleState
+        }
+
+        const nextState: CoupleState = {
+          status: 'active',
+          coupleId: couple.id,
+          code: couple.code,
+          isOwner: Boolean(couple.created_by && couple.created_by === user.id)
+        }
+
+        cacheActiveCouple({ id: couple.id, code: couple.code })
+
+        if (!expectedCoupleId || expectedCoupleId === nextState.coupleId) {
+          applyCoupleState(nextState)
+        }
+
+        return nextState
+      } catch (error) {
+        console.error('[setup/loadCoupleState] failed:', mapCreateError(error, 'Unable to load couple state'))
+        if (isInitial) {
+          applyCoupleState({ status: 'none' })
+        }
+        return null
+      } finally {
+        setIsRefreshing(false)
       }
-
-      if (!membership?.couple_id) {
-        throw mapCreateError(
-          {
-            code: 'membership_missing',
-            message: 'Join succeeded but no membership found',
-            details: 'couple_members row for current user was not found after join',
-            hint: 'Check RLS policy and RPC transaction behavior.'
-          },
-          'Unable to verify joined membership'
-        )
-      }
-
-      return membership.couple_id
     },
-    [supabase]
+    [applyCoupleState, initialEmail, supabase]
   )
 
   useEffect(() => {
     if (initialCouple) {
       cacheActiveCouple(initialCouple)
     }
-    void loadActiveCouple({ initial: true, preferCouple: initialCouple })
-  }, [initialCouple, loadActiveCouple])
-
-  useEffect(() => {
-    if (!supabase) {
-      return
-    }
-
-    let isMounted = true
-
-    const loadDiagnostics = async () => {
-      const [{ data: userData, error: userError }, { data: sessionData, error: sessionError }] =
-        await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
-
-      if (!isMounted) {
-        return
-      }
-
-      if (userError) {
-        const diagnosticsError = mapCreateError(userError, 'Unable to load auth user')
-        console.error('[setup/diagnostics] getUser error:', diagnosticsError)
-      }
-
-      if (sessionError) {
-        const diagnosticsError = mapCreateError(sessionError, 'Unable to load auth session')
-        console.error('[setup/diagnostics] getSession error:', diagnosticsError)
-      }
-
-      const user = userData.user
-      setAuthUser({
-        id: user?.id ?? null,
-        email: user?.email ?? (initialEmail || null)
-      })
-      setHasAccessToken(Boolean(sessionData.session?.access_token))
-
-      if (user?.email) {
-        setEmail(user.email)
-      }
-
-      if (user?.id) {
-        console.debug(
-          '[setup/diagnostics] create path:',
-          'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> rpc(create_couple)'
-        )
-        console.debug(
-          '[setup/diagnostics] skipping public.couples diagnostics query until membership is confirmed'
-        )
-      }
-    }
-
-    void loadDiagnostics()
-
-    return () => {
-      isMounted = false
-    }
-  }, [initialEmail, supabase])
+    void loadCoupleState({ initial: true })
+  }, [initialCouple, loadCoupleState])
 
   const onCreateCouple = async () => {
-    let whoamiSnapshot = ''
     try {
       setIsSubmitting(true)
-      setCreateWhoamiResult('')
-      const insertContextLabel = 'client-component:createSupabaseBrowserClient'
-      const createPathLabel =
-        'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> rpc(create_couple)'
 
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
-      let supabaseHostname = 'invalid-url'
-      try {
-        supabaseHostname = new URL(supabaseUrl).hostname
-      } catch {
-        supabaseHostname = 'invalid-url'
+      if (coupleState.status === 'active') {
+        dispatch(
+          setAlert({
+            type: 'info',
+            title: 'Thông tin',
+            message: 'Bạn đã có couple.'
+          })
+        )
+        return
       }
-      const maskedAnonKeyPreview = supabaseAnonKey ? `${supabaseAnonKey.slice(0, 20)}***` : 'missing'
-      console.debug('[setup/create] supabase env check:', {
-        hostname: supabaseHostname,
-        anonKeyMaskedPrefix: maskedAnonKeyPreview
-      })
 
       const {
         data: { user },
@@ -430,8 +314,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(sessionError, 'Unable to load auth session')
       }
 
-      const accessToken = sessionData.session?.access_token
-      if (!accessToken) {
+      if (!sessionData.session?.access_token) {
         throw mapCreateError(
           {
             code: 'missing_access_token',
@@ -442,164 +325,70 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           'Missing access token in Supabase session'
         )
       }
+
       setHasAccessToken(true)
 
-      console.debug('[setup/create] current user id:', user.id)
-      console.debug('[setup/create] session access_token exists:', Boolean(sessionData.session?.access_token))
-      console.debug('[setup/create] insert context label:', insertContextLabel)
-      console.debug('[setup/create] path:', createPathLabel)
+      let createdCouple: CouplePayload | null = null
+      let lastCreateError: CreateDiagnosticsError | null = null
 
-      setAuthUser((previous) => ({
-        id: user.id,
-        email: user.email ?? previous.email
-      }))
-
-      if (user.email) {
-        setEmail(user.email)
-      }
-
-      if (activeCouple?.id && activeCouple?.code) {
-        dispatch(
-          setAlert({
-            type: 'info',
-            title: 'Da co couple',
-            message: `Ma couple hien tai: ${activeCouple.code}`
-          })
-        )
-        return
-      }
-
-      const { data: existingMembership, error: existingMembershipError } = await supabase
-        .from('couple_members')
-        .select('couple_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle()
-
-      if (existingMembershipError) {
-        throw mapCreateError(existingMembershipError, 'Unable to check existing membership')
-      }
-
-      if (existingMembership?.couple_id) {
-        setRecentCreatedCouple(null)
-        await loadActiveCouple()
-        dispatch(
-          setAlert({
-            type: 'info',
-            title: 'Da co couple',
-            message: 'Ban da co couple dang hoat dong.'
-          })
-        )
-        return
-      }
-
-      const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami')
-      if (whoamiError) {
-        const whoamiMappedError = mapCreateError(whoamiError, 'Unable to resolve whoami role')
-        whoamiSnapshot = JSON.stringify(
-          {
-            error: {
-              code: whoamiMappedError.code,
-              message: whoamiMappedError.message,
-              details: whoamiMappedError.details,
-              hint: whoamiMappedError.hint
-            }
-          },
-          null,
-          2
-        )
-        console.error('[setup/create] whoami error:', {
-          'error.code': whoamiMappedError.code,
-          'error.message': whoamiMappedError.message,
-          'error.details': whoamiMappedError.details,
-          'error.hint': whoamiMappedError.hint
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const code = generateCoupleCode()
+        const { data, error } = await supabase.rpc('create_couple', {
+          p_code: code
         })
-      } else {
-        whoamiSnapshot = JSON.stringify(whoamiData ?? null, null, 2)
-        console.debug('[setup/create] whoami result:', whoamiData ?? null)
-      }
-      setCreateWhoamiResult(whoamiSnapshot)
 
-      const code = generateCoupleCode()
-      console.debug('[setup/create] couples insert context:', insertContextLabel)
-      console.debug('[setup/create] insert target:', 'rpc:create_couple')
-      const { data: createData, error: createError } = await supabase.rpc('create_couple', {
-        p_code: code
-      })
-      if (createError) {
-        const mappedCreateError = mapCreateError(createError, 'Unable to create couple')
-        console.error('[setup/create] create_couple rpc error:', {
-          'error.message': mappedCreateError.message,
-          'error.code': mappedCreateError.code,
-          'error.details': mappedCreateError.details,
-          'error.hint': mappedCreateError.hint
-        })
-        throw mappedCreateError
+        if (error) {
+          lastCreateError = mapCreateError(error, 'Unable to create couple')
+          continue
+        }
+
+        const parsed = parseCreatedCouple(data)
+        if (!parsed) {
+          lastCreateError = mapCreateError(
+            {
+              code: 'invalid_rpc_payload',
+              message: 'create_couple did not return {id, code}',
+              details: JSON.stringify(data ?? null),
+              hint: 'Ensure RPC create_couple returns a single row/object with id and code.'
+            },
+            'Unable to parse create_couple result'
+          )
+          continue
+        }
+
+        createdCouple = parsed
+        break
       }
 
-      const createdCouple = parseCreatedCouple(createData)
       if (!createdCouple) {
-        throw mapCreateError(
-          {
-            code: 'invalid_rpc_payload',
-            message: 'create_couple did not return {id, code}',
-            details: JSON.stringify(createData ?? null),
-            hint: 'Ensure RPC create_couple returns a single row/object with id and code.'
-          },
-          'Unable to parse create_couple result'
-        )
+        throw lastCreateError ?? mapCreateError(null, 'Unable to create couple')
       }
 
-      console.debug('[setup/create] created couple row:', createdCouple)
-      console.debug('[setup/create] couple insert success:', { coupleId: createdCouple.id })
-
-      const { error: membershipCreateError } = await supabase
-        .from('couple_members')
-        .insert({ couple_id: createdCouple.id, user_id: user.id })
-
-      if (membershipCreateError) {
-        throw mapCreateError(membershipCreateError, 'Unable to create membership')
-      }
-      console.debug('[setup/create] membership insert success:', {
+      applyCoupleState({
+        status: 'active',
         coupleId: createdCouple.id,
-        userId: user.id
+        code: createdCouple.code,
+        isOwner: true
       })
-
-      setActiveCouple(createdCouple)
-      setIsCoupleOwner(true)
-      setLatestRotatedCode(createdCouple.code)
-      setRecentCreatedCouple(createdCouple)
       cacheActiveCouple(createdCouple)
-      setSource('server')
-      await loadActiveCouple({ preferCouple: createdCouple })
+      setLatestRotatedCode(null)
+
+      void loadCoupleState({ expectedCoupleId: createdCouple.id })
+
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Couple created',
-          message: `Mã ghép đôi của bạn là ${createdCouple.code}`
+          title: 'Tạo couple thành công',
+          message: `Mã couple của bạn là ${createdCouple.code}`
         })
       )
     } catch (error) {
-      const diagnosticsError = mapCreateError(error, 'Unable to create couple')
-      console.error('[setup/create] failed:', {
-        'error.message': diagnosticsError.message,
-        'error.code': diagnosticsError.code,
-        'error.details': diagnosticsError.details,
-        'error.hint': diagnosticsError.hint
-      })
-      const fullErrorForToast = [
-        `error.code: ${diagnosticsError.code}`,
-        `error.message: ${diagnosticsError.message}`,
-        `error.details: ${diagnosticsError.details ?? 'null'}`,
-        `error.hint: ${diagnosticsError.hint ?? 'null'}`,
-        `whoami: ${whoamiSnapshot || createWhoamiResult || 'not_available'}`
-      ].join(' | ')
-
+      const createError = mapCreateError(error, 'Unable to create couple')
       dispatch(
         setAlert({
           type: 'error',
           title: 'Create failed',
-          message: fullErrorForToast
+          message: `${createError.message} (${createError.code})`
         })
       )
     } finally {
@@ -623,23 +412,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
     try {
       setIsSubmitting(true)
+
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
-      }
-
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError) {
-        throw mapCreateError(sessionError, 'Unable to load auth session')
-      }
-
-      if (!sessionData.session?.access_token) {
-        throw new Error('Ban can dang nhap lai de join couple.')
       }
 
       const {
         data: { user },
         error: userError
       } = await supabase.auth.getUser()
+
       if (userError || !user) {
         throw mapCreateError(userError, 'Unable to resolve current user for join flow')
       }
@@ -652,27 +434,39 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         throw new Error(
           invalidCode
-            ? 'Ma couple khong hop le. Vui long kiem tra lai.'
+            ? 'Mã couple không hợp lệ. Vui lòng kiểm tra lại.'
             : `${joinError.message} (${joinError.code})`
         )
       }
 
       const joinedCoupleId = parseJoinedCoupleId(data)
       if (!joinedCoupleId) {
-        throw new Error('Ma couple khong hop le. Vui long kiem tra lai.')
+        throw new Error('Mã couple không hợp lệ. Vui lòng kiểm tra lại.')
       }
 
-      console.debug('[setup/join] rpc join_by_code result:', { coupleId: joinedCoupleId })
-      const membershipCoupleId = await refreshMembershipFromCoupleMembers(user.id)
-      console.debug('[setup/join] refreshed membership couple_id:', membershipCoupleId)
+      const joinedCouple = await selectCoupleById(
+        supabase,
+        joinedCoupleId,
+        'SetupClient.onJoinCouple optimistic'
+      )
+      if (joinedCouple) {
+        applyCoupleState({
+          status: 'active',
+          coupleId: joinedCouple.id,
+          code: joinedCouple.code,
+          isOwner: Boolean(joinedCouple.created_by && joinedCouple.created_by === user.id)
+        })
+        cacheActiveCouple({ id: joinedCouple.id, code: joinedCouple.code })
+      }
+
       setJoinCode('')
-      setRecentCreatedCouple(null)
-      await loadActiveCouple()
+      void loadCoupleState({ expectedCoupleId: joinedCoupleId })
+
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Joined successfully',
-          message: 'Da join couple thanh cong va da lam moi trang thai.'
+          title: 'Join thành công',
+          message: 'Đã tham gia couple thành công.'
         })
       )
     } catch (error) {
@@ -689,32 +483,32 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   }
 
   const onLeaveCouple = async () => {
-    if (!memberCoupleId) {
+    if (coupleState.status !== 'active') {
       return
     }
 
     try {
       setIsLeavingCouple(true)
+
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      const { error } = await supabase.rpc('leave_couple', { p_couple_id: memberCoupleId })
+      const { error } = await supabase.rpc('leave_couple', { p_couple_id: coupleState.coupleId })
       if (error) {
         throw mapCreateError(error, 'Unable to leave couple')
       }
 
       clearActiveCoupleCache()
-      setActiveCouple(null)
-      setRecentCreatedCouple(null)
-      setIsCoupleOwner(false)
-      setSource('server')
-      await loadActiveCouple()
+      applyCoupleState({ status: 'none' })
+      setLatestRotatedCode(null)
+      void loadCoupleState()
+
       dispatch(
         setAlert({
           type: 'success',
           title: 'Leave successful',
-          message: 'Ban da roi couple.'
+          message: 'Bạn đã rời couple.'
         })
       )
     } catch (error) {
@@ -732,12 +526,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   }
 
   const onDeleteCouple = async () => {
-    if (!memberCoupleId) {
+    if (coupleState.status !== 'active' || !coupleState.isOwner) {
       return
     }
 
     const confirmed = window.confirm(
-      'XOA COUPLE se xoa du lieu lien quan. Hanh dong nay KHONG THE HOAN TAC. Ban chac chan?'
+      'XÓA COUPLE sẽ xóa dữ liệu liên quan. Hành động này KHÔNG THỂ HOÀN TÁC. Bạn chắc chắn?'
     )
     if (!confirmed) {
       return
@@ -745,26 +539,26 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
     try {
       setIsDeletingCouple(true)
+
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      const { error } = await supabase.rpc('delete_my_couple', { p_couple_id: memberCoupleId })
+      const { error } = await supabase.rpc('delete_my_couple', { p_couple_id: coupleState.coupleId })
       if (error) {
         throw mapCreateError(error, 'Unable to delete couple')
       }
 
       clearActiveCoupleCache()
-      setActiveCouple(null)
-      setRecentCreatedCouple(null)
-      setIsCoupleOwner(false)
-      setSource('server')
-      await loadActiveCouple()
+      applyCoupleState({ status: 'none' })
+      setLatestRotatedCode(null)
+      void loadCoupleState()
+
       dispatch(
         setAlert({
           type: 'success',
           title: 'Delete successful',
-          message: 'Couple da duoc xoa.'
+          message: 'Couple đã được xóa.'
         })
       )
       router.replace('/setup')
@@ -813,57 +607,33 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (!sessionData.session?.access_token) {
-        throw new Error('Ban can dang nhap lai de reset couple.')
+        throw new Error('Bạn cần đăng nhập lại để reset couple.')
       }
 
-      const { data: membership, error: membershipError } = await supabase
-        .from('couple_members')
-        .select('couple_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle()
-
-      if (membershipError) {
-        throw mapCreateError(membershipError, 'Unable to load current couple membership')
-      }
-
-      const activeCoupleId = membership?.couple_id ?? null
-
-      if (activeCoupleId) {
-        let ownerForReset = isCoupleOwner
-        const coupleOwnerRow = await selectCoupleById(
-          supabase,
-          activeCoupleId,
-          'SetupClient.onResetCouple owner check'
-        )
-
-        if (coupleOwnerRow?.created_by) {
-          ownerForReset = coupleOwnerRow.created_by === user.id
-        }
-
-        if (ownerForReset) {
+      if (coupleState.status === 'active') {
+        if (coupleState.isOwner) {
           const confirmDelete = window.confirm(
-            'WARNING: Reset khi ban la owner se XOA TOAN BO du lieu chung cua couple hien tai. Hanh dong nay KHONG THE HOAN TAC. Tiep tuc?'
+            'CẢNH BÁO: Reset khi bạn là owner sẽ xóa toàn bộ dữ liệu chung của couple hiện tại. Tiếp tục?'
           )
           if (!confirmDelete) {
             return
           }
 
           const { error: deleteError } = await supabase.rpc('delete_my_couple', {
-            p_couple_id: activeCoupleId
+            p_couple_id: coupleState.coupleId
           })
           if (deleteError) {
             throw mapCreateError(deleteError, 'Unable to delete current couple')
           }
         } else {
-          const confirmLeave = window.confirm(
-            'Ban se roi couple hien tai va tao couple moi. Tiep tuc?'
-          )
+          const confirmLeave = window.confirm('Bạn sẽ rời couple hiện tại và tạo couple mới. Tiếp tục?')
           if (!confirmLeave) {
             return
           }
 
-          const { error: leaveError } = await supabase.rpc('leave_couple', { p_couple_id: activeCoupleId })
+          const { error: leaveError } = await supabase.rpc('leave_couple', {
+            p_couple_id: coupleState.coupleId
+          })
           if (leaveError) {
             throw mapCreateError(leaveError, 'Unable to leave current couple')
           }
@@ -911,20 +681,22 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         copied = false
       }
 
+      applyCoupleState({
+        status: 'active',
+        coupleId: createdCouple.id,
+        code: createdCouple.code,
+        isOwner: true
+      })
       cacheActiveCouple(createdCouple)
-      setActiveCouple(createdCouple)
-      setRecentCreatedCouple(createdCouple)
-      setIsCoupleOwner(true)
-      setSource('server')
-      await loadActiveCouple({ preferCouple: createdCouple })
+      setLatestRotatedCode(null)
+
+      void loadCoupleState({ expectedCoupleId: createdCouple.id })
 
       dispatch(
         setAlert({
           type: 'success',
           title: 'Reset completed',
-          message: copied
-            ? `Couple moi: ${createdCouple.code} (da copy)`
-            : `Couple moi: ${createdCouple.code}`
+          message: copied ? `Couple mới: ${createdCouple.code} (đã copy)` : `Couple mới: ${createdCouple.code}`
         })
       )
     } catch (error) {
@@ -942,23 +714,23 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   }
 
   const onRotateCoupleCode = async () => {
-    if (!memberCoupleId) {
+    if (coupleState.status !== 'active') {
       return
     }
 
-    if (!isCoupleOwner) {
+    if (!coupleState.isOwner) {
       dispatch(
         setAlert({
           type: 'warning',
           title: 'Not allowed',
-          message: 'Chi nguoi tao couple moi doi ma.'
+          message: 'Chỉ người tạo couple mới đổi mã.'
         })
       )
       return
     }
 
     const confirmed = window.confirm(
-      'Doi ma couple? Ma cu se KHONG con hop le. Du lieu chung van duoc giu nguyen.'
+      'Đổi mã couple? Mã cũ sẽ KHÔNG còn hợp lệ. Dữ liệu chung vẫn được giữ nguyên.'
     )
     if (!confirmed) {
       return
@@ -970,7 +742,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      const { data, error } = await supabase.rpc('rotate_couple_code', { p_couple_id: memberCoupleId })
+      const { data, error } = await supabase.rpc('rotate_couple_code', { p_couple_id: coupleState.coupleId })
       if (error) {
         throw mapCreateError(error, 'Unable to rotate couple code')
       }
@@ -989,33 +761,24 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       setLatestRotatedCode(newCode)
-      setActiveCouple((previous) =>
-        previous
-          ? {
-              ...previous,
-              code: newCode
-            }
-          : {
-              id: memberCoupleId,
-              code: newCode
-            }
-      )
+      applyCoupleState({
+        status: 'active',
+        coupleId: coupleState.coupleId,
+        code: newCode,
+        isOwner: true
+      })
       cacheActiveCouple({
-        id: memberCoupleId,
+        id: coupleState.coupleId,
         code: newCode
       })
-      await loadActiveCouple({
-        preferCouple: {
-          id: memberCoupleId,
-          code: newCode
-        }
-      })
+
+      void loadCoupleState({ expectedCoupleId: coupleState.coupleId })
 
       dispatch(
         setAlert({
           type: 'success',
           title: 'Code updated',
-          message: copied ? `Ma moi: ${newCode} (da copy)` : `Ma moi: ${newCode}`
+          message: copied ? `Mã mới: ${newCode} (đã copy)` : `Mã mới: ${newCode}`
         })
       )
     } catch (error) {
@@ -1032,19 +795,11 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }
 
-  const statusText = useMemo(() => {
-    if (source === 'cache') {
-      return 'Hiển thị từ local cache. Server sẽ là nguồn chính khi có kết nối.'
-    }
-
-    return 'Đã đồng bộ từ server.'
-  }, [source])
-
-  if (isInitialLoading) {
+  if (coupleState.status === 'loading') {
     return (
       <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
         <div className="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
-          <p className="text-sm text-gray-600 dark:text-gray-300">Dang tai trang thai couple...</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Đang tải trạng thái couple...</p>
         </div>
       </section>
     )
@@ -1057,104 +812,70 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           Đăng nhập: <span className="font-medium">{email || 'unknown'}</span>
         </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{statusText}</p>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Session access_token: {String(hasAccessToken)}
+        </p>
 
         <div className="mt-5 rounded-xl border border-rose-100 bg-rose-50/70 p-4 dark:border-rose-900/40 dark:bg-gray-800">
           <p className="text-sm text-gray-700 dark:text-gray-200">
-            Trang thai:{' '}
+            Trạng thái:{' '}
             <span className="font-semibold text-rose-700 dark:text-rose-200">
-              {hasCouple ? 'Da ghep doi' : 'Chua ghep doi'}
+              {coupleState.status === 'active' ? 'Đã ghép đôi' : 'Chưa ghép đôi'}
             </span>
           </p>
-          {hasCouple && activeCouple ? (
+          {activeCouple ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sm text-gray-700 dark:text-gray-200">
-                Ma couple: <span className="font-semibold text-rose-700 dark:text-rose-200">{activeCouple.code}</span>
+                Mã couple: <span className="font-semibold text-rose-700 dark:text-rose-200">{activeCouple.code}</span>
               </span>
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(activeCouple.code)}
                 className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-800 dark:bg-gray-900 dark:text-rose-200 dark:hover:bg-gray-700"
               >
-                Copy ma
+                Copy mã
               </button>
             </div>
           ) : null}
         </div>
 
-
-        {recentCreatedCouple ? (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-800/60 dark:bg-emerald-900/10">
-            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">Tao couple thanh cong</p>
-            <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
-              Ma couple cua ban: <span className="font-semibold">{recentCreatedCouple.code}</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => void navigator.clipboard.writeText(recentCreatedCouple.code)}
-              className="mt-2 rounded-md border border-emerald-300 bg-white px-3 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-700 dark:bg-gray-900 dark:text-emerald-200 dark:hover:bg-gray-700"
-            >
-              Copy ma
-            </button>
-          </div>
-        ) : null}
-
-        {memberCoupleId ? (
+        {activeCouple ? (
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
-            <p className="text-xs text-gray-600 dark:text-gray-300">Couple ID: {memberCoupleId}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-300">Couple ID: {activeCouple.coupleId}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={onLeaveCouple}
-                disabled={
-                  isSubmitting ||
-                  isLeavingCouple ||
-                  isDeletingCouple ||
-                  isResettingCouple ||
-                  isRotatingCoupleCode
-                }
+                disabled={isBusy}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
               >
-                {isLeavingCouple ? 'Dang roi...' : 'Roi couple'}
+                {isLeavingCouple ? 'Đang rời...' : 'Rời couple'}
               </button>
 
               <button
                 type="button"
-                onClick={isCoupleOwner ? onRotateCoupleCode : undefined}
-                title={isCoupleOwner ? 'Doi ma couple' : 'Chi nguoi tao couple moi doi ma'}
-                disabled={
-                  !isCoupleOwner ||
-                  isSubmitting ||
-                  isLeavingCouple ||
-                  isDeletingCouple ||
-                  isResettingCouple ||
-                  isRotatingCoupleCode
-                }
+                onClick={activeCouple.isOwner ? onRotateCoupleCode : undefined}
+                title={activeCouple.isOwner ? 'Đổi mã couple' : 'Chỉ người tạo couple mới đổi mã'}
+                disabled={!activeCouple.isOwner || isBusy}
                 className="rounded-xl border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-900/20"
               >
-                {isRotatingCoupleCode ? 'Dang doi ma...' : 'Doi ma couple'}
+                {isRotatingCoupleCode ? 'Đang đổi mã...' : 'Đổi mã couple'}
               </button>
 
-              {isCoupleOwner ? (
+              {activeCouple.isOwner ? (
                 <button
                   type="button"
                   onClick={onDeleteCouple}
-                  disabled={
-                    isSubmitting ||
-                    isLeavingCouple ||
-                    isDeletingCouple ||
-                    isResettingCouple ||
-                    isRotatingCoupleCode
-                  }
+                  disabled={isBusy}
                   className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isDeletingCouple ? 'Dang xoa...' : 'Xoa couple'}
+                  {isDeletingCouple ? 'Đang xóa...' : 'Xóa couple'}
                 </button>
               ) : null}
             </div>
             {latestRotatedCode ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                <span>Ma moi: {latestRotatedCode}</span>
+                <span>Mã mới: {latestRotatedCode}</span>
                 <button
                   type="button"
                   onClick={() => void navigator.clipboard.writeText(latestRotatedCode)}
@@ -1173,58 +894,40 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               Reset Couple (delete and recreate)
             </p>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-              Neu ban la owner, reset se xoa toan bo du lieu chia se cua couple hien tai.
+              Nếu bạn là owner, reset sẽ xóa toàn bộ dữ liệu chia sẻ của couple hiện tại.
             </p>
             <button
               type="button"
               onClick={onResetCouple}
-              disabled={
-                isSubmitting ||
-                isLeavingCouple ||
-                isDeletingCouple ||
-                isResettingCouple ||
-                isRotatingCoupleCode
-              }
+              disabled={isBusy}
               className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isResettingCouple ? 'Dang reset...' : 'Reset couple'}
+              {isResettingCouple ? 'Đang reset...' : 'Reset couple'}
             </button>
           </div>
         ) : null}
 
-        {!hasCouple ? (
+        {coupleState.status === 'none' ? (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tao couple moi</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tạo couple mới</h2>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                He thong se tao mot ma 6 ky tu de ban chia se voi nguoi kia.
+                Hệ thống sẽ tạo một mã 6 ký tự để bạn chia sẻ với người kia.
               </p>
-              <div className="mt-4 rounded-lg border border-rose-100 bg-rose-50/60 p-3 text-xs text-gray-600 dark:border-rose-900/40 dark:bg-gray-800 dark:text-gray-300">
-                <p className="font-medium text-gray-700 dark:text-gray-100">Diagnostics</p>
-                <p className="mt-1 break-all">
-                  User: {authUser.email ?? 'unknown'} ({authUser.id ?? 'unknown'})
-                </p>
-                <p className="mt-1">Session access_token: {String(hasAccessToken)}</p>
-                {createWhoamiResult ? (
-                  <pre className="mt-2 overflow-x-auto rounded-md border border-rose-100 bg-white/90 p-2 text-[11px] leading-relaxed text-gray-700 dark:border-rose-900/50 dark:bg-gray-900 dark:text-gray-200">
-                    {createWhoamiResult}
-                  </pre>
-                ) : null}
-              </div>
               <button
                 type="button"
                 onClick={onCreateCouple}
-                disabled={isSubmitting || isResettingCouple}
+                disabled={isBusy}
                 className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
               >
-                {isSubmitting ? 'Dang xu ly...' : 'Tao ma couple'}
+                {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
               </button>
             </div>
 
             <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Join bang ma</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Join bằng mã</h2>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Nhap ma 6 ky tu de tham gia couple hien co.
+                Nhập mã 6 ký tự để tham gia couple hiện có.
               </p>
 
               <form className="mt-4 space-y-3" onSubmit={onJoinCouple}>
@@ -1237,24 +940,24 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 />
                 <button
                   type="submit"
-                  disabled={isSubmitting || isResettingCouple}
+                  disabled={isBusy}
                   className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
                 >
-                  {isSubmitting ? 'Dang xu ly...' : 'Join couple'}
+                  {isSubmitting ? 'Đang xử lý...' : 'Join couple'}
                 </button>
               </form>
             </div>
           </div>
         ) : (
           <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/10 dark:text-emerald-200">
-            Ban da ghep doi. Neu can doi ma hoac reset, su dung cac nut quan ly o tren.
+            Bạn đã có couple. Nếu cần đổi mã hoặc reset, dùng các nút quản lý ở trên.
           </div>
         )}
 
         <button
           type="button"
-          onClick={() => void loadActiveCouple()}
-          disabled={isRefreshing}
+          onClick={() => void loadCoupleState()}
+          disabled={isRefreshing || isBusy}
           className="mt-6 text-sm font-medium text-rose-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
         >
           {isRefreshing ? 'Refreshing...' : 'Làm mới trạng thái từ server'}
