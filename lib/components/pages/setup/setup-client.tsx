@@ -132,48 +132,37 @@ function parseCreatedCouple(payload: unknown): CouplePayload | null {
   return null
 }
 
-function parseMembershipCoupleId(payload: unknown): string | null {
-  if (typeof payload === 'string' && payload.trim()) {
-    return payload
-  }
-
-  if (Array.isArray(payload)) {
-    const first = payload[0]
-    if (typeof first === 'string' && first.trim()) {
-      return first
-    }
-    if (first && typeof first === 'object') {
-      const candidate = first as { couple_id?: unknown; id?: unknown; get_my_membership?: unknown }
-      if (typeof candidate.couple_id === 'string' && candidate.couple_id.trim()) {
-        return candidate.couple_id
-      }
-      if (typeof candidate.id === 'string' && candidate.id.trim()) {
-        return candidate.id
-      }
-      if (
-        typeof candidate.get_my_membership === 'string' &&
-        candidate.get_my_membership.trim()
-      ) {
-        return candidate.get_my_membership
-      }
-    }
+function parseMyCouplePayload(payload: unknown): {
+  id: string
+  code: string
+  createdBy: string | null
+} | null {
+  if (!payload) {
     return null
   }
 
-  if (payload && typeof payload === 'object') {
-    const candidate = payload as { couple_id?: unknown; id?: unknown; get_my_membership?: unknown }
-    if (typeof candidate.couple_id === 'string' && candidate.couple_id.trim()) {
-      return candidate.couple_id
+  const parseCandidate = (candidate: unknown) => {
+    if (!candidate || typeof candidate !== 'object') {
+      return null
     }
-    if (typeof candidate.id === 'string' && candidate.id.trim()) {
-      return candidate.id
+
+    const row = candidate as { id?: unknown; code?: unknown; created_by?: unknown }
+    if (typeof row.id !== 'string' || typeof row.code !== 'string') {
+      return null
     }
-    if (typeof candidate.get_my_membership === 'string' && candidate.get_my_membership.trim()) {
-      return candidate.get_my_membership
+
+    return {
+      id: row.id,
+      code: row.code,
+      createdBy: typeof row.created_by === 'string' ? row.created_by : null
     }
   }
 
-  return null
+  if (Array.isArray(payload)) {
+    return parseCandidate(payload[0] ?? null)
+  }
+
+  return parseCandidate(payload)
 }
 
 function isSameCoupleState(current: CoupleState, next: CoupleState) {
@@ -206,18 +195,14 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [hasAccessToken, setHasAccessToken] = useState(false)
   const [coupleState, setCoupleState] = useState<CoupleState>({ status: 'loading' })
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [orphanedCoupleId, setOrphanedCoupleId] = useState<string | null>(null)
   const [debugUserId, setDebugUserId] = useState<string | null>(null)
   const [whoamiDebug, setWhoamiDebug] = useState<QueryDebugState | null>(null)
-  const [membershipDebug, setMembershipDebug] = useState<QueryDebugState | null>(null)
-  const [rpcCoupleId, setRpcCoupleId] = useState<string | null>(null)
-  const [couplesDebug, setCouplesDebug] = useState<QueryDebugState | null>(null)
+  const [myCoupleDebug, setMyCoupleDebug] = useState<QueryDebugState | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
 
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isCleaningOrphaned, setIsCleaningOrphaned] = useState(false)
   const [isLeavingCouple, setIsLeavingCouple] = useState(false)
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
   const [isResettingCouple, setIsResettingCouple] = useState(false)
@@ -226,12 +211,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const activeCouple = coupleState.status === 'active' ? coupleState : null
   const isBusy =
     isSubmitting ||
-    isCleaningOrphaned ||
     isLeavingCouple ||
     isDeletingCouple ||
     isResettingCouple ||
     isRotatingCoupleCode
-  const hasMembership = Boolean(rpcCoupleId)
 
   const applyCoupleState = useCallback((next: CoupleState) => {
     setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
@@ -269,13 +252,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         if (userError || !user) {
           setDebugUserId(null)
           setWhoamiDebug(null)
-          setMembershipDebug(null)
-          setRpcCoupleId(null)
-          setCouplesDebug(null)
+          setMyCoupleDebug(null)
           setAuthUser({ id: null, email: initialEmail || null })
           setEmail(initialEmail || '')
           setLoadError(null)
-          setOrphanedCoupleId(null)
           if (!expectedCoupleId) {
             applyCoupleState({ status: 'none' })
           }
@@ -299,39 +279,28 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             : null
         })
 
-        const { data: membershipRpcData, error: membershipError } = await supabase.rpc(
-          'get_my_membership'
-        )
-        const membershipCoupleId = parseMembershipCoupleId(membershipRpcData)
-        setRpcCoupleId(membershipCoupleId)
-
-        setMembershipDebug({
-          data: {
-            raw: membershipRpcData ?? null,
-            coupleId: membershipCoupleId
-          },
-          error: membershipError
+        const { data: myCoupleData, error: myCoupleError } = await supabase.rpc('get_my_couple')
+        setMyCoupleDebug({
+          data: myCoupleData ?? null,
+          error: myCoupleError
             ? {
-                code: membershipError.code ?? null,
-                message: membershipError.message ?? null
+                code: myCoupleError.code ?? null,
+                message: myCoupleError.message ?? null
               }
             : null
         })
 
-        if (membershipError) {
-          setCouplesDebug(null)
-          setOrphanedCoupleId(null)
+        if (myCoupleError) {
           setLoadError(
-            `get_my_membership failed: ${membershipError.message}${
-              membershipError.code ? ` (${membershipError.code})` : ''
+            `get_my_couple failed: ${myCoupleError.message}${
+              myCoupleError.code ? ` (${myCoupleError.code})` : ''
             }`
           )
           return null
         }
 
-        if (!membershipCoupleId) {
-          setCouplesDebug(null)
-          setOrphanedCoupleId(null)
+        const myCouple = parseMyCouplePayload(myCoupleData)
+        if (!myCouple) {
           setLoadError(null)
           if (!expectedCoupleId) {
             applyCoupleState({ status: 'none' })
@@ -339,46 +308,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           return { status: 'none' } as CoupleState
         }
 
-        const { data: couple, error: coupleError } = await supabase
-          .from('couples')
-          .select('id,code,created_by')
-          .eq('id', membershipCoupleId)
-          .maybeSingle()
-
-        setCouplesDebug({
-          data: couple ?? null,
-          error: coupleError
-            ? {
-                code: coupleError.code ?? null,
-                message: coupleError.message ?? null
-              }
-            : null
-        })
-
-        if (coupleError) {
-          setOrphanedCoupleId(null)
-          setLoadError(
-            `Couples query failed: ${coupleError.message}${coupleError.code ? ` (${coupleError.code})` : ''}`
-          )
-          return null
-        }
-
-        if (!couple) {
-          setOrphanedCoupleId(membershipCoupleId)
-          setLoadError('Membership orphaned: couple not found. Please use Leave / cleanup.')
-          if (!expectedCoupleId) {
-            applyCoupleState({ status: 'none' })
-          }
-          return { status: 'none' } as CoupleState
-        }
-
         setLoadError(null)
-        setOrphanedCoupleId(null)
         const nextState: CoupleState = {
           status: 'active',
-          coupleId: couple.id,
-          code: couple.code,
-          isOwner: Boolean(couple.created_by && couple.created_by === user.id)
+          coupleId: myCouple.id,
+          code: myCouple.code,
+          isOwner: Boolean(myCouple.createdBy && myCouple.createdBy === user.id)
         }
 
         if (!expectedCoupleId || expectedCoupleId === nextState.coupleId) {
@@ -410,7 +345,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      if (coupleState.status === 'active' || hasMembership) {
+      if (coupleState.status === 'active') {
         dispatch(
           setAlert({
             type: 'info',
@@ -584,48 +519,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       )
     } finally {
       setIsSubmitting(false)
-    }
-  }
-
-  const onCleanupOrphanedMembership = async () => {
-    if (!supabase || !authUser.id || !orphanedCoupleId) {
-      return
-    }
-
-    try {
-      setIsCleaningOrphaned(true)
-      const { error } = await supabase
-        .from('couple_members')
-        .delete()
-        .eq('user_id', authUser.id)
-        .eq('couple_id', orphanedCoupleId)
-
-      if (error) {
-        throw mapCreateError(error, 'Unable to clean orphaned membership')
-      }
-
-      setOrphanedCoupleId(null)
-      setLoadError(null)
-      void loadCoupleState()
-
-      dispatch(
-        setAlert({
-          type: 'success',
-          title: 'Cleanup successful',
-          message: 'Da xoa membership mo coi. Ban co the tao/join couple moi.'
-        })
-      )
-    } catch (error) {
-      const cleanupError = mapCreateError(error, 'Unable to clean orphaned membership')
-      dispatch(
-        setAlert({
-          type: 'error',
-          title: 'Cleanup failed',
-          message: `${cleanupError.message} (${cleanupError.code})`
-        })
-      )
-    } finally {
-      setIsCleaningOrphaned(false)
     }
   }
 
@@ -986,18 +879,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         {loadError ? (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-900/15 dark:text-red-200">
             {loadError}
-            {orphanedCoupleId ? (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={onCleanupOrphanedMembership}
-                  disabled={isBusy}
-                  className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-gray-900 dark:text-red-200 dark:hover:bg-gray-800"
-                >
-                  {isCleaningOrphaned ? 'Dang cleanup...' : 'Leave / cleanup'}
-                </button>
-              </div>
-            ) : null}
           </div>
         ) : null}
 
@@ -1008,9 +889,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               {
                 userId: debugUserId,
                 whoami: whoamiDebug,
-                membershipRpc: membershipDebug,
-                coupleIdFromRpc: rpcCoupleId,
-                couples: couplesDebug
+                myCoupleRpc: myCoupleDebug
               },
               null,
               2
@@ -1101,7 +980,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             <button
               type="button"
               onClick={onCreateCouple}
-              disabled={isBusy || hasMembership}
+              disabled={isBusy || coupleState.status === 'active'}
               className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
             >
               {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
@@ -1121,11 +1000,11 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 placeholder="VD: A9K2QX"
                 maxLength={12}
-                disabled={isBusy || hasMembership}
+                disabled={isBusy || coupleState.status === 'active'}
               />
               <button
                 type="submit"
-                disabled={isBusy || hasMembership}
+                disabled={isBusy || coupleState.status === 'active'}
                 className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
               >
                 {isSubmitting ? 'Đang xử lý...' : 'Join couple'}

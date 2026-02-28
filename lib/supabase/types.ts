@@ -226,6 +226,16 @@ export type Database = {
         Args: Record<string, never>
         Returns: string | { couple_id?: string | null; id?: string | null } | null
       }
+      get_my_couple: {
+        Args: Record<string, never>
+        Returns:
+          | {
+              id: string
+              code: string
+              created_by: string | null
+            }
+          | null
+      }
       leave_couple: {
         Args: {
           p_couple_id: string
