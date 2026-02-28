@@ -60,6 +60,31 @@ function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnost
   }
 }
 
+function parseJoinedCoupleId(payload: unknown): string | null {
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload
+  }
+
+  if (Array.isArray(payload)) {
+    const first = payload[0]
+    if (typeof first === 'string' && first.trim()) {
+      return first
+    }
+  }
+
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as { couple_id?: unknown; id?: unknown }
+    if (typeof candidate.couple_id === 'string' && candidate.couple_id.trim()) {
+      return candidate.couple_id
+    }
+    if (typeof candidate.id === 'string' && candidate.id.trim()) {
+      return candidate.id
+    }
+  }
+
+  return null
+}
+
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
@@ -469,32 +494,45 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
     try {
       setIsSubmitting(true)
-      const response = await fetch('/api/couple/join', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ code })
-      })
-      const payload = (await response.json()) as {
-        error?: string
-        alreadyJoined?: boolean
-        couple?: CouplePayload
+      if (!supabase) {
+        throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      if (!response.ok || !payload.couple) {
-        throw new Error(payload.error ?? 'Unable to join couple')
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        throw mapCreateError(sessionError, 'Unable to load auth session')
       }
 
-      setCouple(payload.couple)
-      cacheActiveCouple(payload.couple)
-      setSource('server')
+      if (!sessionData.session?.access_token) {
+        throw new Error('Ban can dang nhap lai de join couple.')
+      }
+
+      const { data, error } = await supabase.rpc('join_by_code', { p_code: code })
+      if (error) {
+        const joinError = mapCreateError(error, 'Unable to join couple')
+        const invalidCode =
+          joinError.code === 'P0001' || /invalid|not found|khong ton tai|ma/i.test(joinError.message)
+
+        throw new Error(
+          invalidCode
+            ? 'Ma couple khong hop le. Vui long kiem tra lai.'
+            : `${joinError.message} (${joinError.code})`
+        )
+      }
+
+      const joinedCoupleId = parseJoinedCoupleId(data)
+      if (!joinedCoupleId) {
+        throw new Error('Ma couple khong hop le. Vui long kiem tra lai.')
+      }
+
+      console.debug('[setup/join] rpc join_by_code result:', { coupleId: joinedCoupleId })
       setJoinCode('')
+      await loadCurrentFromServer()
       dispatch(
         setAlert({
           type: 'success',
-          title: payload.alreadyJoined ? 'Already joined' : 'Joined successfully',
-          message: `Couple code hiện tại: ${payload.couple.code}`
+          title: 'Joined successfully',
+          message: 'Da join couple thanh cong va da lam moi trang thai.'
         })
       )
     } catch (error) {

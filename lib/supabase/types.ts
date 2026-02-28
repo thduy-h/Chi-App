@@ -201,6 +201,12 @@ export type Database = {
     }
     Views: Record<string, never>
     Functions: {
+      join_by_code: {
+        Args: {
+          p_code: string
+        }
+        Returns: string | null
+      }
       whoami: {
         Args: Record<string, never>
         Returns: Json
