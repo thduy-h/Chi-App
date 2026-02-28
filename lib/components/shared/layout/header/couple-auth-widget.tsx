@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
-import { createClient, hasSupabaseEnv } from '@/lib/supabase/browser'
+import { createSupabaseBrowserClient, hasSupabaseEnv } from '@/lib/supabase/client'
 import { clearActiveCoupleCache, readActiveCoupleCache } from '@/lib/supabase/couples'
 
 interface CouplePayload {
@@ -64,7 +64,7 @@ export function CoupleAuthWidget() {
     try {
       setIsLoggingOut(true)
       if (canUseSupabase) {
-        const supabase = createClient()
+        const supabase = createSupabaseBrowserClient()
         if (supabase) {
           await supabase.auth.signOut()
         }

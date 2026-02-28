@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
-import { createClient, hasSupabaseEnv } from '@/lib/supabase/browser'
+import { createSupabaseBrowserClient, hasSupabaseEnv } from '@/lib/supabase/client'
 
 export function AuthForm() {
   const [email, setEmail] = useState('')
@@ -40,7 +40,7 @@ export function AuthForm() {
 
     try {
       setSending(true)
-      const supabase = createClient()
+      const supabase = createSupabaseBrowserClient()
       if (!supabase) {
         throw new Error('Supabase env is missing')
       }

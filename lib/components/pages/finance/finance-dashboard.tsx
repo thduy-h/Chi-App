@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
-import { createClient } from '@/lib/supabase/browser'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 
 type EntryType = 'income' | 'expense'
@@ -137,7 +137,7 @@ const parseImportEntries = (parsed: unknown): FinanceEntry[] => {
 export const FinanceDashboard = () => {
   const dispatch = useDispatch()
   const importRef = useRef<HTMLInputElement>(null)
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   const [entries, setEntries] = useState<FinanceEntry[]>([])
   const [hydrated, setHydrated] = useState(false)

@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
-import { createClient as createBrowserClient } from '@/lib/supabase/browser'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
   cacheActiveCouple,
   clearActiveCoupleCache,
@@ -62,7 +62,7 @@ function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnost
 
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const dispatch = useDispatch()
-  const supabase = useMemo(() => createBrowserClient(), [])
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   const [email, setEmail] = useState(initialEmail)
   const [couple, setCouple] = useState<CouplePayload | null>(initialCouple)
@@ -163,7 +163,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       if (user?.id) {
         console.debug(
           '[setup/diagnostics] create path:',
-          'SetupClient.onCreateCouple -> createBrowserClient -> public.couples.insert({ code })'
+          'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> public.couples.insert({ code })'
         )
         const { count, error: countError } = await supabase
           .from('couples')
@@ -193,13 +193,27 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const onCreateCouple = async () => {
     try {
       setIsSubmitting(true)
-      const insertContextLabel = 'client-component:createBrowserClient'
+      const insertContextLabel = 'client-component:createSupabaseBrowserClient'
       const createPathLabel =
-        'SetupClient.onCreateCouple -> createBrowserClient -> public.couples.insert({ code })'
+        'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> public.couples.insert({ code })'
 
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
       }
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+      let supabaseHostname = 'invalid-url'
+      try {
+        supabaseHostname = new URL(supabaseUrl).hostname
+      } catch {
+        supabaseHostname = 'invalid-url'
+      }
+      const maskedAnonKeyPreview = supabaseAnonKey ? `${supabaseAnonKey.slice(0, 20)}***` : 'missing'
+      console.debug('[setup/create] supabase env check:', {
+        hostname: supabaseHostname,
+        anonKeyMaskedPrefix: maskedAnonKeyPreview
+      })
 
       const {
         data: { user },
@@ -212,14 +226,22 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) {
-        const diagnosticsError = mapCreateError(sessionError, 'Unable to load auth session')
-        console.error('[setup/create] session error:', {
-          message: diagnosticsError.message,
-          code: diagnosticsError.code,
-          details: diagnosticsError.details,
-          hint: diagnosticsError.hint
-        })
+        throw mapCreateError(sessionError, 'Unable to load auth session')
       }
+
+      const accessToken = sessionData.session?.access_token
+      if (!accessToken) {
+        throw mapCreateError(
+          {
+            code: 'missing_access_token',
+            message: 'Missing access token in Supabase session',
+            details: 'supabase.auth.getSession() returned no access_token',
+            hint: 'Login again before creating a couple.'
+          },
+          'Missing access token in Supabase session'
+        )
+      }
+      setHasAccessToken(true)
 
       console.debug('[setup/create] current user id:', user.id)
       console.debug('[setup/create] session access_token exists:', Boolean(sessionData.session?.access_token))
@@ -355,7 +377,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const onCheckWhoami = async () => {
     try {
       setIsCheckingWhoami(true)
-      const rpcContextLabel = 'client-component:createBrowserClient'
+      const rpcContextLabel = 'client-component:createSupabaseBrowserClient'
 
       if (!supabase) {
         setWhoamiJson(

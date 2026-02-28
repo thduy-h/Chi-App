@@ -9,7 +9,7 @@ import {
 } from '@hello-pangea/dnd'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
-import { createClient } from '@/lib/supabase/browser'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 import {
   BoardState,
@@ -186,7 +186,7 @@ export const KanbanBoard = ({
   const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const lastSyncedFingerprintRef = useRef('')
   const isSyncingRef = useRef(false)
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   const [columns, setColumns] = useState<KanbanColumn[]>(cloneColumns(defaultColumns))
   const [tasks, setTasks] = useState<KanbanTask[]>(cloneTasks(defaultTasks))
