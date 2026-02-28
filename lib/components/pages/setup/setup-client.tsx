@@ -406,6 +406,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       console.debug('[setup/create] created couple row:', createdCouple)
+      console.debug('[setup/create] couple insert success:', { coupleId: createdCouple.id })
 
       const { error: membershipCreateError } = await supabase
         .from('couple_members')
@@ -414,6 +415,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       if (membershipCreateError) {
         throw mapCreateError(membershipCreateError, 'Unable to create membership')
       }
+      console.debug('[setup/create] membership insert success:', {
+        coupleId: createdCouple.id,
+        userId: user.id
+      })
 
       setCouple(createdCouple)
       setMemberCoupleId(createdCouple.id)
