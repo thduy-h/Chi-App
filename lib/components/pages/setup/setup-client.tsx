@@ -6,13 +6,7 @@ import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
-import {
-  cacheActiveCouple,
-  clearActiveCoupleCache,
-  generateCoupleCode,
-  normalizeCoupleCode,
-  selectCoupleById
-} from '@/lib/supabase/couples'
+import { generateCoupleCode, normalizeCoupleCode } from '@/lib/supabase/couples'
 
 interface CouplePayload {
   id: string
@@ -27,6 +21,14 @@ type CoupleState =
 interface SetupClientProps {
   initialEmail: string
   initialCouple: CouplePayload | null
+}
+
+interface QueryDebugState {
+  data: unknown
+  error: {
+    code: string | null
+    message: string | null
+  } | null
 }
 
 interface CreateDiagnosticsError {
@@ -150,6 +152,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const router = useRouter()
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  void initialCouple
 
   const [email, setEmail] = useState(initialEmail)
   const [authUser, setAuthUser] = useState<{ id: string | null; email: string | null }>({
@@ -158,11 +161,17 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   })
   const [hasAccessToken, setHasAccessToken] = useState(false)
   const [coupleState, setCoupleState] = useState<CoupleState>({ status: 'loading' })
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [orphanedCoupleId, setOrphanedCoupleId] = useState<string | null>(null)
+  const [debugUserId, setDebugUserId] = useState<string | null>(null)
+  const [membershipDebug, setMembershipDebug] = useState<QueryDebugState | null>(null)
+  const [couplesDebug, setCouplesDebug] = useState<QueryDebugState | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
 
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isCleaningOrphaned, setIsCleaningOrphaned] = useState(false)
   const [isLeavingCouple, setIsLeavingCouple] = useState(false)
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
   const [isResettingCouple, setIsResettingCouple] = useState(false)
@@ -170,7 +179,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
   const activeCouple = coupleState.status === 'active' ? coupleState : null
   const isBusy =
-    isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple || isRotatingCoupleCode
+    isSubmitting ||
+    isCleaningOrphaned ||
+    isLeavingCouple ||
+    isDeletingCouple ||
+    isResettingCouple ||
+    isRotatingCoupleCode
 
   const applyCoupleState = useCallback((next: CoupleState) => {
     setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
@@ -189,6 +203,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         if (isInitial) {
           applyCoupleState({ status: 'none' })
         }
+        setLoadError('Supabase env is missing')
         return null
       }
 
@@ -205,15 +220,20 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         const user = userData.user
         if (userError || !user) {
+          setDebugUserId(null)
+          setMembershipDebug(null)
+          setCouplesDebug(null)
           setAuthUser({ id: null, email: initialEmail || null })
           setEmail(initialEmail || '')
+          setLoadError(null)
+          setOrphanedCoupleId(null)
           if (!expectedCoupleId) {
             applyCoupleState({ status: 'none' })
           }
-          clearActiveCoupleCache()
           return { status: 'none' } as CoupleState
         }
 
+        setDebugUserId(user.id)
         setAuthUser({ id: user.id, email: user.email ?? null })
         if (user.email) {
           setEmail(user.email)
@@ -221,32 +241,84 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         const { data: membership, error: membershipError } = await supabase
           .from('couple_members')
-          .select('couple_id')
+          .select('couple_id,created_at')
           .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
 
+        setMembershipDebug({
+          data: membership ?? null,
+          error: membershipError
+            ? {
+                code: membershipError.code ?? null,
+                message: membershipError.message ?? null
+              }
+            : null
+        })
+
         if (membershipError) {
-          throw mapCreateError(membershipError, 'Unable to load current membership')
+          setCouplesDebug(null)
+          setOrphanedCoupleId(null)
+          setLoadError(
+            `Membership query failed: ${membershipError.message}${
+              membershipError.code ? ` (${membershipError.code})` : ''
+            }`
+          )
+          if (isInitial && !expectedCoupleId) {
+            applyCoupleState({ status: 'none' })
+          }
+          return null
         }
 
         if (!membership?.couple_id) {
+          setCouplesDebug(null)
+          setOrphanedCoupleId(null)
+          setLoadError(null)
           if (!expectedCoupleId) {
             applyCoupleState({ status: 'none' })
           }
-          clearActiveCoupleCache()
           return { status: 'none' } as CoupleState
         }
 
-        const couple = await selectCoupleById(supabase, membership.couple_id, 'SetupClient.loadCoupleState')
+        const { data: couple, error: coupleError } = await supabase
+          .from('couples')
+          .select('id,code,created_by')
+          .eq('id', membership.couple_id)
+          .maybeSingle()
+
+        setCouplesDebug({
+          data: couple ?? null,
+          error: coupleError
+            ? {
+                code: coupleError.code ?? null,
+                message: coupleError.message ?? null
+              }
+            : null
+        })
+
+        if (coupleError) {
+          setOrphanedCoupleId(null)
+          setLoadError(
+            `Couples query failed: ${coupleError.message}${coupleError.code ? ` (${coupleError.code})` : ''}`
+          )
+          if (isInitial && !expectedCoupleId) {
+            applyCoupleState({ status: 'none' })
+          }
+          return null
+        }
+
         if (!couple) {
+          setOrphanedCoupleId(membership.couple_id)
+          setLoadError('Membership orphaned: couple not found. Please clean up membership row.')
           if (!expectedCoupleId) {
             applyCoupleState({ status: 'none' })
           }
-          clearActiveCoupleCache()
           return { status: 'none' } as CoupleState
         }
 
+        setLoadError(null)
+        setOrphanedCoupleId(null)
         const nextState: CoupleState = {
           status: 'active',
           coupleId: couple.id,
@@ -254,15 +326,15 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           isOwner: Boolean(couple.created_by && couple.created_by === user.id)
         }
 
-        cacheActiveCouple({ id: couple.id, code: couple.code })
-
         if (!expectedCoupleId || expectedCoupleId === nextState.coupleId) {
           applyCoupleState(nextState)
         }
 
         return nextState
       } catch (error) {
-        console.error('[setup/loadCoupleState] failed:', mapCreateError(error, 'Unable to load couple state'))
+        const loadStateError = mapCreateError(error, 'Unable to load couple state')
+        console.error('[setup/loadCoupleState] failed:', loadStateError)
+        setLoadError(`${loadStateError.message}${loadStateError.code ? ` (${loadStateError.code})` : ''}`)
         if (isInitial) {
           applyCoupleState({ status: 'none' })
         }
@@ -275,11 +347,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   )
 
   useEffect(() => {
-    if (initialCouple) {
-      cacheActiveCouple(initialCouple)
-    }
     void loadCoupleState({ initial: true })
-  }, [initialCouple, loadCoupleState])
+  }, [loadCoupleState])
 
   const onCreateCouple = async () => {
     try {
@@ -370,7 +439,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         code: createdCouple.code,
         isOwner: true
       })
-      cacheActiveCouple(createdCouple)
       setLatestRotatedCode(null)
 
       void loadCoupleState({ expectedCoupleId: createdCouple.id })
@@ -444,21 +512,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw new Error('Mã couple không hợp lệ. Vui lòng kiểm tra lại.')
       }
 
-      const joinedCouple = await selectCoupleById(
-        supabase,
-        joinedCoupleId,
-        'SetupClient.onJoinCouple optimistic'
-      )
-      if (joinedCouple) {
-        applyCoupleState({
-          status: 'active',
-          coupleId: joinedCouple.id,
-          code: joinedCouple.code,
-          isOwner: Boolean(joinedCouple.created_by && joinedCouple.created_by === user.id)
-        })
-        cacheActiveCouple({ id: joinedCouple.id, code: joinedCouple.code })
-      }
-
       setJoinCode('')
       void loadCoupleState({ expectedCoupleId: joinedCoupleId })
 
@@ -482,6 +535,48 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }
 
+  const onCleanupOrphanedMembership = async () => {
+    if (!supabase || !authUser.id || !orphanedCoupleId) {
+      return
+    }
+
+    try {
+      setIsCleaningOrphaned(true)
+      const { error } = await supabase
+        .from('couple_members')
+        .delete()
+        .eq('user_id', authUser.id)
+        .eq('couple_id', orphanedCoupleId)
+
+      if (error) {
+        throw mapCreateError(error, 'Unable to clean orphaned membership')
+      }
+
+      setOrphanedCoupleId(null)
+      setLoadError(null)
+      void loadCoupleState()
+
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Cleanup successful',
+          message: 'Da xoa membership mo coi. Ban co the tao/join couple moi.'
+        })
+      )
+    } catch (error) {
+      const cleanupError = mapCreateError(error, 'Unable to clean orphaned membership')
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Cleanup failed',
+          message: `${cleanupError.message} (${cleanupError.code})`
+        })
+      )
+    } finally {
+      setIsCleaningOrphaned(false)
+    }
+  }
+
   const onLeaveCouple = async () => {
     if (coupleState.status !== 'active') {
       return
@@ -499,7 +594,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(error, 'Unable to leave couple')
       }
 
-      clearActiveCoupleCache()
       applyCoupleState({ status: 'none' })
       setLatestRotatedCode(null)
       void loadCoupleState()
@@ -549,7 +643,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(error, 'Unable to delete couple')
       }
 
-      clearActiveCoupleCache()
       applyCoupleState({ status: 'none' })
       setLatestRotatedCode(null)
       void loadCoupleState()
@@ -687,7 +780,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         code: createdCouple.code,
         isOwner: true
       })
-      cacheActiveCouple(createdCouple)
       setLatestRotatedCode(null)
 
       void loadCoupleState({ expectedCoupleId: createdCouple.id })
@@ -767,10 +859,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         code: newCode,
         isOwner: true
       })
-      cacheActiveCouple({
-        id: coupleState.coupleId,
-        code: newCode
-      })
 
       void loadCoupleState({ expectedCoupleId: coupleState.coupleId })
 
@@ -837,6 +925,39 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               </button>
             </div>
           ) : null}
+        </div>
+
+        {loadError ? (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50/80 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-900/15 dark:text-red-200">
+            {loadError}
+            {orphanedCoupleId ? (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  onClick={onCleanupOrphanedMembership}
+                  disabled={isBusy}
+                  className="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800 dark:bg-gray-900 dark:text-red-200 dark:hover:bg-gray-800"
+                >
+                  {isCleaningOrphaned ? 'Dang don membership...' : 'Xoa membership mo coi'}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-200">
+          <p className="font-semibold">Debug</p>
+          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
+            {JSON.stringify(
+              {
+                userId: debugUserId,
+                membership: membershipDebug,
+                couples: couplesDebug
+              },
+              null,
+              2
+            )}
+          </pre>
         </div>
 
         {activeCouple ? (
@@ -907,52 +1028,53 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           </div>
         ) : null}
 
-        {coupleState.status === 'none' ? (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tạo couple mới</h2>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Hệ thống sẽ tạo một mã 6 ký tự để bạn chia sẻ với người kia.
-              </p>
-              <button
-                type="button"
-                onClick={onCreateCouple}
-                disabled={isBusy}
-                className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
-              >
-                {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
-              </button>
-            </div>
-
-            <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Join bằng mã</h2>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Nhập mã 6 ký tự để tham gia couple hiện có.
-              </p>
-
-              <form className="mt-4 space-y-3" onSubmit={onJoinCouple}>
-                <input
-                  value={joinCode}
-                  onChange={(event) => setJoinCode(event.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                  placeholder="VD: A9K2QX"
-                  maxLength={12}
-                />
-                <button
-                  type="submit"
-                  disabled={isBusy}
-                  className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
-                >
-                  {isSubmitting ? 'Đang xử lý...' : 'Join couple'}
-                </button>
-              </form>
-            </div>
-          </div>
-        ) : (
+        {coupleState.status === 'active' ? (
           <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/10 dark:text-emerald-200">
-            Bạn đã có couple. Nếu cần đổi mã hoặc reset, dùng các nút quản lý ở trên.
+            Bạn đã có couple. Nút tạo/join được khóa cho tới khi bạn rời hoặc reset couple.
           </div>
-        )}
+        ) : null}
+
+        <div className="mt-6 grid gap-5 md:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tạo couple mới</h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Hệ thống sẽ tạo một mã 6 ký tự để bạn chia sẻ với người kia.
+            </p>
+            <button
+              type="button"
+              onClick={onCreateCouple}
+              disabled={isBusy || coupleState.status === 'active'}
+              className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
+            >
+              {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Join bằng mã</h2>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              Nhập mã 6 ký tự để tham gia couple hiện có.
+            </p>
+
+            <form className="mt-4 space-y-3" onSubmit={onJoinCouple}>
+              <input
+                value={joinCode}
+                onChange={(event) => setJoinCode(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                placeholder="VD: A9K2QX"
+                maxLength={12}
+                disabled={isBusy || coupleState.status === 'active'}
+              />
+              <button
+                type="submit"
+                disabled={isBusy || coupleState.status === 'active'}
+                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
+              >
+                {isSubmitting ? 'Đang xử lý...' : 'Join couple'}
+              </button>
+            </form>
+          </div>
+        </div>
 
         <button
           type="button"
