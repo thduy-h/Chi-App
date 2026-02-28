@@ -57,10 +57,7 @@ export const FoodPage = () => {
   }
 
   const handleRandomFood = () => {
-    const randomPool =
-      selectedCategories.length > 0
-        ? FOODS.filter((food) => selectedCategories.includes(food.category))
-        : FOODS
+    const randomPool = filteredFoods
 
     if (randomPool.length < 1) {
       dispatch(

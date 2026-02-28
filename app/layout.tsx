@@ -1,11 +1,8 @@
-import { Inter } from 'next/font/google'
 import './globals.css'
 import StoreProvider from '@/app/store-provider'
 import { getCategories } from '@/lib/features/categories/categoriesSlice'
 import { store } from '@/lib/store'
 import { cookies } from 'next/headers'
-
-const inter = Inter({ subsets: ['latin'] })
 
 import { Header } from '@/lib/components/shared/layout/header/header'
 import { Footer } from '@/lib/components/shared/layout/footer'
@@ -42,7 +39,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head><link rel="icon" href="/favicon.png" /></head>
-      <body className={inter.className}>
+      <body>
         <StoreProvider preloadedState={{
           categories: {
             categories
