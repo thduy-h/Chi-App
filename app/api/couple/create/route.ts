@@ -7,6 +7,37 @@ import {
 } from '@/lib/supabase/couples'
 import { createClient } from '@/lib/supabase/server'
 
+interface CouplePayload {
+  id: string
+  code: string
+}
+
+function parseCreatedCouple(payload: unknown): CouplePayload | null {
+  if (!payload) {
+    return null
+  }
+
+  if (Array.isArray(payload)) {
+    const first = payload[0]
+    if (first && typeof first === 'object') {
+      const candidate = first as { id?: unknown; code?: unknown }
+      if (typeof candidate.id === 'string' && typeof candidate.code === 'string') {
+        return { id: candidate.id, code: candidate.code }
+      }
+    }
+    return null
+  }
+
+  if (typeof payload === 'object') {
+    const candidate = payload as { id?: unknown; code?: unknown }
+    if (typeof candidate.id === 'string' && typeof candidate.code === 'string') {
+      return { id: candidate.id, code: candidate.code }
+    }
+  }
+
+  return null
+}
+
 export async function POST() {
   try {
     const supabase = createClient()
@@ -37,32 +68,26 @@ export async function POST() {
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const code = generateCoupleCode()
-      const { data, error } = await supabase
-        .from('couples')
-        .insert({ code })
-        .select('id, code')
-        .single()
+      const { data, error } = await supabase.rpc('create_couple', { p_code: code })
 
-      if (!error && data) {
-        couple = data
+      if (error) {
+        lastErrorMessage = error?.message ?? lastErrorMessage
+        continue
+      }
+
+      const parsed = parseCreatedCouple(data)
+      if (parsed) {
+        couple = parsed
         break
       }
 
-      lastErrorMessage = error?.message ?? lastErrorMessage
+      lastErrorMessage = 'create_couple did not return {id, code}'
     }
 
     if (!couple) {
       return NextResponse.json({ error: lastErrorMessage }, { status: 500 })
     }
     console.debug('[couple/create] created couple row:', couple)
-
-    const { error: membershipError } = await supabase
-      .from('couple_members')
-      .insert({ couple_id: couple.id, user_id: user.id })
-
-    if (membershipError) {
-      return NextResponse.json({ error: membershipError.message }, { status: 500 })
-    }
 
     return NextResponse.json({ couple: toCouplePayload(couple) }, { status: 200 })
   } catch {
