@@ -169,6 +169,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const onCreateCouple = async () => {
     try {
       setIsSubmitting(true)
+      const insertContextLabel = 'client-component:createBrowserClient'
 
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
@@ -183,7 +184,20 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(userError, 'Unauthorized')
       }
 
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        const diagnosticsError = mapCreateError(sessionError, 'Unable to load auth session')
+        console.error('[setup/create] session error:', {
+          message: diagnosticsError.message,
+          code: diagnosticsError.code,
+          details: diagnosticsError.details,
+          hint: diagnosticsError.hint
+        })
+      }
+
       console.debug('[setup/create] current user id:', user.id)
+      console.debug('[setup/create] session access_token exists:', Boolean(sessionData.session?.access_token))
+      console.debug('[setup/create] insert context label:', insertContextLabel)
 
       setAuthUser((previous) => ({
         id: user.id,
@@ -236,6 +250,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const code = generateCoupleCode()
+        console.debug('[setup/create] couples insert context:', insertContextLabel)
         const { data, error } = await supabase
           .from('couples')
           .insert({ code })
@@ -249,10 +264,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         lastCreateError = mapCreateError(error, 'Unable to create couple')
         console.error('[setup/create] couples insert error:', {
-          message: lastCreateError.message,
-          code: lastCreateError.code,
-          details: lastCreateError.details,
-          hint: lastCreateError.hint
+          'error.message': lastCreateError.message,
+          'error.code': lastCreateError.code,
+          'error.details': lastCreateError.details,
+          'error.hint': lastCreateError.hint
         })
       }
 
@@ -283,10 +298,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     } catch (error) {
       const diagnosticsError = mapCreateError(error, 'Unable to create couple')
       console.error('[setup/create] failed:', {
-        message: diagnosticsError.message,
-        code: diagnosticsError.code,
-        details: diagnosticsError.details,
-        hint: diagnosticsError.hint
+        'error.message': diagnosticsError.message,
+        'error.code': diagnosticsError.code,
+        'error.details': diagnosticsError.details,
+        'error.hint': diagnosticsError.hint
       })
 
       dispatch(
