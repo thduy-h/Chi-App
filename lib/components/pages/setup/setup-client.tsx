@@ -220,6 +220,41 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     setIsCoupleOwner(Boolean(coupleRow?.created_by && coupleRow.created_by === user.id))
   }, [supabase])
 
+  const refreshMembershipFromCoupleMembers = useCallback(
+    async (userId: string) => {
+      if (!supabase) {
+        throw mapCreateError(null, 'Supabase env is missing')
+      }
+
+      const { data: membership, error: membershipError } = await supabase
+        .from('couple_members')
+        .select('couple_id')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle()
+
+      if (membershipError) {
+        throw mapCreateError(membershipError, 'Unable to refresh membership from couple_members')
+      }
+
+      if (!membership?.couple_id) {
+        throw mapCreateError(
+          {
+            code: 'membership_missing',
+            message: 'Join succeeded but no membership found',
+            details: 'couple_members row for current user was not found after join',
+            hint: 'Check RLS policy and RPC transaction behavior.'
+          },
+          'Unable to verify joined membership'
+        )
+      }
+
+      setMemberCoupleId(membership.couple_id)
+      return membership.couple_id
+    },
+    [supabase]
+  )
+
   useEffect(() => {
     if (initialCouple) {
       cacheActiveCouple(initialCouple)
@@ -586,6 +621,14 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw new Error('Ban can dang nhap lai de join couple.')
       }
 
+      const {
+        data: { user },
+        error: userError
+      } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw mapCreateError(userError, 'Unable to resolve current user for join flow')
+      }
+
       const { data, error } = await supabase.rpc('join_by_code', { p_code: code })
       if (error) {
         const joinError = mapCreateError(error, 'Unable to join couple')
@@ -605,9 +648,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       console.debug('[setup/join] rpc join_by_code result:', { coupleId: joinedCoupleId })
+      const membershipCoupleId = await refreshMembershipFromCoupleMembers(user.id)
+      console.debug('[setup/join] refreshed membership couple_id:', membershipCoupleId)
       setJoinCode('')
       await loadCurrentFromServer()
-      await loadMemberContext()
       dispatch(
         setAlert({
           type: 'success',
