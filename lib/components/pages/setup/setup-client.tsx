@@ -86,6 +86,24 @@ function parseJoinedCoupleId(payload: unknown): string | null {
   return null
 }
 
+function parseRotatedCoupleCode(payload: unknown): string | null {
+  if (typeof payload === 'string' && payload.trim()) {
+    return payload
+  }
+
+  if (payload && typeof payload === 'object') {
+    const candidate = payload as { code?: unknown; new_code?: unknown }
+    if (typeof candidate.code === 'string' && candidate.code.trim()) {
+      return candidate.code
+    }
+    if (typeof candidate.new_code === 'string' && candidate.new_code.trim()) {
+      return candidate.new_code
+    }
+  }
+
+  return null
+}
+
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const router = useRouter()
   const dispatch = useDispatch()
@@ -109,6 +127,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [isLeavingCouple, setIsLeavingCouple] = useState(false)
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
   const [isResettingCouple, setIsResettingCouple] = useState(false)
+  const [isRotatingCoupleCode, setIsRotatingCoupleCode] = useState(false)
+  const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
@@ -862,6 +882,93 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }
 
+  const onRotateCoupleCode = async () => {
+    if (!memberCoupleId) {
+      return
+    }
+
+    if (!isCoupleOwner) {
+      dispatch(
+        setAlert({
+          type: 'warning',
+          title: 'Not allowed',
+          message: 'Chi nguoi tao couple moi doi ma.'
+        })
+      )
+      return
+    }
+
+    const confirmed = window.confirm(
+      'Doi ma couple? Ma cu se KHONG con hop le. Du lieu chung van duoc giu nguyen.'
+    )
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setIsRotatingCoupleCode(true)
+      if (!supabase) {
+        throw mapCreateError(null, 'Supabase env is missing')
+      }
+
+      const { data, error } = await supabase.rpc('rotate_couple_code', { p_couple_id: memberCoupleId })
+      if (error) {
+        throw mapCreateError(error, 'Unable to rotate couple code')
+      }
+
+      const newCode = parseRotatedCoupleCode(data)
+      if (!newCode) {
+        throw mapCreateError(null, 'RPC did not return a valid couple code')
+      }
+
+      let copied = false
+      try {
+        await navigator.clipboard.writeText(newCode)
+        copied = true
+      } catch {
+        copied = false
+      }
+
+      setLatestRotatedCode(newCode)
+      setCouple((previous) =>
+        previous
+          ? {
+              ...previous,
+              code: newCode
+            }
+          : {
+              id: memberCoupleId,
+              code: newCode
+            }
+      )
+      cacheActiveCouple({
+        id: memberCoupleId,
+        code: newCode
+      })
+      await loadCurrentFromServer()
+      await loadMemberContext()
+
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Code updated',
+          message: copied ? `Ma moi: ${newCode} (da copy)` : `Ma moi: ${newCode}`
+        })
+      )
+    } catch (error) {
+      const rotateError = mapCreateError(error, 'Unable to rotate couple code')
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Rotate failed',
+          message: `${rotateError.message} (${rotateError.code})`
+        })
+      )
+    } finally {
+      setIsRotatingCoupleCode(false)
+    }
+  }
+
   const statusText = useMemo(() => {
     if (source === 'cache') {
       return 'Hiển thị từ local cache. Server sẽ là nguồn chính khi có kết nối.'
@@ -895,23 +1002,64 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               <button
                 type="button"
                 onClick={onLeaveCouple}
-                disabled={isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple}
+                disabled={
+                  isSubmitting ||
+                  isLeavingCouple ||
+                  isDeletingCouple ||
+                  isResettingCouple ||
+                  isRotatingCoupleCode
+                }
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
               >
                 {isLeavingCouple ? 'Dang roi...' : 'Roi couple'}
+              </button>
+
+              <button
+                type="button"
+                onClick={isCoupleOwner ? onRotateCoupleCode : undefined}
+                title={isCoupleOwner ? 'Doi ma couple' : 'Chi nguoi tao couple moi doi ma'}
+                disabled={
+                  !isCoupleOwner ||
+                  isSubmitting ||
+                  isLeavingCouple ||
+                  isDeletingCouple ||
+                  isResettingCouple ||
+                  isRotatingCoupleCode
+                }
+                className="rounded-xl border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-900/20"
+              >
+                {isRotatingCoupleCode ? 'Dang doi ma...' : 'Doi ma couple'}
               </button>
 
               {isCoupleOwner ? (
                 <button
                   type="button"
                   onClick={onDeleteCouple}
-                  disabled={isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple}
+                  disabled={
+                    isSubmitting ||
+                    isLeavingCouple ||
+                    isDeletingCouple ||
+                    isResettingCouple ||
+                    isRotatingCoupleCode
+                  }
                   className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isDeletingCouple ? 'Dang xoa...' : 'Xoa couple'}
                 </button>
               ) : null}
             </div>
+            {latestRotatedCode ? (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <span>Ma moi: {latestRotatedCode}</span>
+                <button
+                  type="button"
+                  onClick={() => void navigator.clipboard.writeText(latestRotatedCode)}
+                  className="rounded-md border border-gray-300 px-2 py-1 font-medium text-gray-700 transition hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  Copy
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -926,7 +1074,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             <button
               type="button"
               onClick={onResetCouple}
-              disabled={isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple}
+              disabled={
+                isSubmitting ||
+                isLeavingCouple ||
+                isDeletingCouple ||
+                isResettingCouple ||
+                isRotatingCoupleCode
+              }
               className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isResettingCouple ? 'Dang reset...' : 'Reset couple'}

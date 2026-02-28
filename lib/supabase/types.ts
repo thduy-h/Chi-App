@@ -219,6 +219,12 @@ export type Database = {
         }
         Returns: Json
       }
+      rotate_couple_code: {
+        Args: {
+          p_couple_id: string
+        }
+        Returns: string | { code?: string | null; new_code?: string | null } | null
+      }
       whoami: {
         Args: Record<string, never>
         Returns: Json
