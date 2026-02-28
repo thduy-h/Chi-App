@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FormEvent, useState } from 'react'
 import Link from 'next/link'
@@ -20,8 +20,8 @@ export function AuthForm() {
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Missing env',
-          message: 'Please add Supabase env variables first.'
+          title: 'Thiếu cấu hình',
+          message: 'Vui lòng thêm biến môi trường Supabase trước.'
         })
       )
       return
@@ -31,8 +31,8 @@ export function AuthForm() {
       dispatch(
         setAlert({
           type: 'warning',
-          title: 'Email required',
-          message: 'Please enter your email address.'
+          title: 'Thiếu email',
+          message: 'Vui lòng nhập địa chỉ email.'
         })
       )
       return
@@ -42,7 +42,7 @@ export function AuthForm() {
       setSending(true)
       const supabase = createSupabaseBrowserClient()
       if (!supabase) {
-        throw new Error('Supabase env is missing')
+        throw new Error('Thiếu cấu hình Supabase')
       }
 
       const { error } = await supabase.auth.signInWithOtp({
@@ -59,16 +59,16 @@ export function AuthForm() {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Check your inbox',
-          message: 'Magic link/OTP has been sent to your email.'
+          title: 'Kiểm tra hộp thư',
+          message: 'Magic link/OTP đã được gửi tới email của bạn.'
         })
       )
     } catch (error) {
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Auth failed',
-          message: error instanceof Error ? error.message : 'Unable to send auth email'
+          title: 'Đăng nhập thất bại',
+          message: error instanceof Error ? error.message : 'Không thể gửi email đăng nhập.'
         })
       )
     } finally {
@@ -78,9 +78,9 @@ export function AuthForm() {
 
   return (
     <div className="mx-auto my-16 w-full max-w-md overflow-hidden rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Login to LoveHub</h1>
+      <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Đăng nhập vào LoveHub</h1>
       <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-        Enter your email to receive a magic link or OTP from Supabase.
+        Nhập email để nhận magic link hoặc OTP từ Supabase.
       </p>
 
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
@@ -94,7 +94,7 @@ export function AuthForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-          placeholder="you@example.com"
+          placeholder="ban@vi-du.com"
         />
 
         <button
@@ -102,17 +102,17 @@ export function AuthForm() {
           disabled={sending || !canUseSupabase}
           className="w-full rounded-xl bg-rose-500 px-4 py-2.5 font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
         >
-          {sending ? 'Sending...' : 'Send login link'}
+          {sending ? 'Đang gửi...' : 'Gửi liên kết đăng nhập'}
         </button>
       </form>
 
       <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        After successful login, you will be redirected to couple setup.
+        Sau khi đăng nhập thành công, bạn sẽ được chuyển tới trang thiết lập couple.
       </p>
 
       <div className="mt-4 text-sm">
         <Link className="text-rose-600 hover:underline dark:text-rose-300" href="/">
-          Back to home
+          Về trang chủ
         </Link>
       </div>
     </div>

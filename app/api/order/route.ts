@@ -14,7 +14,7 @@ export async function POST(request: Request) {
 
     if (!body.name || !body.deliveryTime) {
       return NextResponse.json(
-        { error: 'Missing required fields: name and deliveryTime.' },
+        { error: 'Thiếu dữ liệu bắt buộc: name và deliveryTime.' },
         { status: 400 }
       )
     }
@@ -26,8 +26,7 @@ export async function POST(request: Request) {
     if (!targetUrl) {
       return NextResponse.json(
         {
-          error:
-            'Order target is not configured. Set FORMSPREE_ORDER_URL or ORDER_WEBHOOK_URL.'
+          error: 'Chưa cấu hình endpoint nhận đơn. Hãy đặt FORMSPREE_ORDER_URL hoặc ORDER_WEBHOOK_URL.'
         },
         { status: 503 }
       )
@@ -53,14 +52,14 @@ export async function POST(request: Request) {
       const details = await upstreamResponse.text()
 
       return NextResponse.json(
-        { error: 'Failed to forward order to upstream endpoint.', details: details.slice(0, 500) },
+        { error: 'Không thể chuyển đơn đến endpoint đích.', details: details.slice(0, 500) },
         { status: 502 }
       )
     }
 
     return NextResponse.json({ ok: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected server error.'
+    const message = error instanceof Error ? error.message : 'Lỗi máy chủ không xác định.'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

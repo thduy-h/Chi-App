@@ -1,4 +1,4 @@
-import { AuthRequired } from '@/lib/components/shared/auth-required'
+﻿import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { SetupClient } from '@/lib/components/pages/setup/setup-client'
 import { getCurrentCoupleContext } from '@/lib/supabase/couples'
 import { createClient } from '@/lib/supabase/server'
@@ -8,8 +8,8 @@ export default async function SetupPage() {
   if (!supabase) {
     return (
       <AuthRequired
-        title="Khong the tai setup"
-        message="Supabase env chua duoc cau hinh. Vui long dang nhap lai sau khi cau hinh xong."
+        title="Không thể tải trang thiết lập"
+        message="Supabase chưa được cấu hình. Vui lòng thử lại sau khi cấu hình xong."
       />
     )
   }
@@ -18,8 +18,8 @@ export default async function SetupPage() {
   if (context.status === 'unauthenticated' || !context.userId) {
     return (
       <AuthRequired
-        title="Can dang nhap de setup couple"
-        message="Dang nhap de tao, join, hoac quan ly couple cua ban."
+        title="Cần đăng nhập để thiết lập couple"
+        message="Đăng nhập để tạo, tham gia hoặc quản lý couple của bạn."
       />
     )
   }

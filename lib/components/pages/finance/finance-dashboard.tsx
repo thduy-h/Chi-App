@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -74,7 +74,7 @@ const logFinanceQueryError = (context: string, error: unknown) => {
     details?: string | null
     code?: string | null
   }
-  console.error(`[finance/${context}] ${candidate?.message ?? 'unknown error'}`, {
+  console.error(`[finance/${context}] ${candidate?.message ?? 'lỗi không xác định'}`, {
     details: candidate?.details ?? null,
     code: candidate?.code ?? null
   })
@@ -258,8 +258,8 @@ export const FinanceDashboard = () => {
       logFinanceQueryError('load_entries', error)
       dispatch(
         setAlert({
-          title: 'Load failed',
-          message: 'Cannot load finance data from Supabase.',
+          title: 'Tải dữ liệu thất bại',
+          message: 'Không thể tải dữ liệu tài chính từ Supabase.',
           type: 'warning'
         })
       )
@@ -311,8 +311,8 @@ export const FinanceDashboard = () => {
       })
       dispatch(
         setAlert({
-          title: 'Canh bao',
-          message: `Khong the tai couple context (${coupleError.code ?? 'unknown'})`,
+          title: 'Cảnh báo',
+          message: `Không thể tải dữ liệu couple (${coupleError.code ?? 'unknown'})`,
           type: 'warning'
         })
       )
@@ -516,8 +516,8 @@ export const FinanceDashboard = () => {
         setShowImportBanner(false)
         dispatch(
           setAlert({
-            title: 'Khong co du lieu',
-            message: 'Khong tim thay du lieu offline de import.',
+            title: 'Không có dữ liệu',
+            message: 'Không tìm thấy dữ liệu offline để import.',
             type: 'info'
           })
         )
@@ -531,7 +531,7 @@ export const FinanceDashboard = () => {
 
       dispatch(
         setAlert({
-          title: 'Import thanh cong',
+          title: 'Import thành công',
           message: `Da import ${localEntries.length} giao dich len cloud.`,
           type: 'success'
         })
@@ -540,8 +540,8 @@ export const FinanceDashboard = () => {
       logFinanceQueryError('import_offline', error)
       dispatch(
         setAlert({
-          title: 'Import that bai',
-          message: 'Khong the import du lieu offline len Supabase.',
+          title: 'Import thất bại',
+          message: 'Không thể import dữ liệu offline lên Supabase.',
           type: 'error'
         })
       )
@@ -556,7 +556,7 @@ export const FinanceDashboard = () => {
 
     const amountValue = Number(amount)
     if (!Number.isFinite(amountValue) || amountValue <= 0) {
-      setFormError('So tien khong hop le.')
+      setFormError('Số tiền không hợp lệ.')
       return
     }
 
@@ -601,8 +601,8 @@ export const FinanceDashboard = () => {
       setEntries(previousEntries)
       dispatch(
         setAlert({
-          title: 'Sync failed',
-          message: 'Khong the luu giao dich len Supabase.',
+          title: 'Đồng bộ thất bại',
+          message: 'Không thể lưu giao dịch lên Supabase.',
           type: 'error'
         })
       )
@@ -632,8 +632,8 @@ export const FinanceDashboard = () => {
       setEntries(previousEntries)
       dispatch(
         setAlert({
-          title: 'Sync failed',
-          message: 'Khong the xoa giao dich tren Supabase.',
+          title: 'Đồng bộ thất bại',
+          message: 'Không thể xóa giao dịch trên Supabase.',
           type: 'error'
         })
       )
@@ -673,7 +673,7 @@ export const FinanceDashboard = () => {
       const normalized = parseImportEntries(parsed)
 
       if (normalized.length < 1) {
-        throw new Error('No valid entries found')
+        throw new Error('Không tìm thấy bản ghi hợp lệ')
       }
 
       if (isSupabaseMode) {
@@ -681,12 +681,12 @@ export const FinanceDashboard = () => {
         setEntries(normalized)
         try {
           if (!activeCoupleId) {
-            throw new Error('Missing couple id')
+            throw new Error('Thiếu couple id')
           }
           await upsertEntriesBatch(normalized, activeCoupleId)
         } catch {
           setEntries(previousEntries)
-          throw new Error('Cannot sync imported entries to Supabase')
+          throw new Error('Không thể đồng bộ dữ liệu import lên Supabase')
         }
       } else {
         setEntries(normalized)
@@ -694,8 +694,8 @@ export const FinanceDashboard = () => {
 
       dispatch(
         setAlert({
-          title: 'Nhap du lieu thanh cong',
-          message: 'Du lieu tai chinh da duoc cap nhat tu file backup.',
+          title: 'Nhập dữ liệu thành công',
+          message: 'Dữ liệu tài chính đã được cập nhật từ file backup.',
           type: 'success'
         })
       )
@@ -703,8 +703,8 @@ export const FinanceDashboard = () => {
       logFinanceQueryError('import_json', error)
       dispatch(
         setAlert({
-          title: 'Nhap du lieu that bai',
-          message: 'File JSON khong hop le.',
+          title: 'Nhập dữ liệu thất bại',
+          message: 'File JSON không hợp lệ.',
           type: 'error'
         })
       )
@@ -717,7 +717,7 @@ export const FinanceDashboard = () => {
     return (
       <main className="container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Dang tai bang tai chinh...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">Đang tải bảng tài chính...</p>
         </div>
       </main>
     )
@@ -731,27 +731,27 @@ export const FinanceDashboard = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
-              LoveHub Finance
+              LoveHub Tài Chính
             </span>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Finance tracker dashboard
+              Bảng theo dõi tài chính
             </h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              Dashboard inspired by `_refs/nextjs-dashboard` cards/layout.
+              Giao diện dashboard gọn nhẹ, tối ưu cho theo dõi thu chi hằng ngày.
             </p>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Data mode: {isSupabaseMode ? 'Supabase synced' : 'LocalStorage fallback'}
+              Chế độ dữ liệu: {isSupabaseMode ? 'Đồng bộ Supabase' : 'Lưu local trên thiết bị'}
             </p>
             {currentEmail && (
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>
             )}
             {activeCoupleCode && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Mã couple: #{activeCoupleCode}</p>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Thang</label>
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-200">Tháng</label>
             <input
               type="month"
               value={selectedMonth}
@@ -763,9 +763,9 @@ export const FinanceDashboard = () => {
 
         {isSupabaseMode && showImportBanner && (
           <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
-            <p className="font-semibold">Ban co du lieu finance offline. Import len cloud?</p>
+            <p className="font-semibold">Bạn có dữ liệu tài chính offline. Import lên cloud?</p>
             <p className="mt-1 text-xs opacity-80">
-              Sau khi import, du lieu finance se uu tien doc tu Supabase cho couple hien tai.
+              Sau khi import, dữ liệu tài chính sẽ ưu tiên đọc từ Supabase cho couple hiện tại.
             </p>
             <div className="mt-3 flex items-center gap-2">
               <button
@@ -774,7 +774,7 @@ export const FinanceDashboard = () => {
                 disabled={isImportingOffline}
                 className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isImportingOffline ? 'Dang import...' : 'Import'}
+                {isImportingOffline ? 'Đang import...' : 'Nhập lên cloud'}
               </button>
               <button
                 type="button"
@@ -782,7 +782,7 @@ export const FinanceDashboard = () => {
                 disabled={isImportingOffline}
                 className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-900/30"
               >
-                Dismiss
+                Để sau
               </button>
             </div>
           </div>
@@ -793,7 +793,7 @@ export const FinanceDashboard = () => {
             <div className="grid gap-4 sm:grid-cols-3">
               <SummaryCard title="Thu nhap" value={monthIncome} color="green" />
               <SummaryCard title="Chi tieu" value={monthExpense} color="rose" />
-              <SummaryCard title="So du rong" value={monthNet} color={monthNet >= 0 ? 'blue' : 'red'} />
+              <SummaryCard title="Số dư ròng" value={monthNet} color={monthNet >= 0 ? 'blue' : 'red'} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -803,7 +803,7 @@ export const FinanceDashboard = () => {
                 </h2>
                 {expenseByCategory.length < 1 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Chua co du lieu chi tieu trong thang nay.
+                    Chưa có dữ liệu chi tiêu trong tháng này.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -867,16 +867,16 @@ export const FinanceDashboard = () => {
 
               {monthEntries.length < 1 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Chua co giao dich cho thang da chon.
+                  Chưa có giao dịch cho tháng đã chọn.
                 </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        <th className="py-2 pr-3">Ngay</th>
-                        <th className="py-2 pr-3">Loai</th>
-                        <th className="py-2 pr-3">Danh muc</th>
+                        <th className="py-2 pr-3">Ngày</th>
+                        <th className="py-2 pr-3">Loại</th>
+                        <th className="py-2 pr-3">Danh mục</th>
                         <th className="py-2 pr-3">So tien</th>
                         <th className="py-2 pr-3">Ghi chu</th>
                         <th className="py-2 text-right">Tac vu</th>
@@ -913,14 +913,14 @@ export const FinanceDashboard = () => {
                                 onClick={() => handleEditEntry(entry)}
                                 className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
                               >
-                                Sua
+                                Sửa
                               </button>
                               <button
                                 type="button"
                                 onClick={() => void handleDeleteEntry(entry.id)}
                                 className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
                               >
-                                Xoa
+                                Xoá
                               </button>
                             </div>
                           </td>
@@ -936,7 +936,7 @@ export const FinanceDashboard = () => {
           <aside className="space-y-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                {editingEntryId ? 'Cap nhat giao dich' : 'Them giao dich'}
+                {editingEntryId ? 'Cập nhật giao dịch' : 'Thêm giao dịch'}
               </h2>
 
               <form className="space-y-3" onSubmit={(event) => void handleAddOrUpdateEntry(event)}>
@@ -983,7 +983,7 @@ export const FinanceDashboard = () => {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Danh muc
+                    Danh mục
                   </label>
                   <select
                     value={category}
@@ -1000,7 +1000,7 @@ export const FinanceDashboard = () => {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Ngay
+                    Ngày
                   </label>
                   <input
                     type="date"
@@ -1019,7 +1019,7 @@ export const FinanceDashboard = () => {
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-                    placeholder="Them ghi chu neu can..."
+                    placeholder="Thêm ghi chú nếu cần..."
                   />
                 </div>
 
@@ -1033,7 +1033,7 @@ export const FinanceDashboard = () => {
                   type="submit"
                   className="w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 >
-                  {editingEntryId ? 'Cap nhat giao dich' : 'Them giao dich'}
+                  {editingEntryId ? 'Cập nhật giao dịch' : 'Thêm giao dịch'}
                 </button>
                 {editingEntryId && (
                   <button
@@ -1041,7 +1041,7 @@ export const FinanceDashboard = () => {
                     onClick={() => fillForm(null)}
                     className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                   >
-                    Huy sua
+                    Huỷ sửa
                   </button>
                 )}
               </form>
@@ -1057,14 +1057,14 @@ export const FinanceDashboard = () => {
                   onClick={handleExport}
                   className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Export
+                  Xuất
                 </button>
                 <button
                   type="button"
                   onClick={() => importRef.current?.click()}
                   className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Import
+                  Nhập
                 </button>
                 <input
                   ref={importRef}
@@ -1075,7 +1075,7 @@ export const FinanceDashboard = () => {
                 />
               </div>
               <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                Luu va khoi phuc du lieu tai chinh qua file JSON.
+                Lưu và khôi phục dữ liệu tài chính qua file JSON.
               </p>
             </div>
           </aside>
@@ -1130,7 +1130,7 @@ const SummaryCard = ({
         <span
           className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${colorMap[color].iconBg} ${colorMap[color].iconText}`}
         >
-          ₫
+          â‚«
         </span>
         <h3 className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">{title}</h3>
       </div>
@@ -1140,3 +1140,4 @@ const SummaryCard = ({
     </div>
   )
 }
+

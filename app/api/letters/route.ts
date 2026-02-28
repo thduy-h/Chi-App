@@ -21,8 +21,7 @@ const forwardLettersToWebhook = async (body: LettersRequestBody) => {
   if (!targetUrl) {
     return NextResponse.json(
       {
-        error:
-          'Letters target is not configured. Set FORMSPREE_LETTERS_URL or LETTERS_WEBHOOK_URL.'
+        error: 'Chưa cấu hình endpoint nhận thư. Hãy đặt FORMSPREE_LETTERS_URL hoặc LETTERS_WEBHOOK_URL.'
       },
       { status: 503 }
     )
@@ -52,7 +51,7 @@ const forwardLettersToWebhook = async (body: LettersRequestBody) => {
     const details = await upstreamResponse.text()
     return NextResponse.json(
       {
-        error: 'Failed to forward letters submission.',
+        error: 'Không thể chuyển thư đến endpoint đích.',
         details: details.slice(0, 500)
       },
       { status: 502 }
@@ -75,7 +74,7 @@ export async function GET() {
     } = await supabase.auth.getUser()
 
     if (userError || !user) {
-      return NextResponse.json({ letters: [], error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ letters: [], error: 'Chưa đăng nhập' }, { status: 401 })
     }
 
     const currentCouple = await getCurrentCoupleForUser(supabase, user.id)
@@ -102,7 +101,7 @@ export async function GET() {
       { status: 200 }
     )
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected server error.'
+    const message = error instanceof Error ? error.message : 'Lỗi máy chủ không xác định.'
     return NextResponse.json({ letters: [], error: message }, { status: 500 })
   }
 }
@@ -112,12 +111,12 @@ export async function POST(request: Request) {
     const body = (await request.json()) as LettersRequestBody
 
     if (!body.mode || !validModes.has(body.mode)) {
-      return NextResponse.json({ error: 'Invalid mode.' }, { status: 400 })
+      return NextResponse.json({ error: 'Mode không hợp lệ.' }, { status: 400 })
     }
 
     if (!body.title || !body.message) {
       return NextResponse.json(
-        { error: 'Missing required fields: title and message.' },
+        { error: 'Thiếu trường bắt buộc: title và message.' },
         { status: 400 }
       )
     }
@@ -160,7 +159,7 @@ export async function POST(request: Request) {
     // Logged-out (or no couple) behavior: keep existing webhook submit path.
     return forwardLettersToWebhook(body)
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unexpected server error.'
+    const message = error instanceof Error ? error.message : 'Lỗi máy chủ không xác định.'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

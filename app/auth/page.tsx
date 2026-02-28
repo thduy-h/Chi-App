@@ -5,8 +5,8 @@ import { AuthForm } from '@/lib/components/pages/auth/auth-form'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
-  title: 'Auth | LoveHub',
-  description: 'Email auth for LoveHub'
+  title: 'Đăng nhập | LoveHub',
+  description: 'Đăng nhập email cho LoveHub'
 }
 
 export default async function AuthPage() {

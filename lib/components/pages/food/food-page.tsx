@@ -1,6 +1,6 @@
-'use client'
+﻿'use client'
 
-import { useMemo, useState } from 'react'
+import { FormEvent, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { FOODS, FOOD_CATEGORIES, FoodCategory, FoodItem } from '@/lib/data/foods'
 import { setAlert } from '@/lib/features/alert/alertSlice'
@@ -12,6 +12,32 @@ const DELIVERY_TIME_OPTIONS = [
   { value: 'toi', label: 'Buổi tối' },
   { value: 'cuoi-tuan', label: 'Cuối tuần' }
 ]
+
+const FALLBACK_IMAGE =
+  'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80'
+
+const FoodImage = ({ src, alt }: { src?: string; alt: string }) => {
+  const [hasError, setHasError] = useState(false)
+  const imageSrc = hasError ? FALLBACK_IMAGE : src
+
+  if (!imageSrc) {
+    return (
+      <div className="flex h-44 w-full items-center justify-center rounded-md bg-rose-100 text-center text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-200">
+        Ảnh món ăn
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={imageSrc}
+      alt={alt}
+      loading="lazy"
+      onError={() => setHasError(true)}
+      className="h-44 w-full rounded-md object-cover"
+    />
+  )
+}
 
 export const FoodPage = () => {
   const dispatch = useDispatch()
@@ -100,7 +126,7 @@ export const FoodPage = () => {
     setDeliveryTime(DELIVERY_TIME_OPTIONS[0].value)
   }
 
-  const submitOrder = async (event: React.FormEvent<HTMLFormElement>) => {
+  const submitOrder = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (!orderName.trim()) {
@@ -176,7 +202,9 @@ export const FoodPage = () => {
         </div>
 
         <div
-          className={`fixed left-0 top-0 z-40 h-screen w-80 overflow-y-auto border border-gray-200 bg-white shadow transition-transform dark:border-gray-700 dark:bg-gray-900 ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          className={`fixed left-0 top-0 z-40 h-screen w-80 overflow-y-auto border border-gray-200 bg-white shadow transition-transform dark:border-gray-700 dark:bg-gray-900 ${
+            isDrawerOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
           aria-labelledby="food-drawer-label"
         >
           <div className="sticky top-0 bg-white px-4 pb-3 pt-4 dark:bg-gray-900">
@@ -249,7 +277,11 @@ export const FoodPage = () => {
                 <button
                   type="button"
                   onClick={() => setIsGridView(true)}
-                  className={`flex h-9 w-10 items-center justify-center rounded border ${isGridView ? 'border-rose-600 bg-rose-600 text-white' : 'border-gray-300 text-gray-700 dark:text-gray-300'}`}
+                  className={`flex h-9 w-10 items-center justify-center rounded border ${
+                    isGridView
+                      ? 'border-rose-600 bg-rose-600 text-white'
+                      : 'border-gray-300 text-gray-700 dark:text-gray-300'
+                  }`}
                 >
                   <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
                     <path d="M6 1v3H1V1zM1 0a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1zm14 12v3h-5v-3zm-5-1a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1zM6 8v7H1V8zM1 7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zm14-6v7h-5V1zm-5-1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1V1a1 1 0 0 0-1-1z" />
@@ -258,7 +290,11 @@ export const FoodPage = () => {
                 <button
                   type="button"
                   onClick={() => setIsGridView(false)}
-                  className={`flex h-9 w-10 items-center justify-center rounded border ${!isGridView ? 'border-rose-600 bg-rose-600 text-white' : 'border-gray-300 text-gray-700 dark:text-gray-300'}`}
+                  className={`flex h-9 w-10 items-center justify-center rounded border ${
+                    !isGridView
+                      ? 'border-rose-600 bg-rose-600 text-white'
+                      : 'border-gray-300 text-gray-700 dark:text-gray-300'
+                  }`}
                 >
                   <svg viewBox="0 0 16 16" fill="currentColor" className="h-4 w-4">
                     <path
@@ -275,8 +311,7 @@ export const FoodPage = () => {
           {randomFood && (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-900/50 dark:bg-rose-950/10">
               <p className="text-sm text-rose-700 dark:text-rose-300">
-                Gợi ý hôm nay:{' '}
-                <span className="font-semibold">{randomFood.name}</span> ({randomFood.priceRange})
+                Gợi ý hôm nay: <span className="font-semibold">{randomFood.name}</span> ({randomFood.priceRange})
               </p>
             </div>
           )}
@@ -300,46 +335,30 @@ export const FoodPage = () => {
             {filteredFoods.map((food) => (
               <article
                 key={food.id}
-                className={`flex h-full overflow-hidden rounded-lg bg-white shadow-lg dark:border dark:border-gray-700 dark:bg-transparent ${isGridView ? 'flex-col' : 'flex-col sm:flex-row'}`}
+                className={`flex h-full overflow-hidden rounded-lg bg-white shadow-lg dark:border dark:border-gray-700 dark:bg-transparent ${
+                  isGridView ? 'flex-col' : 'flex-col sm:flex-row'
+                }`}
               >
                 <div className={`bg-rose-50 p-4 dark:bg-gray-800/30 ${isGridView ? '' : 'sm:w-1/3'}`}>
-                  {food.image ? (
-                    <div
-                      className={`w-full rounded-md bg-cover bg-center ${isGridView ? 'h-44' : 'h-36'}`}
-                      style={{ backgroundImage: `url(${food.image})` }}
-                    />
-                  ) : (
-                    <div
-                      className={`flex w-full items-center justify-center rounded-md bg-rose-100 text-3xl dark:bg-rose-900/30 ${isGridView ? 'h-44' : 'h-36'}`}
-                    >
-                      🍜
-                    </div>
-                  )}
+                  <FoodImage src={food.image} alt={food.name} />
                 </div>
 
                 <div className={`flex flex-1 flex-col p-4 ${isGridView ? '' : 'sm:w-2/3'}`}>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{food.name}</h3>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {
-                      FOOD_CATEGORIES.find((category) => category.value === food.category)
-                        ?.label
-                    }
+                    {FOOD_CATEGORIES.find((category) => category.value === food.category)?.label}
                   </p>
 
-                  <p className="mt-4 text-base font-semibold text-rose-700 dark:text-rose-300">
-                    {food.priceRange}
-                  </p>
+                  <p className="mt-4 text-base font-semibold text-rose-700 dark:text-rose-300">{food.priceRange}</p>
 
-                  {food.note && (
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{food.note}</p>
-                  )}
+                  {food.note && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{food.note}</p>}
 
                   <button
                     type="button"
                     onClick={() => openOrderModal(food)}
                     className="mt-auto rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black dark:bg-gray-200 dark:text-gray-900 dark:hover:bg-white"
                   >
-                    Order món này
+                    Đặt món này
                   </button>
                 </div>
               </article>

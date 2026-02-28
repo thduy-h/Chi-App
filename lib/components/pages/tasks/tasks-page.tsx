@@ -16,23 +16,23 @@ const TRAVEL_STORAGE_KEY = 'lovehub.tasks.travel.v1'
 const IMPORT_FLAG_PREFIX = 'lovehub_tasks_imported_'
 
 const sharedColumns: KanbanColumn[] = [
-  { id: 'todo', title: 'Can lam', status: 'todo' },
-  { id: 'in-progress', title: 'Dang lam', status: 'in-progress' },
+  { id: 'todo', title: 'Cần làm', status: 'todo' },
+  { id: 'in-progress', title: 'Đang làm', status: 'in-progress' },
   { id: 'done', title: 'Xong', status: 'done' }
 ]
 
 const sharedTasks: KanbanTask[] = [
   {
     id: 'shared-1',
-    content: 'Len danh sach viec nha tuan nay',
+    content: 'Lên danh sách việc nhà tuần này',
     status: 'todo',
     position: 0,
-    note: 'Uu tien viec can xu ly truoc thu 6.',
+    note: 'Ưu tiên việc cần xử lý trước thứ 6.',
     createdAt: '2026-01-01T10:00:00.000Z'
   },
   {
     id: 'shared-2',
-    content: 'Mua qua ky niem',
+    content: 'Mua quà kỷ niệm',
     status: 'in-progress',
     position: 0,
     dueDate: '2026-03-01',
@@ -40,7 +40,7 @@ const sharedTasks: KanbanTask[] = [
   },
   {
     id: 'shared-3',
-    content: 'Dat nha hang cuoi tuan',
+    content: 'Đặt nhà hàng cuối tuần',
     status: 'done',
     position: 0,
     createdAt: '2026-01-01T11:00:00.000Z'
@@ -48,30 +48,30 @@ const sharedTasks: KanbanTask[] = [
 ]
 
 const travelColumns: KanbanColumn[] = [
-  { id: 'ideas', title: 'Y tuong', status: 'ideas' },
-  { id: 'booking', title: 'Dat cho', status: 'booking' },
-  { id: 'packing', title: 'Chuan bi', status: 'packing' },
-  { id: 'completed', title: 'Hoan tat', status: 'completed' }
+  { id: 'ideas', title: 'Ý tưởng', status: 'ideas' },
+  { id: 'booking', title: 'Đặt chỗ', status: 'booking' },
+  { id: 'packing', title: 'Chuẩn bị', status: 'packing' },
+  { id: 'completed', title: 'Hoàn tất', status: 'completed' }
 ]
 
 const travelTasks: KanbanTask[] = [
   {
     id: 'travel-1',
-    content: 'Chon diem den cho chuyen 3N2D',
+    content: 'Chọn điểm đến cho chuyến 3N2Đ',
     status: 'ideas',
     position: 0,
     createdAt: '2026-01-01T12:00:00.000Z'
   },
   {
     id: 'travel-2',
-    content: 'So sanh ve may bay va tau',
+    content: 'So sánh vé máy bay và tàu',
     status: 'booking',
     position: 0,
     createdAt: '2026-01-01T12:15:00.000Z'
   },
   {
     id: 'travel-3',
-    content: 'Chuan bi checklist do dung',
+    content: 'Chuẩn bị checklist đồ dùng',
     status: 'packing',
     position: 0,
     createdAt: '2026-01-01T12:30:00.000Z'
@@ -81,21 +81,21 @@ const travelTasks: KanbanTask[] = [
 const itineraryDays: ItineraryDay[] = [
   {
     id: 'day-1',
-    title: 'Ngay 1',
+    title: 'Ngày 1',
     date: '',
-    activities: '- Di chuyen den dia diem\n- Check-in khach san\n- An toi nhe'
+    activities: '- Di chuyển đến địa điểm\n- Check-in khách sạn\n- Ăn tối nhẹ'
   },
   {
     id: 'day-2',
-    title: 'Ngay 2',
+    title: 'Ngày 2',
     date: '',
-    activities: '- Kham pha diem tham quan chinh\n- Cafe chieu\n- Dao pho dem'
+    activities: '- Khám phá điểm tham quan chính\n- Cà phê chiều\n- Dạo phố đêm'
   },
   {
     id: 'day-3',
-    title: 'Ngay 3',
+    title: 'Ngày 3',
     date: '',
-    activities: '- Mua qua luu niem\n- Tra phong\n- Di chuyen ve'
+    activities: '- Mua quà lưu niệm\n- Trả phòng\n- Di chuyển về'
   }
 ]
 
@@ -231,8 +231,8 @@ export const TasksPage = () => {
       logSupabaseError('rpc.get_my_couple', coupleError)
       dispatch(
         setAlert({
-          title: 'Canh bao',
-          message: toErrorMessage(coupleError, 'Khong the tai couple context'),
+          title: 'Cảnh báo',
+          message: toErrorMessage(coupleError, 'Không thể tải dữ liệu couple'),
           type: 'warning'
         })
       )
@@ -315,8 +315,8 @@ export const TasksPage = () => {
         setShowImportBanner(false)
         dispatch(
           setAlert({
-            title: 'Khong co du lieu',
-            message: 'Khong tim thay task offline de import.',
+            title: 'Không có dữ liệu',
+            message: 'Không tìm thấy task offline để import.',
             type: 'info'
           })
         )
@@ -336,8 +336,8 @@ export const TasksPage = () => {
       setBoardRefreshToken((value) => value + 1)
       dispatch(
         setAlert({
-          title: 'Import thanh cong',
-          message: `Da import ${importRows.length} task offline len cloud.`,
+          title: 'Import thành công',
+          message: `Đã import ${importRows.length} task offline lên cloud.`,
           type: 'success'
         })
       )
@@ -345,8 +345,8 @@ export const TasksPage = () => {
       logSupabaseError('import.offlineTasks', error)
       dispatch(
         setAlert({
-          title: 'Import that bai',
-          message: toErrorMessage(error, 'Khong the import du lieu offline'),
+          title: 'Import thất bại',
+          message: toErrorMessage(error, 'Không thể import dữ liệu offline'),
           type: 'warning'
         })
       )
@@ -358,12 +358,12 @@ export const TasksPage = () => {
   const tabCopy = useMemo(
     () => ({
       shared: {
-        title: 'Tasks chung',
-        description: 'Board chung de phan viec hang ngay va theo doi tien do.'
+        title: 'Việc chung',
+        description: 'Bảng chung để phân việc hằng ngày và theo dõi tiến độ.'
       },
       travel: {
-        title: 'Plan du lich',
-        description: 'Len ke hoach chuyen di voi board chuan bi va lich trinh theo ngay.'
+        title: 'Kế hoạch du lịch',
+        description: 'Lên kế hoạch chuyến đi với board chuẩn bị và lịch trình theo ngày.'
       }
     }),
     []
@@ -376,22 +376,22 @@ export const TasksPage = () => {
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
           <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
-            LoveHub Tasks
+            LoveHub Việc Chung
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Quan ly viec chung va ke hoach du lich
+            Quản lý việc chung và kế hoạch du lịch
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-gray-600 dark:text-gray-300 sm:text-base">
-            Board drag-and-drop, offline truoc. Khi da login va co couple, du lieu se sync voi Supabase.
+            Board kéo-thả, ưu tiên offline. Khi đã đăng nhập và có couple, dữ liệu sẽ đồng bộ với Supabase.
           </p>
         </div>
 
         <div className="mb-5 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200">
           <p>
-            <span className="font-semibold">Mode:</span>{' '}
-            {syncMode === 'supabase' ? 'Supabase (online)' : 'LocalStorage (offline)'}
+            <span className="font-semibold">Chế độ:</span>{' '}
+            {syncMode === 'supabase' ? 'Đồng bộ Supabase' : 'Local trên thiết bị'}
           </p>
-          {isContextLoading && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Dang kiem tra session...</p>}
+          {isContextLoading && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Đang kiểm tra phiên đăng nhập...</p>}
           {currentEmail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>}
           {activeCoupleCode && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>
@@ -400,8 +400,8 @@ export const TasksPage = () => {
 
         {syncMode === 'supabase' && showImportBanner && (
           <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
-            <p className="font-semibold">Ban co du lieu offline. Import len cloud?</p>
-            <p className="mt-1 text-xs opacity-80">Sau khi import, Tasks se doc tu Supabase cho couple hien tai.</p>
+            <p className="font-semibold">Bạn có dữ liệu offline. Import lên cloud?</p>
+            <p className="mt-1 text-xs opacity-80">Sau khi import, dữ liệu sẽ ưu tiên đọc từ Supabase cho couple hiện tại.</p>
             <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
@@ -409,7 +409,7 @@ export const TasksPage = () => {
                 disabled={isImportingOffline}
                 className="rounded-lg bg-amber-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                {isImportingOffline ? 'Dang import...' : 'Import'}
+                {isImportingOffline ? 'Đang import...' : 'Nhập lên cloud'}
               </button>
               <button
                 type="button"
@@ -417,7 +417,7 @@ export const TasksPage = () => {
                 disabled={isImportingOffline}
                 className="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-amber-800 dark:text-amber-200 dark:hover:bg-amber-900/30"
               >
-                Dismiss
+                Để sau
               </button>
             </div>
           </div>
@@ -434,7 +434,7 @@ export const TasksPage = () => {
                   : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
-              Tasks chung
+              Việc chung
             </button>
             <button
               type="button"
@@ -445,7 +445,7 @@ export const TasksPage = () => {
                   : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
-              Plan du lich
+              Kế hoạch du lịch
             </button>
           </div>
         </div>
@@ -458,7 +458,7 @@ export const TasksPage = () => {
         {activeTab === 'shared' && (
           <KanbanBoard
             storageKey={SHARED_STORAGE_KEY}
-            boardLabel="Tasks chung"
+            boardLabel="Việc chung"
             boardKey="tasks"
             syncMode={syncMode}
             activeCoupleId={activeCoupleId}
@@ -472,7 +472,7 @@ export const TasksPage = () => {
           <div className="space-y-5">
             <KanbanBoard
               storageKey={TRAVEL_STORAGE_KEY}
-              boardLabel="Plan du lich"
+            boardLabel="Kế hoạch du lịch"
               boardKey="travel"
               syncMode={syncMode}
               activeCoupleId={activeCoupleId}

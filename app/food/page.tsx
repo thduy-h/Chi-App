@@ -1,4 +1,4 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 import { FoodPage } from '@/lib/components/pages/food/food-page'
 
 export const metadata: Metadata = {

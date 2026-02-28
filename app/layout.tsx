@@ -37,7 +37,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="vi">
       <head><link rel="icon" href="/favicon.png" /></head>
       <body>
         <StoreProvider preloadedState={{

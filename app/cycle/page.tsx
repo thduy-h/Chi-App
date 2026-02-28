@@ -1,11 +1,11 @@
-import { Metadata } from 'next'
+﻿import { Metadata } from 'next'
 import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { CycleTracker } from '@/lib/components/pages/cycle/cycle-tracker'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
-  title: 'LoveHub | Cycle',
-  description: 'Period tracker with Supabase-backed settings and local fallback.'
+  title: 'LoveHub | Chu kỳ',
+  description: 'Theo dõi chu kỳ với đồng bộ Supabase và fallback local.'
 }
 
 export default async function Page() {
@@ -13,8 +13,8 @@ export default async function Page() {
   if (!supabase) {
     return (
       <AuthRequired
-        title="Khong the tai Cycle Tracker"
-        message="Supabase env chua duoc cau hinh. Vui long dang nhap lai sau."
+        title="Không thể tải trang Chu kỳ"
+        message="Supabase chưa được cấu hình. Vui lòng thử lại sau."
       />
     )
   }
@@ -26,8 +26,8 @@ export default async function Page() {
   if (!user) {
     return (
       <AuthRequired
-        title="Can dang nhap de xem Cycle"
-        message="Dang nhap de luu va dong bo cai dat chu ky."
+        title="Cần đăng nhập để xem Chu kỳ"
+        message="Đăng nhập để lưu và đồng bộ cài đặt chu kỳ."
       />
     )
   }

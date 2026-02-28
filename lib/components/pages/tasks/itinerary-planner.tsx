@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -99,7 +99,7 @@ export const ItineraryPlanner = ({
       .then((text) => {
         const parsed = JSON.parse(text) as ItineraryDay[]
         if (!Array.isArray(parsed)) {
-          throw new Error('Invalid itinerary format')
+          throw new Error('Định dạng lịch trình không hợp lệ')
         }
 
         const imported = parsed
@@ -115,7 +115,7 @@ export const ItineraryPlanner = ({
           .filter((day) => day.title)
 
         if (imported.length < 1) {
-          throw new Error('No valid itinerary day found')
+          throw new Error('Không có ngày hợp lệ trong file')
         }
 
         setDays(imported)
@@ -197,7 +197,7 @@ export const ItineraryPlanner = ({
                 onClick={() => removeDay(day.id)}
                 className="rounded-md p-1 text-red-600 hover:bg-red-100 dark:text-red-300 dark:hover:bg-red-900/20"
               >
-                <span className="sr-only">Xóa ngày</span>
+                <span className="sr-only">Xoá ngày</span>
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path
                     fillRule="evenodd"
@@ -228,7 +228,7 @@ export const ItineraryPlanner = ({
                 value={day.activities}
                 onChange={(event) => updateDay(day.id, 'activities', event.target.value)}
                 rows={4}
-                placeholder="- Check-in khách sạn&#10;- Cafe sáng&#10;- Tham quan..."
+                placeholder="- Check-in khách sạn&#10;- Cà phê sáng&#10;- Tham quan..."
                 className="w-full rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-800 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>

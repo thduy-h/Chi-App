@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -21,7 +21,7 @@ import { TaskModal } from '@/lib/components/pages/tasks/task-modal'
 import { ColumnModal } from '@/lib/components/pages/tasks/column-modal'
 
 type SyncMode = 'local' | 'supabase'
-type SyncStatus = 'OFFLINE' | 'SYNCED'
+type SyncStatus = 'LOCAL' | 'SYNCED'
 type RemoteTaskRow = Database['public']['Tables']['tasks']['Row']
 type RemoteTaskInsert = Database['public']['Tables']['tasks']['Insert']
 
@@ -189,7 +189,7 @@ export const KanbanBoard = ({
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [columnModalMode, setColumnModalMode] = useState<'create' | 'edit'>('create')
   const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('OFFLINE')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('LOCAL')
   const [isSyncing, setIsSyncing] = useState(false)
 
   const isSupabaseMode = syncMode === 'supabase' && Boolean(activeCoupleId)
@@ -234,7 +234,7 @@ export const KanbanBoard = ({
   const persistTaskChanges = useCallback(
     async (nextTasks: KanbanTask[], affectedStatuses: string[], deletedIds: string[] = []) => {
       if (!isSupabaseMode || !activeCoupleId || !supabase) {
-        setSyncStatus('OFFLINE')
+        setSyncStatus('LOCAL')
         return true
       }
 
@@ -269,12 +269,12 @@ export const KanbanBoard = ({
         setSyncStatus('SYNCED')
         return true
       } catch (error) {
-        setSyncStatus('OFFLINE')
+        setSyncStatus('LOCAL')
         logSupabaseError('persistTaskChanges', error)
         dispatch(
           setAlert({
-            title: 'Sync failed',
-            message: toErrorMessage(error, 'Unable to sync tasks to Supabase'),
+            title: 'Đồng bộ thất bại',
+            message: toErrorMessage(error, 'Không thể đồng bộ task lên Supabase'),
             type: 'warning'
           })
         )
@@ -293,7 +293,7 @@ export const KanbanBoard = ({
         const normalizedDefault = normalizeBoardState(null, defaultColumns, defaultTasks)
         setColumns(normalizedDefault.columns)
         setTasks(normalizedDefault.tasks)
-        setSyncStatus('OFFLINE')
+        setSyncStatus('LOCAL')
         setHydrated(true)
         return
       }
@@ -308,7 +308,7 @@ export const KanbanBoard = ({
         setColumns(normalizedDefault.columns)
         setTasks(normalizedDefault.tasks)
       } finally {
-        setSyncStatus('OFFLINE')
+        setSyncStatus('LOCAL')
         setHydrated(true)
       }
       return
@@ -357,11 +357,11 @@ export const KanbanBoard = ({
       setSyncStatus('SYNCED')
     } catch (error) {
       logSupabaseError('loadBoardState', error)
-      setSyncStatus('OFFLINE')
+      setSyncStatus('LOCAL')
       dispatch(
         setAlert({
-          title: 'Load failed',
-          message: toErrorMessage(error, 'Unable to load tasks from Supabase'),
+          title: 'Tải dữ liệu thất bại',
+          message: toErrorMessage(error, 'Không thể tải task từ Supabase'),
           type: 'warning'
         })
       )
@@ -405,7 +405,7 @@ export const KanbanBoard = ({
       setTasks(next)
 
       if (!isSupabaseMode) {
-        setSyncStatus('OFFLINE')
+        setSyncStatus('LOCAL')
         return true
       }
 
@@ -770,7 +770,7 @@ export const KanbanBoard = ({
         if (!ok) {
           setColumns(previousColumns)
           setTasks(previousTasks)
-          throw new Error('Unable to sync imported data to Supabase')
+          throw new Error('Không thể đồng bộ dữ liệu import lên Supabase')
         }
       }
 
@@ -798,8 +798,8 @@ export const KanbanBoard = ({
     if (!isSupabaseMode) {
       dispatch(
         setAlert({
-          title: 'OFFLINE',
-          message: 'Login and join a couple to enable Supabase sync.',
+          title: 'Đang ở chế độ local',
+          message: 'Hãy đăng nhập và tham gia couple để bật đồng bộ Supabase.',
           type: 'info'
         })
       )
@@ -810,8 +810,8 @@ export const KanbanBoard = ({
     const ok = await persistTaskChanges(snapshot, columns.map((column) => column.status))
     dispatch(
       setAlert({
-        title: ok ? 'Synced' : 'Sync failed',
-        message: ok ? 'Tasks synced to Supabase.' : 'Unable to sync now. Rolled back not applied.',
+        title: ok ? 'Đồng bộ thành công' : 'Đồng bộ thất bại',
+        message: ok ? 'Task đã được đồng bộ lên Supabase.' : 'Không thể đồng bộ lúc này.',
         type: ok ? 'success' : 'warning'
       })
     )
@@ -858,7 +858,7 @@ export const KanbanBoard = ({
                 : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                 }`}
             >
-              Sync: {syncStatus}
+              Trạng thái: {syncStatus === 'SYNCED' ? 'ĐÃ ĐỒNG BỘ' : 'LOCAL'}
             </span>
             <button
               type="button"
@@ -866,14 +866,14 @@ export const KanbanBoard = ({
               disabled={!isSupabaseMode || isSyncing}
               className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              {isSyncing ? 'Syncing...' : 'Force sync now'}
+              {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}
             </button>
             <button
               type="button"
               onClick={() => openCreateTaskModal(columns[0]?.status || '')}
               className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-700"
             >
-              + Task
+              + Việc mới
             </button>
             <button
               type="button"
@@ -1026,7 +1026,7 @@ export const KanbanBoard = ({
 
                                 {task.dueDate && (
                                   <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                                    Hạn: {task.dueDate}
+                                    Háº¡n: {task.dueDate}
                                   </p>
                                 )}
                               </article>
@@ -1080,3 +1080,8 @@ export const KanbanBoard = ({
     </>
   )
 }
+
+
+
+
+

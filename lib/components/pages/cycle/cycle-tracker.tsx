@@ -189,8 +189,8 @@ export const CycleTracker = () => {
         loadLocalData()
         dispatch(
           setAlert({
-            title: 'Load failed',
-            message: 'Khong the tai cycle settings tu Supabase. Dang dung local fallback.',
+            title: 'Tải dữ liệu thất bại',
+            message: 'Không thể tải cài đặt chu kỳ từ Supabase. Đang dùng dữ liệu local.',
             type: 'warning'
           })
         )
@@ -298,8 +298,8 @@ export const CycleTracker = () => {
         if (!cancelled) {
           dispatch(
             setAlert({
-              title: 'Sync failed',
-              message: 'Khong the luu cycle settings len Supabase.',
+              title: 'Đồng bộ thất bại',
+              message: 'Không thể lưu cài đặt chu kỳ lên Supabase.',
               type: 'error'
             })
           )
@@ -366,8 +366,8 @@ export const CycleTracker = () => {
     if (!hasValidDate) {
       dispatch(
         setAlert({
-          title: 'Ngay khong hop le',
-          message: 'Vui long chon ngay bat dau ky kinh gan nhat.',
+          title: 'Ngày không hợp lệ',
+          message: 'Vui lòng chọn ngày bắt đầu kỳ kinh gần nhất.',
           type: 'error'
         })
       )
@@ -386,8 +386,8 @@ export const CycleTracker = () => {
 
     dispatch(
       setAlert({
-        title: 'Da cap nhat',
-        message: 'Thong tin chu ky da duoc luu.',
+        title: 'Đã cập nhật',
+        message: 'Thông tin chu kỳ đã được lưu.',
         type: 'success'
       })
     )
@@ -397,7 +397,7 @@ export const CycleTracker = () => {
     return (
       <main className="container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-          <p className="text-sm text-gray-500 dark:text-gray-300">Dang tai cycle tracker...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-300">Đang tải trình theo dõi chu kỳ...</p>
         </div>
       </main>
     )
@@ -413,13 +413,13 @@ export const CycleTracker = () => {
             LoveHub Cycle
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Period tracker
+            Theo dõi chu kỳ
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            Theo doi chu ky co ban voi du doan ngay bat dau ky tiep theo va lich thang.
+            Theo dõi chu kỳ cơ bản với dự đoán ngày bắt đầu kỳ tiếp theo và lịch tháng.
           </p>
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Data mode: {isSupabaseMode ? 'Supabase synced' : 'LocalStorage fallback'}
+            Chế độ dữ liệu: {isSupabaseMode ? 'Đồng bộ Supabase' : 'Lưu local trên thiết bị'}
           </p>
         </div>
 
@@ -430,13 +430,13 @@ export const CycleTracker = () => {
               className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70"
             >
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                Cai dat chu ky
+                Cài đặt chu kỳ
               </h2>
 
               <div className="space-y-3">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Last period start
+                    Ngày bắt đầu kỳ gần nhất
                   </label>
                   <input
                     type="date"
@@ -450,7 +450,7 @@ export const CycleTracker = () => {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Cycle length (ngay)
+                    Độ dài chu kỳ (ngày)
                   </label>
                   <input
                     type="number"
@@ -469,7 +469,7 @@ export const CycleTracker = () => {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Period length (ngay)
+                    Độ dài kỳ kinh (ngày)
                   </label>
                   <input
                     type="number"
@@ -497,7 +497,7 @@ export const CycleTracker = () => {
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                Lich su cap nhat
+                Lịch sử cập nhật
               </h2>
               {history.length < 1 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400">Chua co ban ghi lich su.</p>
@@ -511,8 +511,8 @@ export const CycleTracker = () => {
                       <p className="font-semibold text-gray-700 dark:text-gray-200">
                         {formatDateSafe(item.savedAt)}
                       </p>
-                      <p>Ky gan nhat: {formatDateSafe(item.lastPeriodStart)}</p>
-                      <p>Du doan tiep: {formatDateSafe(item.predictedNextStart)}</p>
+                      <p>Kỳ gần nhất: {formatDateSafe(item.lastPeriodStart)}</p>
+                      <p>Dự đoán tiếp: {formatDateSafe(item.predictedNextStart)}</p>
                     </div>
                   ))}
                 </div>
@@ -523,7 +523,7 @@ export const CycleTracker = () => {
           <div className="space-y-6 lg:col-span-2">
             <div className="grid gap-4 sm:grid-cols-3">
               <SummaryCard
-                title="Ky tiep theo"
+                title="Kỳ tiếp theo"
                 value={predictedNextStart ? format(predictedNextStart, 'dd/MM/yyyy') : '--'}
               />
               <SummaryCard
@@ -532,17 +532,17 @@ export const CycleTracker = () => {
                   countdown === null
                     ? '--'
                     : countdown >= 0
-                      ? `${countdown} ngay`
-                      : `Tre ${Math.abs(countdown)} ngay`
+                      ? `${countdown} ngày`
+                      : `Trễ ${Math.abs(countdown)} ngày`
                 }
               />
-              <SummaryCard title="Do dai ky kinh" value={`${settings.periodLength} ngay`} />
+              <SummaryCard title="Độ dài kỳ kinh" value={`${settings.periodLength} ngày`} />
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                  Lich thang
+                  Lịch tháng
                 </h2>
                 <div className="flex items-center gap-2">
                   <button
@@ -550,7 +550,7 @@ export const CycleTracker = () => {
                     onClick={() => setVisibleMonth((prev) => startOfMonth(subMonths(prev, 1)))}
                     className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                   >
-                    Truoc
+                    Trước
                   </button>
                   <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
                     {format(visibleMonth, 'MMMM yyyy')}
@@ -590,12 +590,12 @@ export const CycleTracker = () => {
                       <p className="font-semibold">{format(day, 'd')}</p>
                       {isNextStart && (
                         <span className="mt-1 inline-block rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">
-                          Start
+                          Bắt đầu
                         </span>
                       )}
                       {!isNextStart && isPeriodDay && (
                         <span className="mt-1 inline-block rounded-full bg-rose-200 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
-                          Period
+                          Kỳ kinh
                         </span>
                       )}
                     </div>

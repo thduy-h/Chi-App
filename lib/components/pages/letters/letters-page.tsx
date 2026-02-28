@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -20,24 +20,24 @@ interface InboxLetter {
 
 const modeMeta: Record<LetterMode, { title: string; subtitle: string; button: string }> = {
   feedback: {
-    title: 'Gop y cho LoveHub',
-    subtitle: 'Gui gop y de LoveHub ngay cang huu ich hon cho ca hai.',
-    button: 'Gui gop y'
+    title: 'Góp ý cho LoveHub',
+    subtitle: 'Gửi góp ý để LoveHub ngày càng hữu ích hơn cho cả hai.',
+    button: 'Gửi góp ý'
   },
   love: {
-    title: 'Thu tinh',
-    subtitle: 'Viet mot la thu ngan, am ap va chan thanh.',
-    button: 'Gui thu tinh'
+    title: 'Thư tình',
+    subtitle: 'Viết một lá thư ngắn, ấm áp và chân thành.',
+    button: 'Gửi thư tình'
   }
 }
 
 const moodOptions = [
-  { value: '', label: 'Khong chon' },
-  { value: 'happy', label: 'Vui ve' },
-  { value: 'calm', label: 'Binh yen' },
-  { value: 'excited', label: 'Hao hung' },
-  { value: 'grateful', label: 'Biet on' },
-  { value: 'romantic', label: 'Lang man' }
+  { value: '', label: 'Không chọn' },
+  { value: 'happy', label: 'Vui vẻ' },
+  { value: 'calm', label: 'Bình yên' },
+  { value: 'excited', label: 'Hào hứng' },
+  { value: 'grateful', label: 'Biết ơn' },
+  { value: 'romantic', label: 'Lãng mạn' }
 ]
 
 export const LettersPage = () => {
@@ -121,11 +121,11 @@ export const LettersPage = () => {
     setSubmitError('')
 
     if (!title.trim() || !message.trim()) {
-      const errorMessage = 'Vui long nhap day du tieu de va noi dung.'
+      const errorMessage = 'Vui lòng nhập đầy đủ tiêu đề và nội dung.'
       setSubmitError(errorMessage)
       dispatch(
         setAlert({
-          title: 'Thieu thong tin',
+          title: 'Thiếu thông tin',
           message: errorMessage,
           type: 'warning'
         })
@@ -156,7 +156,7 @@ export const LettersPage = () => {
       }
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Khong the gui thu luc nay.')
+        throw new Error(payload.error || 'Không thể gửi thư lúc này.')
       }
 
       const source = payload.source || 'webhook'
@@ -175,21 +175,21 @@ export const LettersPage = () => {
 
       dispatch(
         setAlert({
-          title: 'Gui thanh cong',
+          title: 'Gửi thành công',
           message:
             source === 'supabase'
-              ? 'Thu da duoc luu vao Supabase Inbox cua couple.'
-              : 'Da gui qua webhook fallback (Formspree/Webhook).',
+              ? 'Thư đã được lưu vào Inbox Supabase của couple.'
+              : 'Đã gửi qua webhook dự phòng (Formspree/Webhook).',
           type: 'success'
         })
       )
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Da xay ra loi khi gui thu.'
+      const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi khi gửi thư.'
       setSubmitError(errorMessage)
 
       dispatch(
         setAlert({
-          title: 'Gui that bai',
+          title: 'Gửi thất bại',
           message: errorMessage,
           type: 'error'
         })
@@ -206,14 +206,14 @@ export const LettersPage = () => {
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
           <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
-            LoveHub Letters
+            LoveHub Lá Thư
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Gui gop y va thu tinh
+            Gửi góp ý và thư tình
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-gray-600 dark:text-gray-300 sm:text-base">
-            Neu da login va co couple, thu se duoc luu trong Supabase Inbox. Neu chua login, submit
-            se fallback qua webhook.
+            Nếu đã đăng nhập và có couple, thư sẽ được lưu trong Supabase Inbox. Nếu chưa đăng
+            nhập, gửi thư sẽ fallback qua webhook.
           </p>
         </div>
 
@@ -228,7 +228,7 @@ export const LettersPage = () => {
                   : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
-              Gop y
+              Góp ý
             </button>
             <button
               type="button"
@@ -239,7 +239,7 @@ export const LettersPage = () => {
                   : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
-              Thu tinh
+              Thư tình
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ export const LettersPage = () => {
                   htmlFor="letters-title"
                   className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Tieu de
+                  Tiêu đề
                 </label>
                 <input
                   id="letters-title"
@@ -264,8 +264,8 @@ export const LettersPage = () => {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                   placeholder={
                     mode === 'feedback'
-                      ? 'Vi du: Can them loc theo ngay'
-                      : 'Vi du: Gui em mot ngay diu dang'
+                      ? 'Ví dụ: Cần thêm bộ lọc theo ngày'
+                      : 'Ví dụ: Gửi em một ngày dịu dàng'
                   }
                 />
               </div>
@@ -275,7 +275,7 @@ export const LettersPage = () => {
                   htmlFor="letters-message"
                   className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Noi dung
+                  Nội dung
                 </label>
                 <textarea
                   id="letters-message"
@@ -285,8 +285,8 @@ export const LettersPage = () => {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                   placeholder={
                     mode === 'feedback'
-                      ? 'Mo ta gop y cu the cua ban...'
-                      : 'Viet vai dong cho nguoi ban thuong...'
+                      ? 'Mô tả góp ý cụ thể của bạn...'
+                      : 'Viết vài dòng cho người bạn thương...'
                   }
                 />
               </div>
@@ -297,7 +297,7 @@ export const LettersPage = () => {
                     htmlFor="letters-mood"
                     className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    Mood (tuy chon)
+                    Tâm trạng (tuỳ chọn)
                   </label>
                   <select
                     id="letters-mood"
@@ -321,7 +321,7 @@ export const LettersPage = () => {
                       onChange={(event) => setAnonymous(event.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
                     />
-                    Gui an danh
+                    Gửi ẩn danh
                   </label>
                 </div>
               </div>
@@ -338,7 +338,7 @@ export const LettersPage = () => {
                   disabled={submitting}
                   className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? 'Dang gui...' : currentModeMeta.button}
+                  {submitting ? 'Đang gửi...' : currentModeMeta.button}
                 </button>
                 <button
                   type="button"
@@ -346,7 +346,7 @@ export const LettersPage = () => {
                   disabled={submitting}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Lam moi
+                  Làm mới
                 </button>
               </div>
             </form>
@@ -355,46 +355,46 @@ export const LettersPage = () => {
           <div className="space-y-4">
             <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
               <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-rose-600 dark:text-rose-300">
-                LoveHub Notes
+                Ghi chú LoveHub
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li>- Gop y giup app than thien hon.</li>
-                <li>- Thu tinh giu lai cam xuc moi ngay.</li>
-                <li>- Logged-in + couple: luu vao Supabase table `letters`.</li>
-                <li>- Logged-out/no couple: fallback submit qua webhook.</li>
+                <li>- Góp ý giúp app thân thiện hơn.</li>
+                <li>- Thư tình giữ lại cảm xúc mỗi ngày.</li>
+                <li>- Đăng nhập + có couple: lưu vào bảng `letters` trên Supabase.</li>
+                <li>- Chưa đăng nhập/chưa có couple: gửi qua webhook dự phòng.</li>
               </ul>
             </div>
 
             <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
               <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-rose-600 dark:text-rose-300">
-                Couple Inbox
+                Hộp thư couple
               </h3>
               {inboxCoupleCode && (
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple #{inboxCoupleCode}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Mã couple #{inboxCoupleCode}</p>
               )}
 
               {inboxLoading && (
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Dang tai inbox...</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Đang tải inbox...</p>
               )}
 
               {!inboxLoading && inboxState === 'logged_out' && (
                 <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  Dang nhap de xem inbox couple.
+                  Đăng nhập để xem inbox couple.
                 </p>
               )}
 
               {!inboxLoading && inboxState === 'no_couple' && (
                 <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  Ban can tao/join couple o /setup de luu va xem inbox Supabase.
+                  Bạn cần tạo/join couple ở /setup để lưu và xem inbox Supabase.
                 </p>
               )}
 
               {!inboxLoading && inboxState === 'error' && (
-                <p className="mt-3 text-sm text-red-600 dark:text-red-300">Khong the tai inbox luc nay.</p>
+                <p className="mt-3 text-sm text-red-600 dark:text-red-300">Không thể tải inbox lúc này.</p>
               )}
 
               {!inboxLoading && inboxState === 'ready' && inbox.length < 1 && (
-                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Inbox dang trong.</p>
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Inbox đang trống.</p>
               )}
 
               {!inboxLoading && inboxState === 'ready' && inbox.length > 0 && (
@@ -406,7 +406,7 @@ export const LettersPage = () => {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-gray-700 dark:text-gray-200">
-                          {item.kind === 'feedback' ? 'Gop y' : 'Thu tinh'}: {item.title}
+                          {item.kind === 'feedback' ? 'Góp ý' : 'Thư tình'}: {item.title}
                         </p>
                         <span className="text-gray-500 dark:text-gray-400">
                           {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '--'}
@@ -414,7 +414,7 @@ export const LettersPage = () => {
                       </div>
                       <p className="mt-1 text-gray-600 dark:text-gray-300">{item.message}</p>
                       <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                        Mood: {item.mood || '-'} | {item.anonymous ? 'Anonymous' : 'Named'}
+                        Tâm trạng: {item.mood || '-'} | {item.anonymous ? 'Ẩn danh' : 'Có tên'}
                       </p>
                     </article>
                   ))}
@@ -425,14 +425,14 @@ export const LettersPage = () => {
             {confirmation && (
               <div className="rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 p-5 shadow-sm dark:border-rose-900/40 dark:from-rose-900/20 dark:to-pink-900/10">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-600 dark:text-rose-300">
-                  Da gui thanh cong
+                  Đã gửi thành công
                 </p>
                 <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">
-                  {confirmation.mode === 'feedback' ? 'Cam on gop y cua ban' : 'La thu da bay den noi'}
+                  {confirmation.mode === 'feedback' ? 'Cảm ơn góp ý của bạn' : 'Lá thư đã bay đến nơi'}
                 </h3>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">"{confirmation.title}"</p>
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                  Source: {confirmation.source}
+                  Nguồn gửi: {confirmation.source}
                 </p>
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   {new Date(confirmation.createdAt).toLocaleString('vi-VN')}

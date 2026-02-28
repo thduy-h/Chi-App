@@ -265,6 +265,26 @@ export function clearActiveCoupleCache() {
   window.localStorage.removeItem('lovehub.active_couple_code')
 }
 
+export function clearLovehubLocalStorage() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const keysToRemove: string[] = []
+  for (let index = 0; index < window.localStorage.length; index += 1) {
+    const key = window.localStorage.key(index)
+    if (key && key.startsWith('lovehub_')) {
+      keysToRemove.push(key)
+    }
+  }
+
+  keysToRemove.forEach((key) => {
+    window.localStorage.removeItem(key)
+  })
+
+  clearActiveCoupleCache()
+}
+
 export function readActiveCoupleCache(): { id: string; code: string | null } | null {
   if (typeof window === 'undefined') {
     return null

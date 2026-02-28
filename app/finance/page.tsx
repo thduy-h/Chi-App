@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { FinanceDashboard } from '@/lib/components/pages/finance/finance-dashboard'
 
 export const metadata: Metadata = {
-  title: 'LoveHub | Finance',
-  description: 'Finance tracker with Supabase sync and local fallback.'
+  title: 'LoveHub | Tài chính',
+  description: 'Theo dõi thu chi với đồng bộ Supabase và fallback local.'
 }
 
 export default async function Page() {

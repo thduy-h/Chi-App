@@ -8,11 +8,11 @@ import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const navLinks = [
-	{ href: '/food', label: 'Food' },
-	{ href: '/cycle', label: 'Cycle' },
-	{ href: '/tasks', label: 'Tasks' },
-	{ href: '/finance', label: 'Finance' },
-	{ href: '/letters', label: 'Letters' },
+	{ href: '/food', label: 'Món ăn' },
+	{ href: '/cycle', label: 'Chu kỳ' },
+	{ href: '/tasks', label: 'Việc chung' },
+	{ href: '/finance', label: 'Tài chính' },
+	{ href: '/letters', label: 'Lá thư' },
 ];
 
 export const Header = () => {
@@ -56,7 +56,7 @@ export const Header = () => {
 							onClick={() => setIsMenuOpen(!isMenuOpen)}
 							type="button"
 							className="ml-1 text-gray-500 hover:text-gray-700 focus:text-gray-700 focus:outline-none dark:text-gray-200 dark:hover:text-gray-400 dark:focus:text-gray-400 md:hidden"
-							aria-label="toggle menu"
+							aria-label="Mở hoặc đóng menu"
 							aria-expanded={isMenuOpen}
 						>
 							{!isMenuOpen && (

@@ -1,4 +1,4 @@
-export type FoodCategory = 'com' | 'pho' | 'mi' | 'bun' | 'lau' | 'doUong' | 'anVat'
+﻿export type FoodCategory = 'com' | 'pho' | 'mi' | 'bun' | 'lau' | 'doUong' | 'anVat'
 
 export interface FoodItem {
   id: number
@@ -192,5 +192,141 @@ export const FOODS: FoodItem[] = [
     note: 'Phần 10 chiếc hoặc 20 chiếc.',
     image:
       'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 22,
+    name: 'Mì cay',
+    category: 'mi',
+    priceRange: '45.000đ - 75.000đ',
+    image:
+      'https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 23,
+    name: 'Gà rán',
+    category: 'anVat',
+    priceRange: '35.000đ - 95.000đ',
+    image:
+      'https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 24,
+    name: 'Nem nướng',
+    category: 'anVat',
+    priceRange: '30.000đ - 70.000đ',
+    image:
+      'https://images.unsplash.com/photo-1529042410759-befb1204b468?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 25,
+    name: 'Bún riêu cua',
+    category: 'bun',
+    priceRange: '45.000đ - 68.000đ',
+    image:
+      'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 26,
+    name: 'Bún chả chấm',
+    category: 'bun',
+    priceRange: '45.000đ - 70.000đ',
+    image:
+      'https://images.unsplash.com/photo-1526318896980-cf78c088247c?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 27,
+    name: 'Bún bò Huế (không móng giò)',
+    category: 'bun',
+    priceRange: '55.000đ - 78.000đ',
+    image:
+      'https://images.unsplash.com/photo-1617093727343-374698b1b08d?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 28,
+    name: 'Bánh tráng',
+    category: 'anVat',
+    priceRange: '20.000đ - 45.000đ',
+    image:
+      'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 29,
+    name: 'Phở bò',
+    category: 'pho',
+    priceRange: '50.000đ - 80.000đ',
+    image:
+      'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 30,
+    name: 'Trà sữa',
+    category: 'doUong',
+    priceRange: '35.000đ - 65.000đ',
+    image:
+      'https://images.unsplash.com/photo-1558857563-b371033873b8?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 31,
+    name: 'Trà hoa quả',
+    category: 'doUong',
+    priceRange: '32.000đ - 58.000đ',
+    image:
+      'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 32,
+    name: 'Chè',
+    category: 'doUong',
+    priceRange: '20.000đ - 45.000đ',
+    image:
+      'https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 33,
+    name: 'Mì trộn',
+    category: 'mi',
+    priceRange: '35.000đ - 65.000đ',
+    image:
+      'https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 34,
+    name: 'Bánh mì',
+    category: 'anVat',
+    priceRange: '20.000đ - 45.000đ',
+    image:
+      'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 35,
+    name: 'Cháo',
+    category: 'com',
+    priceRange: '30.000đ - 55.000đ',
+    image:
+      'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 36,
+    name: 'Xôi',
+    category: 'com',
+    priceRange: '20.000đ - 40.000đ',
+    image:
+      'https://images.unsplash.com/photo-1606756790138-261d2b21cd75?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 37,
+    name: 'Cơm gà',
+    category: 'com',
+    priceRange: '45.000đ - 70.000đ',
+    image:
+      'https://images.unsplash.com/photo-1604908554027-03f9f20833e7?auto=format&fit=crop&w=900&q=80'
+  },
+  {
+    id: 38,
+    name: 'Cơm thố',
+    category: 'com',
+    priceRange: '55.000đ - 85.000đ',
+    image:
+      'https://images.unsplash.com/photo-1543352634-873abc73b1f4?auto=format&fit=crop&w=900&q=80'
   }
 ]

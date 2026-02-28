@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { KanbanColumn, TaskModalInput } from '@/lib/components/pages/tasks/types'
@@ -154,7 +154,7 @@ export const TaskModal = ({
               onClick={onClose}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              Hủy
+              Huỷ
             </button>
             <button
               type="submit"

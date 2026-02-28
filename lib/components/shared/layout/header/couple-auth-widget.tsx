@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { createSupabaseBrowserClient, hasSupabaseEnv } from '@/lib/supabase/client'
-import { clearActiveCoupleCache, readActiveCoupleCache } from '@/lib/supabase/couples'
+import { clearLovehubLocalStorage, readActiveCoupleCache } from '@/lib/supabase/couples'
 
 interface CouplePayload {
   id: string
@@ -96,15 +96,15 @@ export function CoupleAuthWidget() {
           await supabase.auth.signOut()
         }
       }
-      clearActiveCoupleCache()
+      clearLovehubLocalStorage()
       setEmail(null)
       setCoupleCode(null)
       setMenuOpen(false)
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Logout',
-          message: 'Da dang xuat'
+          title: 'Đăng xuất',
+          message: 'Đã đăng xuất'
         })
       )
       router.push('/auth')
@@ -117,7 +117,7 @@ export function CoupleAuthWidget() {
   if (loading) {
     return (
       <div className="rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs text-gray-600 dark:border-rose-900/40 dark:bg-gray-800 dark:text-gray-200">
-        Loading...
+        Đang tải...
       </div>
     )
   }
@@ -128,7 +128,7 @@ export function CoupleAuthWidget() {
         href="/auth"
         className="rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
       >
-        Dang nhap
+        Đăng nhập
       </Link>
     )
   }
@@ -148,14 +148,14 @@ export function CoupleAuthWidget() {
         <div className="absolute right-0 z-40 mt-2 w-52 rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900">
           <p className="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400">{email}</p>
           <p className="px-2 pb-2 text-[11px] text-rose-600 dark:text-rose-300">
-            {coupleCode ? `Couple: ${coupleCode}` : 'No couple'}
+            {coupleCode ? `Mã couple: ${coupleCode}` : 'Chưa có couple'}
           </p>
           <Link
             href="/setup"
             onClick={() => setMenuOpen(false)}
             className="block rounded-lg px-2 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
           >
-            Setup couple
+            Thiết lập couple
           </Link>
           <button
             type="button"
@@ -163,7 +163,7 @@ export function CoupleAuthWidget() {
             disabled={isLoggingOut}
             className="mt-1 block w-full rounded-lg px-2 py-2 text-left text-sm text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-red-300 dark:hover:bg-red-900/20"
           >
-            {isLoggingOut ? 'Dang xuat...' : 'Dang xuat'}
+            {isLoggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
           </button>
         </div>
       ) : null}
