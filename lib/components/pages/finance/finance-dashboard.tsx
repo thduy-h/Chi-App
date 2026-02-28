@@ -242,7 +242,7 @@ export const FinanceDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('finance_entries')
-        .select('id, couple_id, type, amount, category, entry_date, note, created_at, updated_at')
+        .select('id, couple_id, type, amount, category, entry_date, note, created_at')
         .eq('couple_id', activeCoupleId)
         .gte('entry_date', range.from)
         .lte('entry_date', range.to)

@@ -103,7 +103,6 @@ export type Database = {
           entry_date: string
           note: string | null
           created_at: string | null
-          updated_at: string | null
         }
         Insert: {
           id?: string
@@ -114,7 +113,6 @@ export type Database = {
           entry_date: string
           note?: string | null
           created_at?: string | null
-          updated_at?: string | null
         }
         Update: {
           id?: string
@@ -125,7 +123,6 @@ export type Database = {
           entry_date?: string
           note?: string | null
           created_at?: string | null
-          updated_at?: string | null
         }
         Relationships: []
       }
