@@ -129,6 +129,39 @@ export type Database = {
         }
         Relationships: []
       }
+      cycle_settings: {
+        Row: {
+          id: string
+          couple_id: string
+          user_id: string
+          last_period_start: string
+          cycle_length: number
+          period_length: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          user_id: string
+          last_period_start: string
+          cycle_length: number
+          period_length: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          user_id?: string
+          last_period_start?: string
+          cycle_length?: number
+          period_length?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

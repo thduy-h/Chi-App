@@ -3,7 +3,7 @@ import { CycleTracker } from '@/lib/components/pages/cycle/cycle-tracker'
 
 export const metadata: Metadata = {
   title: 'LoveHub | Cycle',
-  description: 'Local period tracker with prediction, countdown, and month calendar.'
+  description: 'Period tracker with Supabase-backed settings and local fallback.'
 }
 
 export default function Page() {

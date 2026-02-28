@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import { createClient } from '@/lib/supabase/browser'
+import type { Database } from '@/lib/supabase/types'
 import {
   addDays,
   differenceInCalendarDays,
@@ -30,6 +32,13 @@ interface CycleHistoryItem extends CycleSettings {
   savedAt: string
   predictedNextStart: string
 }
+
+interface CoupleResponse {
+  user: { id: string; email: string } | null
+  couple: { id: string; code: string } | null
+}
+
+type CycleSettingsRow = Database['public']['Tables']['cycle_settings']['Row']
 
 const SETTINGS_KEY = 'lovehub.cycle.settings.v1'
 const HISTORY_KEY = 'lovehub.cycle.history.v1'
@@ -76,14 +85,29 @@ const normalizeHistory = (raw: unknown): CycleHistoryItem[] => {
     .filter((item): item is CycleHistoryItem => Boolean(item))
 }
 
+const toCycleSettingsFromRow = (row: CycleSettingsRow): CycleSettings =>
+  normalizeSettings({
+    lastPeriodStart: row.last_period_start,
+    cycleLength: row.cycle_length,
+    periodLength: row.period_length
+  })
+
 export const CycleTracker = () => {
   const dispatch = useDispatch()
+  const supabase = useMemo(() => createClient(), [])
   const [settings, setSettings] = useState<CycleSettings>(DEFAULT_SETTINGS)
   const [history, setHistory] = useState<CycleHistoryItem[]>([])
   const [hydrated, setHydrated] = useState(false)
   const [visibleMonth, setVisibleMonth] = useState(startOfMonth(new Date()))
+  const [syncMode, setSyncMode] = useState<'local' | 'supabase'>('local')
+  const [activeCoupleId, setActiveCoupleId] = useState<string | null>(null)
+  const [activeUserId, setActiveUserId] = useState<string | null>(null)
+  const [isLoadingRemote, setIsLoadingRemote] = useState(false)
+  const lastSyncedSettingsKeyRef = useRef('')
 
-  useEffect(() => {
+  const isSupabaseMode = syncMode === 'supabase' && Boolean(activeCoupleId && activeUserId)
+
+  const loadLocalData = useCallback(() => {
     const storedSettings = localStorage.getItem(SETTINGS_KEY)
     const storedHistory = localStorage.getItem(HISTORY_KEY)
 
@@ -93,6 +117,8 @@ export const CycleTracker = () => {
       } catch {
         setSettings(DEFAULT_SETTINGS)
       }
+    } else {
+      setSettings(DEFAULT_SETTINGS)
     }
 
     if (storedHistory) {
@@ -101,20 +127,200 @@ export const CycleTracker = () => {
       } catch {
         setHistory([])
       }
+    } else {
+      setHistory([])
     }
-
-    setHydrated(true)
   }, [])
 
+  const loadSupabaseSettings = useCallback(
+    async (coupleId: string, userId: string) => {
+      if (!supabase) {
+        loadLocalData()
+        return
+      }
+
+      setIsLoadingRemote(true)
+      try {
+        const { data, error } = await supabase
+          .from('cycle_settings')
+          .select(
+            'id, couple_id, user_id, last_period_start, cycle_length, period_length, created_at, updated_at'
+          )
+          .eq('couple_id', coupleId)
+          .eq('user_id', userId)
+          .maybeSingle()
+
+        if (error) {
+          throw error
+        }
+
+        if (!data) {
+          const { data: inserted, error: insertError } = await supabase
+            .from('cycle_settings')
+            .insert({
+              couple_id: coupleId,
+              user_id: userId,
+              last_period_start: DEFAULT_SETTINGS.lastPeriodStart,
+              cycle_length: DEFAULT_SETTINGS.cycleLength,
+              period_length: DEFAULT_SETTINGS.periodLength
+            })
+            .select(
+              'id, couple_id, user_id, last_period_start, cycle_length, period_length, created_at, updated_at'
+            )
+            .single()
+
+          if (insertError) {
+            throw insertError
+          }
+
+          const normalized = toCycleSettingsFromRow(inserted as CycleSettingsRow)
+          setSettings(normalized)
+          lastSyncedSettingsKeyRef.current = JSON.stringify(normalized)
+          return
+        }
+
+        const normalized = toCycleSettingsFromRow(data as CycleSettingsRow)
+        setSettings(normalized)
+        lastSyncedSettingsKeyRef.current = JSON.stringify(normalized)
+      } catch {
+        setSyncMode('local')
+        setActiveCoupleId(null)
+        setActiveUserId(null)
+        loadLocalData()
+        dispatch(
+          setAlert({
+            title: 'Load failed',
+            message: 'Khong the tai cycle settings tu Supabase. Dang dung local fallback.',
+            type: 'warning'
+          })
+        )
+      } finally {
+        setIsLoadingRemote(false)
+      }
+    },
+    [dispatch, loadLocalData, supabase]
+  )
+
   useEffect(() => {
-    if (!hydrated) return
+    let cancelled = false
+
+    const bootstrap = async () => {
+      loadLocalData()
+
+      if (!supabase) {
+        if (!cancelled) {
+          setHydrated(true)
+        }
+        return
+      }
+
+      try {
+        const response = await fetch('/api/couple/current', {
+          method: 'GET',
+          cache: 'no-store'
+        })
+        const payload = (await response.json()) as CoupleResponse
+        if (cancelled) return
+
+        if (payload.user?.id && payload.couple?.id) {
+          setSyncMode('supabase')
+          setActiveCoupleId(payload.couple.id)
+          setActiveUserId(payload.user.id)
+          await loadSupabaseSettings(payload.couple.id, payload.user.id)
+        } else {
+          setSyncMode('local')
+          setActiveCoupleId(null)
+          setActiveUserId(null)
+        }
+      } catch {
+        if (!cancelled) {
+          setSyncMode('local')
+          setActiveCoupleId(null)
+          setActiveUserId(null)
+        }
+      } finally {
+        if (!cancelled) {
+          setHydrated(true)
+        }
+      }
+    }
+
+    void bootstrap()
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadLocalData, loadSupabaseSettings, supabase])
+
+  useEffect(() => {
+    if (!hydrated || isSupabaseMode) return
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
-  }, [settings, hydrated])
+  }, [settings, hydrated, isSupabaseMode])
 
   useEffect(() => {
     if (!hydrated) return
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history))
   }, [history, hydrated])
+
+  useEffect(() => {
+    if (!hydrated || !isSupabaseMode || !supabase || !activeCoupleId || !activeUserId) {
+      return
+    }
+
+    const settingsKey = JSON.stringify(settings)
+    if (settingsKey === lastSyncedSettingsKeyRef.current) {
+      return
+    }
+
+    let cancelled = false
+
+    const upsertSettings = async () => {
+      try {
+        const { error } = await supabase.from('cycle_settings').upsert(
+          {
+            couple_id: activeCoupleId,
+            user_id: activeUserId,
+            last_period_start: settings.lastPeriodStart,
+            cycle_length: settings.cycleLength,
+            period_length: settings.periodLength
+          },
+          { onConflict: 'couple_id,user_id' }
+        )
+
+        if (error) {
+          throw error
+        }
+
+        if (!cancelled) {
+          lastSyncedSettingsKeyRef.current = settingsKey
+        }
+      } catch {
+        if (!cancelled) {
+          dispatch(
+            setAlert({
+              title: 'Sync failed',
+              message: 'Khong the luu cycle settings len Supabase.',
+              type: 'error'
+            })
+          )
+        }
+      }
+    }
+
+    void upsertSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    activeCoupleId,
+    activeUserId,
+    dispatch,
+    hydrated,
+    isSupabaseMode,
+    settings,
+    supabase
+  ])
 
   const parsedLastStart = useMemo(() => parseISO(settings.lastPeriodStart), [settings.lastPeriodStart])
 
@@ -187,7 +393,7 @@ export const CycleTracker = () => {
     )
   }
 
-  if (!hydrated) {
+  if (!hydrated || isLoadingRemote) {
     return (
       <main className="container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -211,6 +417,9 @@ export const CycleTracker = () => {
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Theo doi chu ky co ban voi du doan ngay bat dau ky tiep theo va lich thang.
+          </p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Data mode: {isSupabaseMode ? 'Supabase synced' : 'LocalStorage fallback'}
           </p>
         </div>
 
