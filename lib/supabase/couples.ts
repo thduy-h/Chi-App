@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
 
 import type { Couple, Database } from './types'
 
@@ -7,26 +7,52 @@ export interface CurrentCoupleContext {
   coupleCode: string | null
 }
 
+function isForbiddenCouplesSelectError(error: PostgrestError | null) {
+  if (!error) {
+    return false
+  }
+
+  const code = (error.code ?? '').toUpperCase()
+  const text = `${error.message ?? ''} ${error.details ?? ''} ${error.hint ?? ''}`.toLowerCase()
+
+  return (
+    code === '403' ||
+    code === '42501' ||
+    code === 'PGRST301' ||
+    text.includes('forbidden') ||
+    text.includes('permission denied') ||
+    text.includes('row-level security')
+  )
+}
+
 export async function getCurrentCoupleForUser(
   supabase: SupabaseClient<Database>,
   userId: string
 ): Promise<CurrentCoupleContext> {
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from('couple_members')
     .select('couple_id')
     .eq('user_id', userId)
     .limit(1)
     .maybeSingle()
 
-  if (!membership?.couple_id) {
+  if (membershipError || !membership?.couple_id) {
     return { coupleId: null, coupleCode: null }
   }
 
-  const { data: couple } = await supabase
+  const { data: couple, error: coupleError } = await supabase
     .from('couples')
     .select('id, code')
     .eq('id', membership.couple_id)
     .maybeSingle()
+
+  if (isForbiddenCouplesSelectError(coupleError)) {
+    return { coupleId: null, coupleCode: null }
+  }
+
+  if (coupleError) {
+    throw coupleError
+  }
 
   return {
     coupleId: membership.couple_id,

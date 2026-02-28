@@ -36,6 +36,42 @@ interface CreateDiagnosticsError {
   hint: string | null
 }
 
+function isForbiddenCouplesSelectError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const candidate = error as {
+    code?: string | null
+    message?: string | null
+    details?: string | null
+    hint?: string | null
+    status?: number | string | null
+  }
+
+  const code = (candidate.code ?? '').toUpperCase()
+  const status =
+    typeof candidate.status === 'number'
+      ? candidate.status
+      : typeof candidate.status === 'string'
+        ? Number(candidate.status)
+        : null
+  const message = (candidate.message ?? '').toLowerCase()
+  const details = (candidate.details ?? '').toLowerCase()
+  const hint = (candidate.hint ?? '').toLowerCase()
+  const text = `${message} ${details} ${hint}`
+
+  return (
+    status === 403 ||
+    code === '403' ||
+    code === '42501' ||
+    code === 'PGRST301' ||
+    text.includes('forbidden') ||
+    text.includes('permission denied') ||
+    text.includes('row-level security')
+  )
+}
+
 function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnosticsError {
   if (error && typeof error === 'object') {
     const candidate = error as {
@@ -213,6 +249,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       .maybeSingle()
 
     if (coupleError) {
+      if (isForbiddenCouplesSelectError(coupleError)) {
+        console.warn('[setup/member-context] couples select blocked by RLS/403; treating as no membership')
+        setCouple(null)
+        setMemberCoupleId(null)
+        clearActiveCoupleCache()
+        setSource('server')
+      }
       setIsCoupleOwner(false)
       return
     }
@@ -304,21 +347,9 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           '[setup/diagnostics] create path:',
           'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> public.couples.insert({ code })'
         )
-        const { count, error: countError } = await supabase
-          .from('couples')
-          .select('*', { count: 'exact', head: true })
-
-        if (countError) {
-          const diagnosticsError = mapCreateError(countError, 'Unable to count public.couples')
-          console.error('[setup/diagnostics] public.couples count error:', {
-            'error.code': diagnosticsError.code,
-            'error.message': diagnosticsError.message,
-            'error.details': diagnosticsError.details,
-            'error.hint': diagnosticsError.hint
-          })
-        } else {
-          console.debug('[setup/diagnostics] public.couples count:', count ?? 0)
-        }
+        console.debug(
+          '[setup/diagnostics] skipping public.couples diagnostics query until membership is confirmed'
+        )
       }
     }
 
@@ -408,29 +439,17 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (existingMembership?.couple_id) {
-        const { data: existingCouple, error: existingCoupleError } = await supabase
-          .from('couples')
-          .select('id, code')
-          .eq('id', existingMembership.couple_id)
-          .maybeSingle()
-
-        if (existingCoupleError) {
-          throw mapCreateError(existingCoupleError, 'Unable to load existing couple')
-        }
-
-        if (existingCouple) {
-          setCouple(existingCouple)
-          cacheActiveCouple(existingCouple)
-          setSource('server')
-          dispatch(
-            setAlert({
-              type: 'success',
-              title: 'Couple created',
-              message: 'You already have an active couple.'
-            })
-          )
-          return
-        }
+        setMemberCoupleId(existingMembership.couple_id)
+        await loadCurrentFromServer()
+        await loadMemberContext()
+        dispatch(
+          setAlert({
+            type: 'success',
+            title: 'Couple created',
+            message: 'You already have an active couple.'
+          })
+        )
+        return
       }
 
       let createdCouple: CouplePayload | null = null
