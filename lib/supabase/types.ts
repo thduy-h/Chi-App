@@ -51,6 +51,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          id: string
+          couple_id: string
+          title: string
+          description: string | null
+          status: string
+          priority: string | null
+          due_date: string | null
+          sort_order: number
+          board: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          title: string
+          description?: string | null
+          status: string
+          priority?: string | null
+          due_date?: string | null
+          sort_order?: number
+          board: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          title?: string
+          description?: string | null
+          status?: string
+          priority?: string | null
+          due_date?: string | null
+          sort_order?: number
+          board?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

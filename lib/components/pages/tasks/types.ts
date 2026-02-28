@@ -9,6 +9,7 @@ export interface KanbanTask {
   content: string
   status: string
   position: number
+  priority?: string
   note?: string
   dueDate?: string
   createdAt: string

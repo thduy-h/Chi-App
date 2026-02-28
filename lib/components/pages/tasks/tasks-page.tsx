@@ -1,28 +1,29 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { KanbanBoard } from '@/lib/components/pages/tasks/kanban-board'
+import { useEffect, useMemo, useState } from 'react'
+
 import { ItineraryPlanner } from '@/lib/components/pages/tasks/itinerary-planner'
+import { KanbanBoard } from '@/lib/components/pages/tasks/kanban-board'
 import { ItineraryDay, KanbanColumn, KanbanTask } from '@/lib/components/pages/tasks/types'
 
 const sharedColumns: KanbanColumn[] = [
-  { id: 'todo', title: 'Cần làm', status: 'todo' },
-  { id: 'in-progress', title: 'Đang làm', status: 'in-progress' },
+  { id: 'todo', title: 'Can lam', status: 'todo' },
+  { id: 'in-progress', title: 'Dang lam', status: 'in-progress' },
   { id: 'done', title: 'Xong', status: 'done' }
 ]
 
 const sharedTasks: KanbanTask[] = [
   {
     id: 'shared-1',
-    content: 'Lên danh sách việc nhà tuần này',
+    content: 'Len danh sach viec nha tuan nay',
     status: 'todo',
     position: 0,
-    note: 'Ưu tiên việc cần xử lý trước thứ 6.',
+    note: 'Uu tien viec can xu ly truoc thu 6.',
     createdAt: '2026-01-01T10:00:00.000Z'
   },
   {
     id: 'shared-2',
-    content: 'Mua quà kỷ niệm',
+    content: 'Mua qua ky niem',
     status: 'in-progress',
     position: 0,
     dueDate: '2026-03-01',
@@ -30,7 +31,7 @@ const sharedTasks: KanbanTask[] = [
   },
   {
     id: 'shared-3',
-    content: 'Đặt nhà hàng cuối tuần',
+    content: 'Dat nha hang cuoi tuan',
     status: 'done',
     position: 0,
     createdAt: '2026-01-01T11:00:00.000Z'
@@ -38,30 +39,30 @@ const sharedTasks: KanbanTask[] = [
 ]
 
 const travelColumns: KanbanColumn[] = [
-  { id: 'ideas', title: 'Ý tưởng', status: 'ideas' },
-  { id: 'booking', title: 'Đặt chỗ', status: 'booking' },
-  { id: 'packing', title: 'Chuẩn bị', status: 'packing' },
-  { id: 'completed', title: 'Hoàn tất', status: 'completed' }
+  { id: 'ideas', title: 'Y tuong', status: 'ideas' },
+  { id: 'booking', title: 'Dat cho', status: 'booking' },
+  { id: 'packing', title: 'Chuan bi', status: 'packing' },
+  { id: 'completed', title: 'Hoan tat', status: 'completed' }
 ]
 
 const travelTasks: KanbanTask[] = [
   {
     id: 'travel-1',
-    content: 'Chọn điểm đến cho chuyến 3N2Đ',
+    content: 'Chon diem den cho chuyen 3N2D',
     status: 'ideas',
     position: 0,
     createdAt: '2026-01-01T12:00:00.000Z'
   },
   {
     id: 'travel-2',
-    content: 'So sánh vé máy bay và tàu',
+    content: 'So sanh ve may bay va tau',
     status: 'booking',
     position: 0,
     createdAt: '2026-01-01T12:15:00.000Z'
   },
   {
     id: 'travel-3',
-    content: 'Chuẩn bị checklist đồ dùng',
+    content: 'Chuan bi checklist do dung',
     status: 'packing',
     position: 0,
     createdAt: '2026-01-01T12:30:00.000Z'
@@ -71,39 +72,84 @@ const travelTasks: KanbanTask[] = [
 const itineraryDays: ItineraryDay[] = [
   {
     id: 'day-1',
-    title: 'Ngày 1',
+    title: 'Ngay 1',
     date: '',
-    activities: '- Di chuyển đến địa điểm\n- Check-in khách sạn\n- Ăn tối nhẹ'
+    activities: '- Di chuyen den dia diem\n- Check-in khach san\n- An toi nhe'
   },
   {
     id: 'day-2',
-    title: 'Ngày 2',
+    title: 'Ngay 2',
     date: '',
-    activities: '- Khám phá điểm tham quan chính\n- Cafe chiều\n- Dạo phố đêm'
+    activities: '- Kham pha diem tham quan chinh\n- Cafe chieu\n- Dao pho dem'
   },
   {
     id: 'day-3',
-    title: 'Ngày 3',
+    title: 'Ngay 3',
     date: '',
-    activities: '- Mua quà lưu niệm\n- Trả phòng\n- Di chuyển về'
+    activities: '- Mua qua luu niem\n- Tra phong\n- Di chuyen ve'
   }
 ]
 
 type TaskTab = 'shared' | 'travel'
+type SyncMode = 'local' | 'supabase'
+
+interface CoupleResponse {
+  user: { id: string; email: string } | null
+  couple: { id: string; code: string } | null
+}
 
 export const TasksPage = () => {
   const [activeTab, setActiveTab] = useState<TaskTab>('shared')
+  const [syncMode, setSyncMode] = useState<SyncMode>('local')
+  const [activeCoupleId, setActiveCoupleId] = useState<string | null>(null)
+  const [activeCoupleCode, setActiveCoupleCode] = useState<string | null>(null)
+  const [currentEmail, setCurrentEmail] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadCoupleContext = async () => {
+      try {
+        const response = await fetch('/api/couple/current', {
+          method: 'GET',
+          cache: 'no-store'
+        })
+        const payload = (await response.json()) as CoupleResponse
+        if (cancelled) {
+          return
+        }
+
+        setCurrentEmail(payload.user?.email ?? null)
+        setActiveCoupleId(payload.couple?.id ?? null)
+        setActiveCoupleCode(payload.couple?.code ?? null)
+        setSyncMode(payload.user?.id && payload.couple?.id ? 'supabase' : 'local')
+      } catch {
+        if (cancelled) {
+          return
+        }
+
+        setCurrentEmail(null)
+        setActiveCoupleId(null)
+        setActiveCoupleCode(null)
+        setSyncMode('local')
+      }
+    }
+
+    void loadCoupleContext()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const tabCopy = useMemo(
     () => ({
       shared: {
         title: 'Tasks chung',
-        description: 'Board chung để phân việc hằng ngày, nhắc lịch và theo dõi tiến độ.'
+        description: 'Board chung de phan viec hang ngay va theo doi tien do.'
       },
       travel: {
-        title: 'Plan du lịch',
-        description:
-          'Lên kế hoạch chuyến đi với board chuẩn bị + lịch trình theo ngày ở cùng một chỗ.'
+        title: 'Plan du lich',
+        description: 'Len ke hoach chuyen di voi board chuan bi va lich trinh theo ngay.'
       }
     }),
     []
@@ -119,12 +165,22 @@ export const TasksPage = () => {
             LoveHub Tasks
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Quản lý việc chung và kế hoạch du lịch
+            Quan ly viec chung va ke hoach du lich
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-gray-600 dark:text-gray-300 sm:text-base">
-            Dựa trên kanban patterns từ repo tham chiếu, được tích hợp lại theo phong cách LoveHub và
-            lưu tự động trong trình duyệt.
+            Board drag-and-drop co ho tro Supabase sync khi da login va da join couple.
           </p>
+        </div>
+
+        <div className="mb-5 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200">
+          <p>
+            <span className="font-semibold">Mode:</span>{' '}
+            {syncMode === 'supabase' ? 'Supabase (online)' : 'LocalStorage (offline)'}
+          </p>
+          {currentEmail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>}
+          {activeCoupleCode && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>
+          )}
         </div>
 
         <div className="mb-6 rounded-2xl border border-rose-100 bg-white p-2 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
@@ -132,22 +188,24 @@ export const TasksPage = () => {
             <button
               type="button"
               onClick={() => setActiveTab('shared')}
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === 'shared'
-                ? 'bg-rose-600 text-white shadow'
-                : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === 'shared'
+                  ? 'bg-rose-600 text-white shadow'
+                  : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
+              }`}
             >
               Tasks chung
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('travel')}
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${activeTab === 'travel'
-                ? 'bg-rose-600 text-white shadow'
-                : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                activeTab === 'travel'
+                  ? 'bg-rose-600 text-white shadow'
+                  : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
+              }`}
             >
-              Plan du lịch
+              Plan du lich
             </button>
           </div>
         </div>
@@ -161,6 +219,9 @@ export const TasksPage = () => {
           <KanbanBoard
             storageKey="lovehub.tasks.shared.v1"
             boardLabel="Tasks chung"
+            boardKey="tasks"
+            syncMode={syncMode}
+            activeCoupleId={activeCoupleId}
             defaultColumns={sharedColumns}
             defaultTasks={sharedTasks}
           />
@@ -170,14 +231,14 @@ export const TasksPage = () => {
           <div className="space-y-5">
             <KanbanBoard
               storageKey="lovehub.tasks.travel.v1"
-              boardLabel="Plan du lịch"
+              boardLabel="Plan du lich"
+              boardKey="travel"
+              syncMode={syncMode}
+              activeCoupleId={activeCoupleId}
               defaultColumns={travelColumns}
               defaultTasks={travelTasks}
             />
-            <ItineraryPlanner
-              storageKey="lovehub.tasks.travel.itinerary.v1"
-              defaultDays={itineraryDays}
-            />
+            <ItineraryPlanner storageKey="lovehub.tasks.travel.itinerary.v1" defaultDays={itineraryDays} />
           </div>
         )}
       </section>
