@@ -201,6 +201,15 @@ export type Database = {
     }
     Views: Record<string, never>
     Functions: {
+      create_couple: {
+        Args: {
+          p_code: string
+        }
+        Returns: {
+          code: string
+          id: string
+        } | null
+      }
       delete_my_couple: {
         Args: {
           p_couple_id: string

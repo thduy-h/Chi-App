@@ -101,6 +101,32 @@ function parseRotatedCoupleCode(payload: unknown): string | null {
   return null
 }
 
+function parseCreatedCouple(payload: unknown): CouplePayload | null {
+  if (!payload) {
+    return null
+  }
+
+  if (Array.isArray(payload)) {
+    const first = payload[0]
+    if (first && typeof first === 'object') {
+      const candidate = first as { id?: unknown; code?: unknown }
+      if (typeof candidate.id === 'string' && typeof candidate.code === 'string') {
+        return { id: candidate.id, code: candidate.code }
+      }
+    }
+    return null
+  }
+
+  if (typeof payload === 'object') {
+    const candidate = payload as { id?: unknown; code?: unknown }
+    if (typeof candidate.id === 'string' && typeof candidate.code === 'string') {
+      return { id: candidate.id, code: candidate.code }
+    }
+  }
+
+  return null
+}
+
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const router = useRouter()
   const dispatch = useDispatch()
@@ -267,7 +293,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       if (user?.id) {
         console.debug(
           '[setup/diagnostics] create path:',
-          'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> public.couples.insert({ code })'
+          'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> rpc(create_couple)'
         )
         console.debug(
           '[setup/diagnostics] skipping public.couples diagnostics query until membership is confirmed'
@@ -289,7 +315,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setCreateWhoamiResult('')
       const insertContextLabel = 'client-component:createSupabaseBrowserClient'
       const createPathLabel =
-        'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> public.couples.insert({ code })'
+        'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> rpc(create_couple)'
 
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
@@ -402,37 +428,34 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
       setCreateWhoamiResult(whoamiSnapshot)
 
-      let createdCouple: CouplePayload | null = null
-      let lastCreateError: CreateDiagnosticsError | null = null
-
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const code = generateCoupleCode()
-        const insertPayload = { code }
-        console.debug('[setup/create] couples insert context:', insertContextLabel)
-        console.debug('[setup/create] insert target:', 'public.couples')
-        console.debug('[setup/create] insert payload keys:', Object.keys(insertPayload))
-        const { data, error } = await supabase
-          .from('couples')
-          .insert(insertPayload)
-          .select('id, code')
-          .single()
-
-        if (!error && data) {
-          createdCouple = data
-          break
-        }
-
-        lastCreateError = mapCreateError(error, 'Unable to create couple')
-        console.error('[setup/create] couples insert error:', {
-          'error.message': lastCreateError.message,
-          'error.code': lastCreateError.code,
-          'error.details': lastCreateError.details,
-          'error.hint': lastCreateError.hint
+      const code = generateCoupleCode()
+      console.debug('[setup/create] couples insert context:', insertContextLabel)
+      console.debug('[setup/create] insert target:', 'rpc:create_couple')
+      const { data: createData, error: createError } = await supabase.rpc('create_couple', {
+        p_code: code
+      })
+      if (createError) {
+        const mappedCreateError = mapCreateError(createError, 'Unable to create couple')
+        console.error('[setup/create] create_couple rpc error:', {
+          'error.message': mappedCreateError.message,
+          'error.code': mappedCreateError.code,
+          'error.details': mappedCreateError.details,
+          'error.hint': mappedCreateError.hint
         })
+        throw mappedCreateError
       }
 
+      const createdCouple = parseCreatedCouple(createData)
       if (!createdCouple) {
-        throw lastCreateError ?? mapCreateError(null, 'Unable to create couple after multiple attempts')
+        throw mapCreateError(
+          {
+            code: 'invalid_rpc_payload',
+            message: 'create_couple did not return {id, code}',
+            details: JSON.stringify(createData ?? null),
+            hint: 'Ensure RPC create_couple returns a single row/object with id and code.'
+          },
+          'Unable to parse create_couple result'
+        )
       }
 
       console.debug('[setup/create] created couple row:', createdCouple)
@@ -453,6 +476,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setCouple(createdCouple)
       setMemberCoupleId(createdCouple.id)
       setIsCoupleOwner(true)
+      setLatestRotatedCode(createdCouple.code)
       cacheActiveCouple(createdCouple)
       setSource('server')
       dispatch(
