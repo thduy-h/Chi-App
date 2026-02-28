@@ -4,9 +4,11 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import { createClient as createBrowserClient } from '@/lib/supabase/browser'
 import {
   cacheActiveCouple,
   clearActiveCoupleCache,
+  generateCoupleCode,
   normalizeCoupleCode,
   readActiveCoupleCache
 } from '@/lib/supabase/couples'
@@ -26,14 +28,53 @@ interface CurrentCoupleResponse {
   couple: CouplePayload | null
 }
 
+interface CreateDiagnosticsError {
+  message: string
+  code: string
+  details: string | null
+  hint: string | null
+}
+
+function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnosticsError {
+  if (error && typeof error === 'object') {
+    const candidate = error as {
+      message?: string
+      code?: string | null
+      details?: string | null
+      hint?: string | null
+    }
+
+    return {
+      message: candidate.message ?? fallbackMessage,
+      code: candidate.code ?? 'unknown',
+      details: candidate.details ?? null,
+      hint: candidate.hint ?? null
+    }
+  }
+
+  return {
+    message: fallbackMessage,
+    code: 'unknown',
+    details: null,
+    hint: null
+  }
+}
+
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const dispatch = useDispatch()
+  const supabase = useMemo(() => createBrowserClient(), [])
+
   const [email, setEmail] = useState(initialEmail)
   const [couple, setCouple] = useState<CouplePayload | null>(initialCouple)
   const [joinCode, setJoinCode] = useState('')
   const [source, setSource] = useState<'server' | 'cache'>('server')
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [authUser, setAuthUser] = useState<{ id: string | null; email: string | null }>({
+    id: null,
+    email: initialEmail || null
+  })
+  const [hasAccessToken, setHasAccessToken] = useState(false)
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
@@ -81,40 +122,178 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     void loadCurrentFromServer()
   }, [initialCouple, loadCurrentFromServer])
 
+  useEffect(() => {
+    if (!supabase) {
+      return
+    }
+
+    let isMounted = true
+
+    const loadDiagnostics = async () => {
+      const [{ data: userData, error: userError }, { data: sessionData, error: sessionError }] =
+        await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
+
+      if (!isMounted) {
+        return
+      }
+
+      if (userError) {
+        const diagnosticsError = mapCreateError(userError, 'Unable to load auth user')
+        console.error('[setup/diagnostics] getUser error:', diagnosticsError)
+      }
+
+      if (sessionError) {
+        const diagnosticsError = mapCreateError(sessionError, 'Unable to load auth session')
+        console.error('[setup/diagnostics] getSession error:', diagnosticsError)
+      }
+
+      const user = userData.user
+      setAuthUser({
+        id: user?.id ?? null,
+        email: user?.email ?? (initialEmail || null)
+      })
+      setHasAccessToken(Boolean(sessionData.session?.access_token))
+
+      if (user?.email) {
+        setEmail(user.email)
+      }
+    }
+
+    void loadDiagnostics()
+
+    return () => {
+      isMounted = false
+    }
+  }, [initialEmail, supabase])
+
   const onCreateCouple = async () => {
     try {
       setIsSubmitting(true)
-      const response = await fetch('/api/couple/create', {
-        method: 'POST'
-      })
-      const payload = (await response.json()) as {
-        error?: string
-        alreadyJoined?: boolean
-        couple?: CouplePayload
+
+      if (!supabase) {
+        throw mapCreateError(null, 'Supabase env is missing')
       }
 
-      if (!response.ok || !payload.couple) {
-        throw new Error(payload.error ?? 'Unable to create couple')
+      const {
+        data: { user },
+        error: userError
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        throw mapCreateError(userError, 'Unauthorized')
       }
 
-      setCouple(payload.couple)
-      cacheActiveCouple(payload.couple)
+      console.debug('[setup/create] current user id:', user.id)
+
+      setAuthUser((previous) => ({
+        id: user.id,
+        email: user.email ?? previous.email
+      }))
+
+      if (user.email) {
+        setEmail(user.email)
+      }
+
+      const { data: existingMembership, error: existingMembershipError } = await supabase
+        .from('couple_members')
+        .select('couple_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (existingMembershipError) {
+        throw mapCreateError(existingMembershipError, 'Unable to check existing membership')
+      }
+
+      if (existingMembership?.couple_id) {
+        const { data: existingCouple, error: existingCoupleError } = await supabase
+          .from('couples')
+          .select('id, code')
+          .eq('id', existingMembership.couple_id)
+          .maybeSingle()
+
+        if (existingCoupleError) {
+          throw mapCreateError(existingCoupleError, 'Unable to load existing couple')
+        }
+
+        if (existingCouple) {
+          setCouple(existingCouple)
+          cacheActiveCouple(existingCouple)
+          setSource('server')
+          dispatch(
+            setAlert({
+              type: 'success',
+              title: 'Couple created',
+              message: 'You already have an active couple.'
+            })
+          )
+          return
+        }
+      }
+
+      let createdCouple: CouplePayload | null = null
+      let lastCreateError: CreateDiagnosticsError | null = null
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const code = generateCoupleCode()
+        const { data, error } = await supabase
+          .from('couples')
+          .insert({ code })
+          .select('id, code')
+          .single()
+
+        if (!error && data) {
+          createdCouple = data
+          break
+        }
+
+        lastCreateError = mapCreateError(error, 'Unable to create couple')
+        console.error('[setup/create] couples insert error:', {
+          message: lastCreateError.message,
+          code: lastCreateError.code,
+          details: lastCreateError.details,
+          hint: lastCreateError.hint
+        })
+      }
+
+      if (!createdCouple) {
+        throw lastCreateError ?? mapCreateError(null, 'Unable to create couple after multiple attempts')
+      }
+
+      console.debug('[setup/create] created couple row:', createdCouple)
+
+      const { error: membershipCreateError } = await supabase
+        .from('couple_members')
+        .insert({ couple_id: createdCouple.id, user_id: user.id })
+
+      if (membershipCreateError) {
+        throw mapCreateError(membershipCreateError, 'Unable to create membership')
+      }
+
+      setCouple(createdCouple)
+      cacheActiveCouple(createdCouple)
       setSource('server')
       dispatch(
         setAlert({
           type: 'success',
           title: 'Couple created',
-          message: payload.alreadyJoined
-            ? 'You already have an active couple.'
-            : `Mã ghép đôi của bạn là ${payload.couple.code}`
+          message: `Mã ghép đôi của bạn là ${createdCouple.code}`
         })
       )
     } catch (error) {
+      const diagnosticsError = mapCreateError(error, 'Unable to create couple')
+      console.error('[setup/create] failed:', {
+        message: diagnosticsError.message,
+        code: diagnosticsError.code,
+        details: diagnosticsError.details,
+        hint: diagnosticsError.hint
+      })
+
       dispatch(
         setAlert({
           type: 'error',
           title: 'Create failed',
-          message: error instanceof Error ? error.message : 'Unable to create couple'
+          message: `${diagnosticsError.message} (code: ${diagnosticsError.code})`
         })
       )
     } finally {
@@ -211,6 +390,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               Hệ thống sẽ tạo một mã 6 ký tự để bạn chia sẻ với người kia.
             </p>
+            <div className="mt-4 rounded-lg border border-rose-100 bg-rose-50/60 p-3 text-xs text-gray-600 dark:border-rose-900/40 dark:bg-gray-800 dark:text-gray-300">
+              <p className="font-medium text-gray-700 dark:text-gray-100">Diagnostics</p>
+              <p className="mt-1 break-all">
+                User: {authUser.email ?? 'unknown'} ({authUser.id ?? 'unknown'})
+              </p>
+              <p className="mt-1">Session access_token: {String(hasAccessToken)}</p>
+            </div>
             <button
               type="button"
               onClick={onCreateCouple}
