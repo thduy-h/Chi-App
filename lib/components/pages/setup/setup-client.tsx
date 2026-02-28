@@ -108,6 +108,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [isCoupleOwner, setIsCoupleOwner] = useState(false)
   const [isLeavingCouple, setIsLeavingCouple] = useState(false)
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
+  const [isResettingCouple, setIsResettingCouple] = useState(false)
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
@@ -704,6 +705,163 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }
 
+  const onResetCouple = async () => {
+    if (!supabase) {
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Reset failed',
+          message: 'Supabase env is missing'
+        })
+      )
+      return
+    }
+
+    try {
+      setIsResettingCouple(true)
+
+      const {
+        data: { user },
+        error: userError
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        throw mapCreateError(userError, 'Unauthorized')
+      }
+
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        throw mapCreateError(sessionError, 'Unable to load auth session')
+      }
+
+      if (!sessionData.session?.access_token) {
+        throw new Error('Ban can dang nhap lai de reset couple.')
+      }
+
+      const { data: membership, error: membershipError } = await supabase
+        .from('couple_members')
+        .select('couple_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      if (membershipError) {
+        throw mapCreateError(membershipError, 'Unable to load current couple membership')
+      }
+
+      const activeCoupleId = membership?.couple_id ?? memberCoupleId
+
+      if (activeCoupleId) {
+        let ownerForReset = isCoupleOwner
+        const { data: coupleOwnerRow, error: coupleOwnerError } = await supabase
+          .from('couples')
+          .select('created_by')
+          .eq('id', activeCoupleId)
+          .maybeSingle()
+
+        if (!coupleOwnerError && coupleOwnerRow?.created_by) {
+          ownerForReset = coupleOwnerRow.created_by === user.id
+        }
+
+        if (ownerForReset) {
+          const confirmDelete = window.confirm(
+            'WARNING: Reset khi ban la owner se XOA TOAN BO du lieu chung cua couple hien tai. Hanh dong nay KHONG THE HOAN TAC. Tiep tuc?'
+          )
+          if (!confirmDelete) {
+            return
+          }
+
+          const { error: deleteError } = await supabase.rpc('delete_my_couple', {
+            p_couple_id: activeCoupleId
+          })
+          if (deleteError) {
+            throw mapCreateError(deleteError, 'Unable to delete current couple')
+          }
+        } else {
+          const confirmLeave = window.confirm(
+            'Ban se roi couple hien tai va tao couple moi. Tiep tuc?'
+          )
+          if (!confirmLeave) {
+            return
+          }
+
+          const { error: leaveError } = await supabase.rpc('leave_couple', { p_couple_id: activeCoupleId })
+          if (leaveError) {
+            throw mapCreateError(leaveError, 'Unable to leave current couple')
+          }
+        }
+      }
+
+      let createdCouple: CouplePayload | null = null
+      let lastCreateError: CreateDiagnosticsError | null = null
+
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const code = generateCoupleCode()
+        const { data, error } = await supabase
+          .from('couples')
+          .insert({ code })
+          .select('id, code')
+          .single()
+
+        if (!error && data) {
+          createdCouple = data
+          break
+        }
+
+        lastCreateError = mapCreateError(error, 'Unable to create replacement couple')
+      }
+
+      if (!createdCouple) {
+        throw lastCreateError ?? mapCreateError(null, 'Unable to create replacement couple')
+      }
+
+      const { error: membershipCreateError } = await supabase
+        .from('couple_members')
+        .insert({ couple_id: createdCouple.id, user_id: user.id })
+
+      if (membershipCreateError) {
+        throw mapCreateError(membershipCreateError, 'Unable to attach user to replacement couple')
+      }
+
+      let copied = false
+      try {
+        await navigator.clipboard.writeText(createdCouple.code)
+        copied = true
+      } catch {
+        copied = false
+      }
+
+      cacheActiveCouple(createdCouple)
+      setCouple(createdCouple)
+      setMemberCoupleId(createdCouple.id)
+      setIsCoupleOwner(true)
+      setSource('server')
+      await loadCurrentFromServer()
+      await loadMemberContext()
+
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Reset completed',
+          message: copied
+            ? `Couple moi: ${createdCouple.code} (da copy)`
+            : `Couple moi: ${createdCouple.code}`
+        })
+      )
+    } catch (error) {
+      const resetError = mapCreateError(error, 'Unable to reset couple')
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Reset failed',
+          message: `${resetError.message} (${resetError.code})`
+        })
+      )
+    } finally {
+      setIsResettingCouple(false)
+    }
+  }
+
   const statusText = useMemo(() => {
     if (source === 'cache') {
       return 'Hiển thị từ local cache. Server sẽ là nguồn chính khi có kết nối.'
@@ -737,7 +895,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               <button
                 type="button"
                 onClick={onLeaveCouple}
-                disabled={isSubmitting || isLeavingCouple || isDeletingCouple}
+                disabled={isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
               >
                 {isLeavingCouple ? 'Dang roi...' : 'Roi couple'}
@@ -747,13 +905,32 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 <button
                   type="button"
                   onClick={onDeleteCouple}
-                  disabled={isSubmitting || isLeavingCouple || isDeletingCouple}
+                  disabled={isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple}
                   className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isDeletingCouple ? 'Dang xoa...' : 'Xoa couple'}
                 </button>
               ) : null}
             </div>
+          </div>
+        ) : null}
+
+        {authUser.id ? (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-800/60 dark:bg-amber-900/10">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              Reset Couple (delete and recreate)
+            </p>
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+              Neu ban la owner, reset se xoa toan bo du lieu chia se cua couple hien tai.
+            </p>
+            <button
+              type="button"
+              onClick={onResetCouple}
+              disabled={isSubmitting || isLeavingCouple || isDeletingCouple || isResettingCouple}
+              className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isResettingCouple ? 'Dang reset...' : 'Reset couple'}
+            </button>
           </div>
         ) : null}
 
@@ -786,7 +963,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             <button
               type="button"
               onClick={onCreateCouple}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isResettingCouple}
               className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
             >
               {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
@@ -809,7 +986,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               />
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isResettingCouple}
                 className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
               >
                 {isSubmitting ? 'Đang xử lý...' : 'Join couple'}
