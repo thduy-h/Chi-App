@@ -201,11 +201,23 @@ export type Database = {
     }
     Views: Record<string, never>
     Functions: {
+      delete_my_couple: {
+        Args: {
+          p_couple_id: string
+        }
+        Returns: Json
+      }
       join_by_code: {
         Args: {
           p_code: string
         }
         Returns: string | null
+      }
+      leave_couple: {
+        Args: {
+          p_couple_id: string
+        }
+        Returns: Json
       }
       whoami: {
         Args: Record<string, never>

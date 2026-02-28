@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useDispatch } from 'react-redux'
 
 import { setAlert } from '@/lib/features/alert/alertSlice'
@@ -86,6 +87,7 @@ function parseJoinedCoupleId(payload: unknown): string | null {
 }
 
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
+  const router = useRouter()
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
@@ -102,6 +104,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [hasAccessToken, setHasAccessToken] = useState(false)
   const [isCheckingWhoami, setIsCheckingWhoami] = useState(false)
   const [whoamiJson, setWhoamiJson] = useState('')
+  const [memberCoupleId, setMemberCoupleId] = useState<string | null>(initialCouple?.id ?? null)
+  const [isCoupleOwner, setIsCoupleOwner] = useState(false)
+  const [isLeavingCouple, setIsLeavingCouple] = useState(false)
+  const [isDeletingCouple, setIsDeletingCouple] = useState(false)
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
@@ -120,12 +126,15 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       if (payload.couple) {
         setCouple(payload.couple)
+        setMemberCoupleId(payload.couple.id)
         cacheActiveCouple(payload.couple)
         setSource('server')
         return
       }
 
       setCouple(null)
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
       clearActiveCoupleCache()
       setSource('server')
     } catch {
@@ -135,6 +144,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           id: cached.id,
           code: cached.code ?? 'unknown'
         })
+        setMemberCoupleId(cached.id)
         setSource('cache')
       }
     } finally {
@@ -142,12 +152,60 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }, [])
 
+  const loadMemberContext = useCallback(async () => {
+    if (!supabase) {
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
+      return
+    }
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
+      return
+    }
+
+    const { data: membership, error: membershipError } = await supabase
+      .from('couple_members')
+      .select('couple_id')
+      .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
+    if (membershipError || !membership?.couple_id) {
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
+      return
+    }
+
+    setMemberCoupleId(membership.couple_id)
+
+    const { data: coupleRow, error: coupleError } = await supabase
+      .from('couples')
+      .select('id, code, created_by')
+      .eq('id', membership.couple_id)
+      .maybeSingle()
+
+    if (coupleError) {
+      setIsCoupleOwner(false)
+      return
+    }
+
+    setIsCoupleOwner(Boolean(coupleRow?.created_by && coupleRow.created_by === user.id))
+  }, [supabase])
+
   useEffect(() => {
     if (initialCouple) {
       cacheActiveCouple(initialCouple)
     }
     void loadCurrentFromServer()
-  }, [initialCouple, loadCurrentFromServer])
+    void loadMemberContext()
+  }, [initialCouple, loadCurrentFromServer, loadMemberContext])
 
   useEffect(() => {
     if (!supabase) {
@@ -528,6 +586,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       console.debug('[setup/join] rpc join_by_code result:', { coupleId: joinedCoupleId })
       setJoinCode('')
       await loadCurrentFromServer()
+      await loadMemberContext()
       dispatch(
         setAlert({
           type: 'success',
@@ -545,6 +604,103 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const onLeaveCouple = async () => {
+    if (!memberCoupleId) {
+      return
+    }
+
+    try {
+      setIsLeavingCouple(true)
+      if (!supabase) {
+        throw mapCreateError(null, 'Supabase env is missing')
+      }
+
+      const { error } = await supabase.rpc('leave_couple', { p_couple_id: memberCoupleId })
+      if (error) {
+        throw mapCreateError(error, 'Unable to leave couple')
+      }
+
+      clearActiveCoupleCache()
+      setCouple(null)
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
+      setSource('server')
+      await loadCurrentFromServer()
+      await loadMemberContext()
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Leave successful',
+          message: 'Ban da roi couple.'
+        })
+      )
+    } catch (error) {
+      const leaveError = mapCreateError(error, 'Unable to leave couple')
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Leave failed',
+          message: `${leaveError.message} (${leaveError.code})`
+        })
+      )
+    } finally {
+      setIsLeavingCouple(false)
+    }
+  }
+
+  const onDeleteCouple = async () => {
+    if (!memberCoupleId) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      'XOA COUPLE se xoa du lieu lien quan. Hanh dong nay KHONG THE HOAN TAC. Ban chac chan?'
+    )
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setIsDeletingCouple(true)
+      if (!supabase) {
+        throw mapCreateError(null, 'Supabase env is missing')
+      }
+
+      const { error } = await supabase.rpc('delete_my_couple', { p_couple_id: memberCoupleId })
+      if (error) {
+        throw mapCreateError(error, 'Unable to delete couple')
+      }
+
+      clearActiveCoupleCache()
+      setCouple(null)
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
+      setSource('server')
+      await loadCurrentFromServer()
+      await loadMemberContext()
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Delete successful',
+          message: 'Couple da duoc xoa.'
+        })
+      )
+      router.replace('/setup')
+      router.refresh()
+    } catch (error) {
+      const deleteError = mapCreateError(error, 'Unable to delete couple')
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Delete failed',
+          message: `${deleteError.message} (${deleteError.code})`
+        })
+      )
+    } finally {
+      setIsDeletingCouple(false)
     }
   }
 
@@ -573,6 +729,33 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             </span>
           </p>
         </div>
+
+        {memberCoupleId ? (
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
+            <p className="text-xs text-gray-600 dark:text-gray-300">Couple ID: {memberCoupleId}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={onLeaveCouple}
+                disabled={isSubmitting || isLeavingCouple || isDeletingCouple}
+                className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+              >
+                {isLeavingCouple ? 'Dang roi...' : 'Roi couple'}
+              </button>
+
+              {isCoupleOwner ? (
+                <button
+                  type="button"
+                  onClick={onDeleteCouple}
+                  disabled={isSubmitting || isLeavingCouple || isDeletingCouple}
+                  className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDeletingCouple ? 'Dang xoa...' : 'Xoa couple'}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
