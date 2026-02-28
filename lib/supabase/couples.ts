@@ -2,9 +2,26 @@ import type { PostgrestError, SupabaseClient } from '@supabase/supabase-js'
 
 import type { Couple, Database } from './types'
 
-export interface CurrentCoupleContext {
+export interface CurrentCoupleForUser {
   coupleId: string | null
   coupleCode: string | null
+}
+
+export type CurrentCoupleStatus = 'unauthenticated' | 'no_couple' | 'ready'
+
+export interface CurrentCoupleContext {
+  status: CurrentCoupleStatus
+  userId: string | null
+  userEmail: string | null
+  coupleId: string | null
+  coupleCode: string | null
+  isOwner: boolean
+}
+
+interface CoupleRow {
+  id: string
+  code: string
+  created_by: string | null
 }
 
 function isForbiddenCouplesSelectError(error: PostgrestError | null) {
@@ -36,10 +53,52 @@ function isCouplesRowNotFoundError(error: PostgrestError | null) {
   return code === 'PGRST116' || message.includes('json object requested, multiple (or no) rows returned')
 }
 
+export function assertCoupleIdForSelect(coupleId: string | null | undefined, context: string) {
+  const normalized = coupleId?.trim() ?? ''
+  if (normalized) {
+    return normalized
+  }
+
+  const message = `[couples/select-guard] Missing couple_id before selecting couples in ${context}`
+  if (process.env.NODE_ENV !== 'production') {
+    throw new Error(message)
+  }
+
+  console.error(message)
+  return null
+}
+
+export async function selectCoupleById(
+  supabase: SupabaseClient<Database>,
+  coupleId: string | null | undefined,
+  context = 'selectCoupleById'
+): Promise<CoupleRow | null> {
+  const safeCoupleId = assertCoupleIdForSelect(coupleId, context)
+  if (!safeCoupleId) {
+    return null
+  }
+
+  const { data: couple, error: coupleError } = await supabase
+    .from('couples')
+    .select('id, code, created_by')
+    .eq('id', safeCoupleId)
+    .single()
+
+  if (isForbiddenCouplesSelectError(coupleError) || isCouplesRowNotFoundError(coupleError)) {
+    return null
+  }
+
+  if (coupleError) {
+    throw coupleError
+  }
+
+  return couple
+}
+
 export async function getCurrentCoupleForUser(
   supabase: SupabaseClient<Database>,
   userId: string
-): Promise<CurrentCoupleContext> {
+): Promise<CurrentCoupleForUser> {
   const { data: membership, error: membershipError } = await supabase
     .from('couple_members')
     .select('couple_id')
@@ -51,27 +110,73 @@ export async function getCurrentCoupleForUser(
     return { coupleId: null, coupleCode: null }
   }
 
-  const { data: couple, error: coupleError } = await supabase
-    .from('couples')
-    .select('id, code')
-    .eq('id', membership.couple_id)
-    .single()
-
-  if (isForbiddenCouplesSelectError(coupleError)) {
+  const couple = await selectCoupleById(supabase, membership.couple_id, 'getCurrentCoupleForUser')
+  if (!couple) {
     return { coupleId: null, coupleCode: null }
-  }
-
-  if (isCouplesRowNotFoundError(coupleError)) {
-    return { coupleId: null, coupleCode: null }
-  }
-
-  if (coupleError) {
-    throw coupleError
   }
 
   return {
-    coupleId: membership.couple_id,
+    coupleId: couple.id,
     coupleCode: couple?.code ?? null
+  }
+}
+
+export async function getCurrentCoupleContext(
+  supabase: SupabaseClient<Database>
+): Promise<CurrentCoupleContext> {
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return {
+      status: 'unauthenticated',
+      userId: null,
+      userEmail: null,
+      coupleId: null,
+      coupleCode: null,
+      isOwner: false
+    }
+  }
+
+  const { data: membership, error: membershipError } = await supabase
+    .from('couple_members')
+    .select('couple_id')
+    .eq('user_id', user.id)
+    .limit(1)
+    .maybeSingle()
+
+  if (membershipError || !membership?.couple_id) {
+    return {
+      status: 'no_couple',
+      userId: user.id,
+      userEmail: user.email ?? null,
+      coupleId: null,
+      coupleCode: null,
+      isOwner: false
+    }
+  }
+
+  const couple = await selectCoupleById(supabase, membership.couple_id, 'getCurrentCoupleContext')
+  if (!couple) {
+    return {
+      status: 'no_couple',
+      userId: user.id,
+      userEmail: user.email ?? null,
+      coupleId: null,
+      coupleCode: null,
+      isOwner: false
+    }
+  }
+
+  return {
+    status: 'ready',
+    userId: user.id,
+    userEmail: user.email ?? null,
+    coupleId: couple.id,
+    coupleCode: couple.code,
+    isOwner: Boolean(couple.created_by && couple.created_by === user.id)
   }
 }
 

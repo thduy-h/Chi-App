@@ -1,6 +1,6 @@
 import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { SetupClient } from '@/lib/components/pages/setup/setup-client'
-import { getCurrentCoupleForUser } from '@/lib/supabase/couples'
+import { getCurrentCoupleContext } from '@/lib/supabase/couples'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function SetupPage() {
@@ -14,11 +14,8 @@ export default async function SetupPage() {
     )
   }
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-
-  if (!user) {
+  const context = await getCurrentCoupleContext(supabase)
+  if (context.status === 'unauthenticated' || !context.userId) {
     return (
       <AuthRequired
         title="Can dang nhap de setup couple"
@@ -27,14 +24,13 @@ export default async function SetupPage() {
     )
   }
 
-  const currentCouple = await getCurrentCoupleForUser(supabase, user.id)
   const initialCouple =
-    currentCouple.coupleId && currentCouple.coupleCode
+    context.status === 'ready' && context.coupleId && context.coupleCode
       ? {
-          id: currentCouple.coupleId,
-          code: currentCouple.coupleCode
+          id: context.coupleId,
+          code: context.coupleCode
         }
       : null
 
-  return <SetupClient initialEmail={user.email ?? ''} initialCouple={initialCouple} />
+  return <SetupClient initialEmail={context.userEmail ?? ''} initialCouple={initialCouple} />
 }

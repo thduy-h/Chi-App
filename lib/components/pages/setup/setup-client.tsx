@@ -10,8 +10,10 @@ import {
   cacheActiveCouple,
   clearActiveCoupleCache,
   generateCoupleCode,
+  getCurrentCoupleContext,
   normalizeCoupleCode,
-  readActiveCoupleCache
+  readActiveCoupleCache,
+  selectCoupleById
 } from '@/lib/supabase/couples'
 
 interface CouplePayload {
@@ -24,64 +26,11 @@ interface SetupClientProps {
   initialCouple: CouplePayload | null
 }
 
-interface CurrentCoupleResponse {
-  user: { id: string; email: string } | null
-  couple: CouplePayload | null
-}
-
 interface CreateDiagnosticsError {
   message: string
   code: string
   details: string | null
   hint: string | null
-}
-
-function isForbiddenCouplesSelectError(error: unknown) {
-  if (!error || typeof error !== 'object') {
-    return false
-  }
-
-  const candidate = error as {
-    code?: string | null
-    message?: string | null
-    details?: string | null
-    hint?: string | null
-    status?: number | string | null
-  }
-
-  const code = (candidate.code ?? '').toUpperCase()
-  const status =
-    typeof candidate.status === 'number'
-      ? candidate.status
-      : typeof candidate.status === 'string'
-        ? Number(candidate.status)
-        : null
-  const message = (candidate.message ?? '').toLowerCase()
-  const details = (candidate.details ?? '').toLowerCase()
-  const hint = (candidate.hint ?? '').toLowerCase()
-  const text = `${message} ${details} ${hint}`
-
-  return (
-    status === 403 ||
-    code === '403' ||
-    code === '42501' ||
-    code === 'PGRST301' ||
-    text.includes('forbidden') ||
-    text.includes('permission denied') ||
-    text.includes('row-level security')
-  )
-}
-
-function isCouplesRowNotFoundError(error: unknown) {
-  if (!error || typeof error !== 'object') {
-    return false
-  }
-
-  const candidate = error as { code?: string | null; message?: string | null }
-  const code = (candidate.code ?? '').toUpperCase()
-  const message = (candidate.message ?? '').toLowerCase()
-
-  return code === 'PGRST116' || message.includes('json object requested, multiple (or no) rows returned')
 }
 
 function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnosticsError {
@@ -178,31 +127,43 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
-  const loadCurrentFromServer = useCallback(async () => {
+  const loadCurrentCoupleContext = useCallback(async () => {
+    if (!supabase) {
+      setCouple(null)
+      setMemberCoupleId(null)
+      setIsCoupleOwner(false)
+      return
+    }
+
     try {
       setIsRefreshing(true)
-      const response = await fetch('/api/couple/current', {
-        method: 'GET',
-        cache: 'no-store'
-      })
-      const payload = (await response.json()) as CurrentCoupleResponse
+      const context = await getCurrentCoupleContext(supabase)
 
-      if (payload.user?.email) {
-        setEmail(payload.user.email)
+      setAuthUser({
+        id: context.userId,
+        email: context.userEmail
+      })
+      if (context.userEmail) {
+        setEmail(context.userEmail)
       }
 
-      if (payload.couple) {
-        setCouple(payload.couple)
-        setMemberCoupleId(payload.couple.id)
-        cacheActiveCouple(payload.couple)
+      if (context.status !== 'ready' || !context.coupleId || !context.coupleCode) {
+        setCouple(null)
+        setMemberCoupleId(null)
+        setIsCoupleOwner(false)
+        clearActiveCoupleCache()
         setSource('server')
         return
       }
 
-      setCouple(null)
-      setMemberCoupleId(null)
-      setIsCoupleOwner(false)
-      clearActiveCoupleCache()
+      const nextCouple = {
+        id: context.coupleId,
+        code: context.coupleCode
+      }
+      setCouple(nextCouple)
+      setMemberCoupleId(context.coupleId)
+      setIsCoupleOwner(context.isOwner)
+      cacheActiveCouple(nextCouple)
       setSource('server')
     } catch {
       const cached = readActiveCoupleCache()
@@ -213,69 +174,15 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         })
         setMemberCoupleId(cached.id)
         setSource('cache')
+      } else {
+        setCouple(null)
+        setMemberCoupleId(null)
+        setSource('server')
       }
+      setIsCoupleOwner(false)
     } finally {
       setIsRefreshing(false)
     }
-  }, [])
-
-  const loadMemberContext = useCallback(async () => {
-    if (!supabase) {
-      setMemberCoupleId(null)
-      setIsCoupleOwner(false)
-      return
-    }
-
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      setMemberCoupleId(null)
-      setIsCoupleOwner(false)
-      return
-    }
-
-    const { data: membership, error: membershipError } = await supabase
-      .from('couple_members')
-      .select('couple_id')
-      .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle()
-
-    if (membershipError || !membership?.couple_id) {
-      setMemberCoupleId(null)
-      setIsCoupleOwner(false)
-      return
-    }
-
-    setMemberCoupleId(membership.couple_id)
-
-    const { data: coupleRow, error: coupleError } = await supabase
-      .from('couples')
-      .select('id, code, created_by')
-      .eq('id', membership.couple_id)
-      .single()
-
-    if (coupleError) {
-      if (isForbiddenCouplesSelectError(coupleError)) {
-        console.warn('[setup/member-context] couples select blocked by RLS/403; treating as no membership')
-        setCouple(null)
-        setMemberCoupleId(null)
-        clearActiveCoupleCache()
-        setSource('server')
-      } else if (isCouplesRowNotFoundError(coupleError)) {
-        setCouple(null)
-        setMemberCoupleId(null)
-        clearActiveCoupleCache()
-        setSource('server')
-      }
-      setIsCoupleOwner(false)
-      return
-    }
-
-    setIsCoupleOwner(Boolean(coupleRow?.created_by && coupleRow.created_by === user.id))
   }, [supabase])
 
   const refreshMembershipFromCoupleMembers = useCallback(
@@ -317,9 +224,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     if (initialCouple) {
       cacheActiveCouple(initialCouple)
     }
-    void loadCurrentFromServer()
-    void loadMemberContext()
-  }, [initialCouple, loadCurrentFromServer, loadMemberContext])
+    void loadCurrentCoupleContext()
+  }, [initialCouple, loadCurrentCoupleContext])
 
   useEffect(() => {
     if (!supabase) {
@@ -455,8 +361,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       if (existingMembership?.couple_id) {
         setMemberCoupleId(existingMembership.couple_id)
-        await loadCurrentFromServer()
-        await loadMemberContext()
+        await loadCurrentCoupleContext()
         dispatch(
           setAlert({
             type: 'success',
@@ -511,6 +416,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       setCouple(createdCouple)
+      setMemberCoupleId(createdCouple.id)
+      setIsCoupleOwner(true)
       cacheActiveCouple(createdCouple)
       setSource('server')
       dispatch(
@@ -606,7 +513,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       const membershipCoupleId = await refreshMembershipFromCoupleMembers(user.id)
       console.debug('[setup/join] refreshed membership couple_id:', membershipCoupleId)
       setJoinCode('')
-      await loadCurrentFromServer()
+      await loadCurrentCoupleContext()
       dispatch(
         setAlert({
           type: 'success',
@@ -648,8 +555,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setMemberCoupleId(null)
       setIsCoupleOwner(false)
       setSource('server')
-      await loadCurrentFromServer()
-      await loadMemberContext()
+      await loadCurrentCoupleContext()
       dispatch(
         setAlert({
           type: 'success',
@@ -699,8 +605,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setMemberCoupleId(null)
       setIsCoupleOwner(false)
       setSource('server')
-      await loadCurrentFromServer()
-      await loadMemberContext()
+      await loadCurrentCoupleContext()
       dispatch(
         setAlert({
           type: 'success',
@@ -772,13 +677,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       if (activeCoupleId) {
         let ownerForReset = isCoupleOwner
-        const { data: coupleOwnerRow, error: coupleOwnerError } = await supabase
-          .from('couples')
-          .select('created_by')
-          .eq('id', activeCoupleId)
-          .maybeSingle()
+        const coupleOwnerRow = await selectCoupleById(
+          supabase,
+          activeCoupleId,
+          'SetupClient.onResetCouple owner check'
+        )
 
-        if (!coupleOwnerError && coupleOwnerRow?.created_by) {
+        if (coupleOwnerRow?.created_by) {
           ownerForReset = coupleOwnerRow.created_by === user.id
         }
 
@@ -855,8 +760,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setMemberCoupleId(createdCouple.id)
       setIsCoupleOwner(true)
       setSource('server')
-      await loadCurrentFromServer()
-      await loadMemberContext()
+      await loadCurrentCoupleContext()
 
       dispatch(
         setAlert({
@@ -944,8 +848,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         id: memberCoupleId,
         code: newCode
       })
-      await loadCurrentFromServer()
-      await loadMemberContext()
+      await loadCurrentCoupleContext()
 
       dispatch(
         setAlert({
@@ -1137,7 +1040,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         <button
           type="button"
-          onClick={() => void loadCurrentFromServer()}
+          onClick={() => void loadCurrentCoupleContext()}
           disabled={isRefreshing}
           className="mt-6 text-sm font-medium text-rose-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
         >
