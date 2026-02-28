@@ -1,10 +1,19 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import { createClient } from '@/lib/supabase/browser'
+import type { Database } from '@/lib/supabase/types'
 
 type EntryType = 'income' | 'expense'
+type SyncMode = 'local' | 'supabase'
+type FinanceRow = Database['public']['Tables']['finance_entries']['Row']
+
+interface CoupleResponse {
+  user: { id: string; email: string } | null
+  couple: { id: string; code: string } | null
+}
 
 interface FinanceEntry {
   id: string
@@ -37,6 +46,10 @@ const formatDate = (value: string) => {
 
 const getCurrentMonth = () => new Date().toISOString().slice(0, 7)
 const getToday = () => new Date().toISOString().slice(0, 10)
+const createId = () =>
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random()}`
 
 const sanitizeType = (value: unknown): EntryType | null => {
   if (value === 'income' || value === 'expense') return value
@@ -54,7 +67,7 @@ const normalizeEntry = (value: unknown): FinanceEntry | null => {
   if (!type || !Number.isFinite(amount) || amount <= 0 || !category || !date) return null
 
   return {
-    id: String(raw.id || `${Date.now()}-${Math.random()}`),
+    id: String(raw.id || createId()),
     type,
     amount,
     category,
@@ -63,6 +76,16 @@ const normalizeEntry = (value: unknown): FinanceEntry | null => {
     createdAt: raw.createdAt ? String(raw.createdAt) : new Date().toISOString()
   }
 }
+
+const mapRowToEntry = (row: FinanceRow): FinanceEntry => ({
+  id: row.id,
+  type: row.type,
+  amount: Number(row.amount),
+  category: row.category,
+  date: row.date,
+  note: row.note ?? undefined,
+  createdAt: row.created_at ?? new Date().toISOString()
+})
 
 const getRecentMonths = (baseMonth: string, count: number): string[] => {
   const [yearRaw, monthRaw] = baseMonth.split('-')
@@ -80,12 +103,48 @@ const getRecentMonths = (baseMonth: string, count: number): string[] => {
   return results
 }
 
+const getMonthRangeForSeries = (selectedMonth: string, monthCount = 6) => {
+  const [yearRaw, monthRaw] = selectedMonth.split('-')
+  const year = Number(yearRaw)
+  const month = Number(monthRaw)
+  if (!Number.isFinite(year) || !Number.isFinite(month)) {
+    return { from: `${selectedMonth}-01`, to: `${selectedMonth}-31` }
+  }
+
+  const start = new Date(year, month - monthCount, 1)
+  const end = new Date(year, month, 0)
+
+  const from = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`
+  const to = `${end.getFullYear()}-${String(end.getMonth() + 1).padStart(2, '0')}-${String(
+    end.getDate()
+  ).padStart(2, '0')}`
+
+  return { from, to }
+}
+
+const parseImportEntries = (parsed: unknown): FinanceEntry[] => {
+  const sourceArray = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === 'object' && Array.isArray((parsed as { entries?: unknown[] }).entries)
+      ? (parsed as { entries: unknown[] }).entries
+      : []
+
+  return sourceArray
+    .map((entry) => normalizeEntry(entry))
+    .filter((entry): entry is FinanceEntry => Boolean(entry))
+}
+
 export const FinanceDashboard = () => {
   const dispatch = useDispatch()
   const importRef = useRef<HTMLInputElement>(null)
+  const supabase = useMemo(() => createClient(), [])
 
   const [entries, setEntries] = useState<FinanceEntry[]>([])
   const [hydrated, setHydrated] = useState(false)
+  const [syncMode, setSyncMode] = useState<SyncMode>('local')
+  const [activeCoupleId, setActiveCoupleId] = useState<string | null>(null)
+  const [isLoadingRemote, setIsLoadingRemote] = useState(false)
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
 
   const [type, setType] = useState<EntryType>('expense')
   const [amount, setAmount] = useState('')
@@ -96,39 +155,132 @@ export const FinanceDashboard = () => {
   const [formError, setFormError] = useState('')
 
   const categoryOptions = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const isSupabaseMode = syncMode === 'supabase' && Boolean(activeCoupleId)
 
-  useEffect(() => {
+  const fillForm = (entry: FinanceEntry | null) => {
+    if (!entry) {
+      setEditingEntryId(null)
+      setType('expense')
+      setAmount('')
+      setCategory(EXPENSE_CATEGORIES[0])
+      setDate(getToday())
+      setNote('')
+      return
+    }
+
+    setEditingEntryId(entry.id)
+    setType(entry.type)
+    setAmount(String(entry.amount))
+    setCategory(entry.category)
+    setDate(entry.date)
+    setNote(entry.note || '')
+  }
+
+  const loadLocalEntries = useCallback(() => {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
       setEntries([])
-      setHydrated(true)
       return
     }
 
     try {
       const parsed = JSON.parse(raw) as unknown
-      const sourceArray = Array.isArray(parsed)
-        ? parsed
-        : parsed && typeof parsed === 'object' && Array.isArray((parsed as { entries?: unknown[] }).entries)
-          ? (parsed as { entries: unknown[] }).entries
-          : []
-
-      const normalized = sourceArray
-        .map((entry) => normalizeEntry(entry))
-        .filter((entry): entry is FinanceEntry => Boolean(entry))
-
-      setEntries(normalized)
+      setEntries(parseImportEntries(parsed))
     } catch {
       setEntries([])
-    } finally {
-      setHydrated(true)
     }
   }, [])
 
+  const loadSupabaseEntries = useCallback(async () => {
+    if (!supabase || !activeCoupleId) {
+      return
+    }
+
+    const range = getMonthRangeForSeries(selectedMonth, 6)
+    setIsLoadingRemote(true)
+    try {
+      const { data, error } = await supabase
+        .from('finance_entries')
+        .select('id, couple_id, type, amount, category, date, note, created_at, updated_at')
+        .eq('couple_id', activeCoupleId)
+        .gte('date', range.from)
+        .lte('date', range.to)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        throw error
+      }
+
+      setEntries((data || []).map((row) => mapRowToEntry(row as FinanceRow)))
+    } catch {
+      dispatch(
+        setAlert({
+          title: 'Load failed',
+          message: 'Cannot load finance data from Supabase. Using local fallback.',
+          type: 'warning'
+        })
+      )
+      setSyncMode('local')
+      setActiveCoupleId(null)
+      loadLocalEntries()
+    } finally {
+      setIsLoadingRemote(false)
+    }
+  }, [activeCoupleId, dispatch, loadLocalEntries, selectedMonth, supabase])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const bootstrap = async () => {
+      try {
+        const response = await fetch('/api/couple/current', {
+          method: 'GET',
+          cache: 'no-store'
+        })
+        const payload = (await response.json()) as CoupleResponse
+        if (cancelled) return
+
+        if (payload.user?.id && payload.couple?.id && supabase) {
+          setSyncMode('supabase')
+          setActiveCoupleId(payload.couple.id)
+        } else {
+          setSyncMode('local')
+          setActiveCoupleId(null)
+          loadLocalEntries()
+        }
+      } catch {
+        if (!cancelled) {
+          setSyncMode('local')
+          setActiveCoupleId(null)
+          loadLocalEntries()
+        }
+      } finally {
+        if (!cancelled) {
+          setHydrated(true)
+        }
+      }
+    }
+
+    void bootstrap()
+    return () => {
+      cancelled = true
+    }
+  }, [loadLocalEntries, supabase])
+
   useEffect(() => {
     if (!hydrated) return
+    if (isSupabaseMode) {
+      void loadSupabaseEntries()
+      return
+    }
+    loadLocalEntries()
+  }, [hydrated, isSupabaseMode, loadSupabaseEntries, loadLocalEntries, selectedMonth])
+
+  useEffect(() => {
+    if (!hydrated || isSupabaseMode) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-  }, [entries, hydrated])
+  }, [entries, hydrated, isSupabaseMode])
 
   useEffect(() => {
     if (!categoryOptions.includes(category)) {
@@ -200,7 +352,38 @@ export const FinanceDashboard = () => {
     return Math.max(1, ...values)
   }, [recentSeries])
 
-  const handleAddEntry = (event: React.FormEvent<HTMLFormElement>) => {
+  const upsertSupabaseEntry = async (entry: FinanceEntry) => {
+    if (!supabase || !activeCoupleId) return
+    const { error } = await supabase.from('finance_entries').upsert(
+      {
+        id: entry.id,
+        couple_id: activeCoupleId,
+        type: entry.type,
+        amount: entry.amount,
+        category: entry.category,
+        date: entry.date,
+        note: entry.note ?? null
+      },
+      { onConflict: 'id' }
+    )
+    if (error) {
+      throw error
+    }
+  }
+
+  const deleteSupabaseEntry = async (entryId: string) => {
+    if (!supabase || !activeCoupleId) return
+    const { error } = await supabase
+      .from('finance_entries')
+      .delete()
+      .eq('id', entryId)
+      .eq('couple_id', activeCoupleId)
+    if (error) {
+      throw error
+    }
+  }
+
+  const handleAddOrUpdateEntry = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setFormError('')
 
@@ -215,41 +398,82 @@ export const FinanceDashboard = () => {
       return
     }
 
+    const existing = editingEntryId ? entries.find((entry) => entry.id === editingEntryId) : null
     const nextEntry: FinanceEntry = {
-      id:
-        typeof crypto !== 'undefined' && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random()}`,
+      id: existing?.id || createId(),
       type,
       amount: amountValue,
       category: category.trim(),
       date,
       note: note.trim() || undefined,
-      createdAt: new Date().toISOString()
+      createdAt: existing?.createdAt || new Date().toISOString()
     }
 
-    setEntries((prev) => [...prev, nextEntry])
-    setAmount('')
-    setNote('')
+    const previousEntries = entries
+    const nextEntries = existing
+      ? entries.map((entry) => (entry.id === existing.id ? nextEntry : entry))
+      : [...entries, nextEntry]
+    setEntries(nextEntries)
+    fillForm(null)
 
-    dispatch(
-      setAlert({
-        title: 'Da them giao dich',
-        message: 'Giao dich moi da duoc luu vao bang tai chinh.',
-        type: 'success'
-      })
-    )
+    try {
+      if (isSupabaseMode) {
+        await upsertSupabaseEntry(nextEntry)
+      }
+      dispatch(
+        setAlert({
+          title: existing ? 'Da cap nhat giao dich' : 'Da them giao dich',
+          message: existing
+            ? 'Giao dich da duoc cap nhat.'
+            : 'Giao dich moi da duoc luu vao bang tai chinh.',
+          type: 'success'
+        })
+      )
+    } catch {
+      setEntries(previousEntries)
+      dispatch(
+        setAlert({
+          title: 'Sync failed',
+          message: 'Khong the luu giao dich len Supabase.',
+          type: 'error'
+        })
+      )
+    }
   }
 
-  const handleDeleteEntry = (entryId: string) => {
+  const handleDeleteEntry = async (entryId: string) => {
+    const previousEntries = entries
     setEntries((prev) => prev.filter((entry) => entry.id !== entryId))
-    dispatch(
-      setAlert({
-        title: 'Da xoa',
-        message: 'Giao dich da duoc xoa.',
-        type: 'info'
-      })
-    )
+    if (editingEntryId === entryId) {
+      fillForm(null)
+    }
+
+    try {
+      if (isSupabaseMode) {
+        await deleteSupabaseEntry(entryId)
+      }
+      dispatch(
+        setAlert({
+          title: 'Da xoa',
+          message: 'Giao dich da duoc xoa.',
+          type: 'info'
+        })
+      )
+    } catch {
+      setEntries(previousEntries)
+      dispatch(
+        setAlert({
+          title: 'Sync failed',
+          message: 'Khong the xoa giao dich tren Supabase.',
+          type: 'error'
+        })
+      )
+    }
+  }
+
+  const handleEditEntry = (entry: FinanceEntry) => {
+    fillForm(entry)
+    setFormError('')
   }
 
   const handleExport = () => {
@@ -277,23 +501,28 @@ export const FinanceDashboard = () => {
     try {
       const text = await file.text()
       const parsed = JSON.parse(text) as unknown
-      const sourceArray = Array.isArray(parsed)
-        ? parsed
-        : parsed &&
-            typeof parsed === 'object' &&
-            Array.isArray((parsed as { entries?: unknown[] }).entries)
-          ? (parsed as { entries: unknown[] }).entries
-          : []
-
-      const normalized = sourceArray
-        .map((entry) => normalizeEntry(entry))
-        .filter((entry): entry is FinanceEntry => Boolean(entry))
+      const normalized = parseImportEntries(parsed)
 
       if (normalized.length < 1) {
         throw new Error('No valid entries found')
       }
 
-      setEntries(normalized)
+      if (isSupabaseMode) {
+        const previousEntries = entries
+        setEntries(normalized)
+        try {
+          for (const entry of normalized) {
+            // Keep sequential upserts for predictable error handling with small datasets.
+            // eslint-disable-next-line no-await-in-loop
+            await upsertSupabaseEntry(entry)
+          }
+        } catch {
+          setEntries(previousEntries)
+          throw new Error('Cannot sync imported entries to Supabase')
+        }
+      } else {
+        setEntries(normalized)
+      }
 
       dispatch(
         setAlert({
@@ -315,7 +544,7 @@ export const FinanceDashboard = () => {
     }
   }
 
-  if (!hydrated) {
+  if (!hydrated || isLoadingRemote) {
     return (
       <main className="container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
@@ -339,7 +568,10 @@ export const FinanceDashboard = () => {
               Finance tracker dashboard
             </h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              Dashboard inspired by `_refs/nextjs-dashboard` cards/layout, simplified for localStorage.
+              Dashboard inspired by `_refs/nextjs-dashboard` cards/layout.
+            </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Data mode: {isSupabaseMode ? 'Supabase synced' : 'LocalStorage fallback'}
             </p>
           </div>
 
@@ -473,13 +705,22 @@ export const FinanceDashboard = () => {
                           </td>
                           <td className="py-2 pr-3 text-gray-500 dark:text-gray-400">{entry.note || '-'}</td>
                           <td className="py-2 text-right">
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteEntry(entry.id)}
-                              className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
-                            >
-                              Xoa
-                            </button>
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleEditEntry(entry)}
+                                className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                              >
+                                Sua
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteEntry(entry.id)}
+                                className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
+                              >
+                                Xoa
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -493,10 +734,10 @@ export const FinanceDashboard = () => {
           <aside className="space-y-4">
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                Them giao dich
+                {editingEntryId ? 'Cap nhat giao dich' : 'Them giao dich'}
               </h2>
 
-              <form className="space-y-3" onSubmit={handleAddEntry}>
+              <form className="space-y-3" onSubmit={(event) => void handleAddOrUpdateEntry(event)}>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -590,8 +831,17 @@ export const FinanceDashboard = () => {
                   type="submit"
                   className="w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
                 >
-                  Them giao dich
+                  {editingEntryId ? 'Cap nhat giao dich' : 'Them giao dich'}
                 </button>
+                {editingEntryId && (
+                  <button
+                    type="button"
+                    onClick={() => fillForm(null)}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    Huy sua
+                  </button>
+                )}
               </form>
             </div>
 

@@ -3,7 +3,7 @@ import { FinanceDashboard } from '@/lib/components/pages/finance/finance-dashboa
 
 export const metadata: Metadata = {
   title: 'LoveHub | Finance',
-  description: 'Lightweight local finance tracker with dashboard summary cards.'
+  description: 'Finance tracker with Supabase sync and local fallback.'
 }
 
 export default function Page() {

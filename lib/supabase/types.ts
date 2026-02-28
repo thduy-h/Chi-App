@@ -93,6 +93,42 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_entries: {
+        Row: {
+          id: string
+          couple_id: string
+          type: 'income' | 'expense'
+          amount: number
+          category: string
+          date: string
+          note: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          type: 'income' | 'expense'
+          amount: number
+          category: string
+          date: string
+          note?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          type?: 'income' | 'expense'
+          amount?: number
+          category?: string
+          date?: string
+          note?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
