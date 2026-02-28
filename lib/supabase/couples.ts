@@ -25,6 +25,17 @@ function isForbiddenCouplesSelectError(error: PostgrestError | null) {
   )
 }
 
+function isCouplesRowNotFoundError(error: PostgrestError | null) {
+  if (!error) {
+    return false
+  }
+
+  const code = (error.code ?? '').toUpperCase()
+  const message = (error.message ?? '').toLowerCase()
+
+  return code === 'PGRST116' || message.includes('json object requested, multiple (or no) rows returned')
+}
+
 export async function getCurrentCoupleForUser(
   supabase: SupabaseClient<Database>,
   userId: string
@@ -44,9 +55,13 @@ export async function getCurrentCoupleForUser(
     .from('couples')
     .select('id, code')
     .eq('id', membership.couple_id)
-    .maybeSingle()
+    .single()
 
   if (isForbiddenCouplesSelectError(coupleError)) {
+    return { coupleId: null, coupleCode: null }
+  }
+
+  if (isCouplesRowNotFoundError(coupleError)) {
     return { coupleId: null, coupleCode: null }
   }
 

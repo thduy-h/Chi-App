@@ -72,6 +72,18 @@ function isForbiddenCouplesSelectError(error: unknown) {
   )
 }
 
+function isCouplesRowNotFoundError(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const candidate = error as { code?: string | null; message?: string | null }
+  const code = (candidate.code ?? '').toUpperCase()
+  const message = (candidate.message ?? '').toLowerCase()
+
+  return code === 'PGRST116' || message.includes('json object requested, multiple (or no) rows returned')
+}
+
 function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnosticsError {
   if (error && typeof error === 'object') {
     const candidate = error as {
@@ -246,11 +258,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       .from('couples')
       .select('id, code, created_by')
       .eq('id', membership.couple_id)
-      .maybeSingle()
+      .single()
 
     if (coupleError) {
       if (isForbiddenCouplesSelectError(coupleError)) {
         console.warn('[setup/member-context] couples select blocked by RLS/403; treating as no membership')
+        setCouple(null)
+        setMemberCoupleId(null)
+        clearActiveCoupleCache()
+        setSource('server')
+      } else if (isCouplesRowNotFoundError(coupleError)) {
         setCouple(null)
         setMemberCoupleId(null)
         clearActiveCoupleCache()
@@ -832,7 +849,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw mapCreateError(membershipError, 'Unable to load current couple membership')
       }
 
-      const activeCoupleId = membership?.couple_id ?? memberCoupleId
+      const activeCoupleId = membership?.couple_id ?? null
 
       if (activeCoupleId) {
         let ownerForReset = isCoupleOwner
