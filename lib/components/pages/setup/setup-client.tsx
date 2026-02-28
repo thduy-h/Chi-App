@@ -159,6 +159,28 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       if (user?.email) {
         setEmail(user.email)
       }
+
+      if (user?.id) {
+        console.debug(
+          '[setup/diagnostics] create path:',
+          'SetupClient.onCreateCouple -> createBrowserClient -> public.couples.insert({ code })'
+        )
+        const { count, error: countError } = await supabase
+          .from('couples')
+          .select('*', { count: 'exact', head: true })
+
+        if (countError) {
+          const diagnosticsError = mapCreateError(countError, 'Unable to count public.couples')
+          console.error('[setup/diagnostics] public.couples count error:', {
+            'error.code': diagnosticsError.code,
+            'error.message': diagnosticsError.message,
+            'error.details': diagnosticsError.details,
+            'error.hint': diagnosticsError.hint
+          })
+        } else {
+          console.debug('[setup/diagnostics] public.couples count:', count ?? 0)
+        }
+      }
     }
 
     void loadDiagnostics()
@@ -172,6 +194,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     try {
       setIsSubmitting(true)
       const insertContextLabel = 'client-component:createBrowserClient'
+      const createPathLabel =
+        'SetupClient.onCreateCouple -> createBrowserClient -> public.couples.insert({ code })'
 
       if (!supabase) {
         throw mapCreateError(null, 'Supabase env is missing')
@@ -200,6 +224,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       console.debug('[setup/create] current user id:', user.id)
       console.debug('[setup/create] session access_token exists:', Boolean(sessionData.session?.access_token))
       console.debug('[setup/create] insert context label:', insertContextLabel)
+      console.debug('[setup/create] path:', createPathLabel)
 
       setAuthUser((previous) => ({
         id: user.id,
@@ -252,10 +277,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const code = generateCoupleCode()
+        const insertPayload = { code }
         console.debug('[setup/create] couples insert context:', insertContextLabel)
+        console.debug('[setup/create] insert target:', 'public.couples')
+        console.debug('[setup/create] insert payload keys:', Object.keys(insertPayload))
         const { data, error } = await supabase
           .from('couples')
-          .insert({ code })
+          .insert(insertPayload)
           .select('id, code')
           .single()
 
