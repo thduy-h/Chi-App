@@ -1,31 +1,43 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
+
 import { setAlert } from '@/lib/features/alert/alertSlice'
 
 type LetterMode = 'feedback' | 'love'
+type InboxState = 'ready' | 'logged_out' | 'no_couple' | 'error'
+
+interface InboxLetter {
+  id: string
+  kind: LetterMode
+  title: string
+  message: string
+  mood: string | null
+  anonymous: boolean
+  created_at: string | null
+}
 
 const modeMeta: Record<LetterMode, { title: string; subtitle: string; button: string }> = {
   feedback: {
-    title: 'Góp ý cho LoveHub',
-    subtitle: 'Gửi góp ý để LoveHub ngày càng hữu ích hơn cho cả hai.',
-    button: 'Gửi góp ý'
+    title: 'Gop y cho LoveHub',
+    subtitle: 'Gui gop y de LoveHub ngay cang huu ich hon cho ca hai.',
+    button: 'Gui gop y'
   },
   love: {
-    title: 'Thư tình',
-    subtitle: 'Viết một lá thư ngắn, ấm áp và chân thành.',
-    button: 'Gửi thư tình'
+    title: 'Thu tinh',
+    subtitle: 'Viet mot la thu ngan, am ap va chan thanh.',
+    button: 'Gui thu tinh'
   }
 }
 
 const moodOptions = [
-  { value: '', label: 'Không chọn' },
-  { value: 'happy', label: 'Vui vẻ' },
-  { value: 'calm', label: 'Bình yên' },
-  { value: 'excited', label: 'Hào hứng' },
-  { value: 'grateful', label: 'Biết ơn' },
-  { value: 'romantic', label: 'Lãng mạn' }
+  { value: '', label: 'Khong chon' },
+  { value: 'happy', label: 'Vui ve' },
+  { value: 'calm', label: 'Binh yen' },
+  { value: 'excited', label: 'Hao hung' },
+  { value: 'grateful', label: 'Biet on' },
+  { value: 'romantic', label: 'Lang man' }
 ]
 
 export const LettersPage = () => {
@@ -42,9 +54,59 @@ export const LettersPage = () => {
     mode: LetterMode
     title: string
     createdAt: string
+    source: 'supabase' | 'webhook'
   } | null>(null)
 
+  const [inbox, setInbox] = useState<InboxLetter[]>([])
+  const [inboxLoading, setInboxLoading] = useState(true)
+  const [inboxState, setInboxState] = useState<InboxState>('ready')
+  const [inboxCoupleCode, setInboxCoupleCode] = useState<string | null>(null)
+
   const currentModeMeta = useMemo(() => modeMeta[mode], [mode])
+
+  const loadInbox = useCallback(async () => {
+    try {
+      setInboxLoading(true)
+      const response = await fetch('/api/letters', {
+        method: 'GET',
+        cache: 'no-store'
+      })
+
+      if (response.status === 401) {
+        setInbox([])
+        setInboxState('logged_out')
+        setInboxCoupleCode(null)
+        return
+      }
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        letters?: InboxLetter[]
+        reason?: string
+        coupleCode?: string | null
+      }
+
+      if (payload.reason === 'no-couple') {
+        setInbox([])
+        setInboxState('no_couple')
+        setInboxCoupleCode(null)
+        return
+      }
+
+      setInbox(Array.isArray(payload.letters) ? payload.letters : [])
+      setInboxCoupleCode(payload.coupleCode || null)
+      setInboxState('ready')
+    } catch {
+      setInbox([])
+      setInboxState('error')
+      setInboxCoupleCode(null)
+    } finally {
+      setInboxLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadInbox()
+  }, [loadInbox])
 
   const resetForm = () => {
     setTitle('')
@@ -59,11 +121,11 @@ export const LettersPage = () => {
     setSubmitError('')
 
     if (!title.trim() || !message.trim()) {
-      const errorMessage = 'Vui lòng nhập đầy đủ tiêu đề và nội dung.'
+      const errorMessage = 'Vui long nhap day du tieu de va noi dung.'
       setSubmitError(errorMessage)
       dispatch(
         setAlert({
-          title: 'Thiếu thông tin',
+          title: 'Thieu thong tin',
           message: errorMessage,
           type: 'warning'
         })
@@ -88,37 +150,46 @@ export const LettersPage = () => {
         })
       })
 
-      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string
+        source?: 'supabase' | 'webhook'
+      }
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Không thể gửi thư lúc này.')
+        throw new Error(payload.error || 'Khong the gui thu luc nay.')
       }
+
+      const source = payload.source || 'webhook'
 
       setConfirmation({
         mode,
         title: title.trim(),
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        source
       })
       resetForm()
 
+      if (source === 'supabase') {
+        void loadInbox()
+      }
+
       dispatch(
         setAlert({
-          title: 'Gửi thành công',
+          title: 'Gui thanh cong',
           message:
-            mode === 'feedback'
-              ? 'Cảm ơn góp ý của bạn. LoveHub đã nhận được.'
-              : 'Lá thư tình đã được gửi đi.',
+            source === 'supabase'
+              ? 'Thu da duoc luu vao Supabase Inbox cua couple.'
+              : 'Da gui qua webhook fallback (Formspree/Webhook).',
           type: 'success'
         })
       )
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Đã xảy ra lỗi khi gửi thư.'
+      const errorMessage = error instanceof Error ? error.message : 'Da xay ra loi khi gui thu.'
       setSubmitError(errorMessage)
 
       dispatch(
         setAlert({
-          title: 'Gửi thất bại',
+          title: 'Gui that bai',
           message: errorMessage,
           type: 'error'
         })
@@ -138,11 +209,11 @@ export const LettersPage = () => {
             LoveHub Letters
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-            Gửi góp ý và thư tình
+            Gui gop y va thu tinh
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-gray-600 dark:text-gray-300 sm:text-base">
-            Dựa trên form submission pattern từ Formspree reference, được tích hợp thành route
-            server-side an toàn cho LoveHub.
+            Neu da login va co couple, thu se duoc luu trong Supabase Inbox. Neu chua login, submit
+            se fallback qua webhook.
           </p>
         </div>
 
@@ -151,22 +222,24 @@ export const LettersPage = () => {
             <button
               type="button"
               onClick={() => setMode('feedback')}
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${mode === 'feedback'
-                ? 'bg-rose-600 text-white shadow'
-                : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                mode === 'feedback'
+                  ? 'bg-rose-600 text-white shadow'
+                  : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
+              }`}
             >
-              Góp ý
+              Gop y
             </button>
             <button
               type="button"
               onClick={() => setMode('love')}
-              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${mode === 'love'
-                ? 'bg-rose-600 text-white shadow'
-                : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
-                }`}
+              className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                mode === 'love'
+                  ? 'bg-rose-600 text-white shadow'
+                  : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
+              }`}
             >
-              Thư tình
+              Thu tinh
             </button>
           </div>
         </div>
@@ -182,14 +255,18 @@ export const LettersPage = () => {
                   htmlFor="letters-title"
                   className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Tiêu đề
+                  Tieu de
                 </label>
                 <input
                   id="letters-title"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                  placeholder={mode === 'feedback' ? 'Ví dụ: Cần thêm lọc theo ngày' : 'Ví dụ: Gửi em một ngày dịu dàng'}
+                  placeholder={
+                    mode === 'feedback'
+                      ? 'Vi du: Can them loc theo ngay'
+                      : 'Vi du: Gui em mot ngay diu dang'
+                  }
                 />
               </div>
 
@@ -198,7 +275,7 @@ export const LettersPage = () => {
                   htmlFor="letters-message"
                   className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
-                  Nội dung
+                  Noi dung
                 </label>
                 <textarea
                   id="letters-message"
@@ -208,8 +285,8 @@ export const LettersPage = () => {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                   placeholder={
                     mode === 'feedback'
-                      ? 'Mô tả góp ý cụ thể của bạn...'
-                      : 'Viết vài dòng cho người bạn thương...'
+                      ? 'Mo ta gop y cu the cua ban...'
+                      : 'Viet vai dong cho nguoi ban thuong...'
                   }
                 />
               </div>
@@ -220,7 +297,7 @@ export const LettersPage = () => {
                     htmlFor="letters-mood"
                     className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
                   >
-                    Mood (tuỳ chọn)
+                    Mood (tuy chon)
                   </label>
                   <select
                     id="letters-mood"
@@ -244,7 +321,7 @@ export const LettersPage = () => {
                       onChange={(event) => setAnonymous(event.target.checked)}
                       className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
                     />
-                    Gửi ẩn danh
+                    Gui an danh
                   </label>
                 </div>
               </div>
@@ -261,7 +338,7 @@ export const LettersPage = () => {
                   disabled={submitting}
                   className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? 'Đang gửi...' : currentModeMeta.button}
+                  {submitting ? 'Dang gui...' : currentModeMeta.button}
                 </button>
                 <button
                   type="button"
@@ -269,7 +346,7 @@ export const LettersPage = () => {
                   disabled={submitting}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
                 >
-                  Làm mới
+                  Lam moi
                 </button>
               </div>
             </form>
@@ -281,27 +358,85 @@ export const LettersPage = () => {
                 LoveHub Notes
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                <li>- Góp ý giúp app thân thiện hơn.</li>
-                <li>- Thư tình giữ lại cảm xúc mỗi ngày.</li>
-                <li>- Dữ liệu gửi qua route server-side, không lộ secret.</li>
+                <li>- Gop y giup app than thien hon.</li>
+                <li>- Thu tinh giu lai cam xuc moi ngay.</li>
+                <li>- Logged-in + couple: luu vao Supabase table `letters`.</li>
+                <li>- Logged-out/no couple: fallback submit qua webhook.</li>
               </ul>
+            </div>
+
+            <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-rose-600 dark:text-rose-300">
+                Couple Inbox
+              </h3>
+              {inboxCoupleCode && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple #{inboxCoupleCode}</p>
+              )}
+
+              {inboxLoading && (
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Dang tai inbox...</p>
+              )}
+
+              {!inboxLoading && inboxState === 'logged_out' && (
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  Dang nhap de xem inbox couple.
+                </p>
+              )}
+
+              {!inboxLoading && inboxState === 'no_couple' && (
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                  Ban can tao/join couple o /setup de luu va xem inbox Supabase.
+                </p>
+              )}
+
+              {!inboxLoading && inboxState === 'error' && (
+                <p className="mt-3 text-sm text-red-600 dark:text-red-300">Khong the tai inbox luc nay.</p>
+              )}
+
+              {!inboxLoading && inboxState === 'ready' && inbox.length < 1 && (
+                <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Inbox dang trong.</p>
+              )}
+
+              {!inboxLoading && inboxState === 'ready' && inbox.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {inbox.slice(0, 50).map((item) => (
+                    <article
+                      key={item.id}
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-semibold text-gray-700 dark:text-gray-200">
+                          {item.kind === 'feedback' ? 'Gop y' : 'Thu tinh'}: {item.title}
+                        </p>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : '--'}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-gray-600 dark:text-gray-300">{item.message}</p>
+                      <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                        Mood: {item.mood || '-'} | {item.anonymous ? 'Anonymous' : 'Named'}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
 
             {confirmation && (
               <div className="rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-pink-50 p-5 shadow-sm dark:border-rose-900/40 dark:from-rose-900/20 dark:to-pink-900/10">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-600 dark:text-rose-300">
-                  Đã gửi thành công
+                  Da gui thanh cong
                 </p>
                 <h3 className="mt-2 text-base font-semibold text-gray-900 dark:text-white">
-                  {confirmation.mode === 'feedback' ? 'Cảm ơn góp ý của bạn' : 'Lá thư đã bay đến nơi'}
+                  {confirmation.mode === 'feedback' ? 'Cam on gop y cua ban' : 'La thu da bay den noi'}
                 </h3>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                  “{confirmation.title}”
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">"{confirmation.title}"</p>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Source: {confirmation.source}
                 </p>
-                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   {new Date(confirmation.createdAt).toLocaleString('vi-VN')}
                 </p>
-                <div className="mt-4 text-xl">💌 💖 ✨</div>
               </div>
             )}
           </div>

@@ -162,6 +162,42 @@ export type Database = {
         }
         Relationships: []
       }
+      letters: {
+        Row: {
+          id: string
+          couple_id: string
+          kind: 'feedback' | 'love'
+          title: string
+          message: string
+          mood: string | null
+          anonymous: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          kind: 'feedback' | 'love'
+          title: string
+          message: string
+          mood?: string | null
+          anonymous?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          kind?: 'feedback' | 'love'
+          title?: string
+          message?: string
+          mood?: string | null
+          anonymous?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
