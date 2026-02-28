@@ -133,9 +133,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   const [email, setEmail] = useState(initialEmail)
-  const [couple, setCouple] = useState<CouplePayload | null>(initialCouple)
+  const [activeCouple, setActiveCouple] = useState<CouplePayload | null>(initialCouple)
   const [joinCode, setJoinCode] = useState('')
   const [source, setSource] = useState<'server' | 'cache'>('server')
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [authUser, setAuthUser] = useState<{ id: string | null; email: string | null }>({
@@ -143,7 +144,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     email: initialEmail || null
   })
   const [hasAccessToken, setHasAccessToken] = useState(false)
-  const [memberCoupleId, setMemberCoupleId] = useState<string | null>(initialCouple?.id ?? null)
   const [isCoupleOwner, setIsCoupleOwner] = useState(false)
   const [isLeavingCouple, setIsLeavingCouple] = useState(false)
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
@@ -151,14 +151,23 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [isRotatingCoupleCode, setIsRotatingCoupleCode] = useState(false)
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
   const [createWhoamiResult, setCreateWhoamiResult] = useState<string>('')
+  const [recentCreatedCouple, setRecentCreatedCouple] = useState<CouplePayload | null>(null)
 
-  const hasCouple = Boolean(couple?.id && couple?.code)
+  const hasCouple = Boolean(activeCouple?.id && activeCouple?.code)
+  const memberCoupleId = activeCouple?.id ?? null
 
-  const loadCurrentCoupleContext = useCallback(async () => {
+  const loadCurrentCoupleContext = useCallback(async (options?: { initial?: boolean }) => {
+    const isInitial = Boolean(options?.initial)
+    if (isInitial) {
+      setIsInitialLoading(true)
+    }
+
     if (!supabase) {
-      setCouple(null)
-      setMemberCoupleId(null)
+      setActiveCouple(null)
       setIsCoupleOwner(false)
+      if (isInitial) {
+        setIsInitialLoading(false)
+      }
       return
     }
 
@@ -175,8 +184,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (context.status !== 'ready' || !context.coupleId || !context.coupleCode) {
-        setCouple(null)
-        setMemberCoupleId(null)
+        setActiveCouple(null)
+        setRecentCreatedCouple(null)
         setIsCoupleOwner(false)
         clearActiveCoupleCache()
         setSource('server')
@@ -187,28 +196,29 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         id: context.coupleId,
         code: context.coupleCode
       }
-      setCouple(nextCouple)
-      setMemberCoupleId(context.coupleId)
+      setActiveCouple(nextCouple)
       setIsCoupleOwner(context.isOwner)
       cacheActiveCouple(nextCouple)
       setSource('server')
     } catch {
       const cached = readActiveCoupleCache()
       if (cached) {
-        setCouple({
+        setActiveCouple({
           id: cached.id,
           code: cached.code ?? 'unknown'
         })
-        setMemberCoupleId(cached.id)
         setSource('cache')
       } else {
-        setCouple(null)
-        setMemberCoupleId(null)
+        setActiveCouple(null)
+        setRecentCreatedCouple(null)
         setSource('server')
       }
       setIsCoupleOwner(false)
     } finally {
       setIsRefreshing(false)
+      if (isInitial) {
+        setIsInitialLoading(false)
+      }
     }
   }, [supabase])
 
@@ -241,7 +251,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         )
       }
 
-      setMemberCoupleId(membership.couple_id)
       return membership.couple_id
     },
     [supabase]
@@ -251,7 +260,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     if (initialCouple) {
       cacheActiveCouple(initialCouple)
     }
-    void loadCurrentCoupleContext()
+    void loadCurrentCoupleContext({ initial: true })
   }, [initialCouple, loadCurrentCoupleContext])
 
   useEffect(() => {
@@ -377,6 +386,17 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         setEmail(user.email)
       }
 
+      if (activeCouple?.id && activeCouple?.code) {
+        dispatch(
+          setAlert({
+            type: 'info',
+            title: 'Da co couple',
+            message: `Ma couple hien tai: ${activeCouple.code}`
+          })
+        )
+        return
+      }
+
       const { data: existingMembership, error: existingMembershipError } = await supabase
         .from('couple_members')
         .select('couple_id')
@@ -389,13 +409,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (existingMembership?.couple_id) {
-        setMemberCoupleId(existingMembership.couple_id)
+        setRecentCreatedCouple(null)
         await loadCurrentCoupleContext()
         dispatch(
           setAlert({
-            type: 'success',
-            title: 'Couple created',
-            message: 'You already have an active couple.'
+            type: 'info',
+            title: 'Da co couple',
+            message: 'Ban da co couple dang hoat dong.'
           })
         )
         return
@@ -473,10 +493,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         userId: user.id
       })
 
-      setCouple(createdCouple)
-      setMemberCoupleId(createdCouple.id)
+      setActiveCouple(createdCouple)
       setIsCoupleOwner(true)
       setLatestRotatedCode(createdCouple.code)
+      setRecentCreatedCouple(createdCouple)
       cacheActiveCouple(createdCouple)
       setSource('server')
       dispatch(
@@ -573,6 +593,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       const membershipCoupleId = await refreshMembershipFromCoupleMembers(user.id)
       console.debug('[setup/join] refreshed membership couple_id:', membershipCoupleId)
       setJoinCode('')
+      setRecentCreatedCouple(null)
       await loadCurrentCoupleContext()
       dispatch(
         setAlert({
@@ -611,8 +632,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       clearActiveCoupleCache()
-      setCouple(null)
-      setMemberCoupleId(null)
+      setActiveCouple(null)
+      setRecentCreatedCouple(null)
       setIsCoupleOwner(false)
       setSource('server')
       await loadCurrentCoupleContext()
@@ -661,8 +682,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       clearActiveCoupleCache()
-      setCouple(null)
-      setMemberCoupleId(null)
+      setActiveCouple(null)
+      setRecentCreatedCouple(null)
       setIsCoupleOwner(false)
       setSource('server')
       await loadCurrentCoupleContext()
@@ -816,8 +837,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       cacheActiveCouple(createdCouple)
-      setCouple(createdCouple)
-      setMemberCoupleId(createdCouple.id)
+      setActiveCouple(createdCouple)
+      setRecentCreatedCouple(createdCouple)
       setIsCoupleOwner(true)
       setSource('server')
       await loadCurrentCoupleContext()
@@ -893,7 +914,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       setLatestRotatedCode(newCode)
-      setCouple((previous) =>
+      setActiveCouple((previous) =>
         previous
           ? {
               ...previous,
@@ -939,6 +960,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     return 'Đã đồng bộ từ server.'
   }, [source])
 
+  if (isInitialLoading) {
+    return (
+      <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
+        <div className="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+          <p className="text-sm text-gray-600 dark:text-gray-300">Dang tai trang thai couple...</p>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
       <div className="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
@@ -952,10 +983,27 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           <p className="text-sm text-gray-700 dark:text-gray-200">
             Couple hiện tại:{' '}
             <span className="font-semibold text-rose-700 dark:text-rose-200">
-              {hasCouple ? couple?.code : 'Chưa ghép đôi'}
+              {hasCouple ? activeCouple?.code : 'Chưa ghép đôi'}
             </span>
           </p>
         </div>
+
+
+        {recentCreatedCouple ? (
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-800/60 dark:bg-emerald-900/10">
+            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">Tao couple thanh cong</p>
+            <p className="mt-1 text-sm text-emerald-700 dark:text-emerald-300">
+              Ma couple cua ban: <span className="font-semibold">{recentCreatedCouple.code}</span>
+            </p>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard.writeText(recentCreatedCouple.code)}
+              className="mt-2 rounded-md border border-emerald-300 bg-white px-3 py-1 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50 dark:border-emerald-700 dark:bg-gray-900 dark:text-emerald-200 dark:hover:bg-gray-700"
+            >
+              Copy ma
+            </button>
+          </div>
+        ) : null}
 
         {memberCoupleId ? (
           <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
