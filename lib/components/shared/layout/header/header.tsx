@@ -49,12 +49,6 @@ export const Header = () => {
 
 					<div className="flex items-center gap-1 sm:gap-2">
 						<CoupleAuthWidget />
-						<Link
-							href="/auth"
-							className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-200 md:hidden"
-						>
-							Auth
-						</Link>
 						<DarkModeToggle></DarkModeToggle>
 						<Cart />
 

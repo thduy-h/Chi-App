@@ -1,5 +1,4 @@
-import { redirect } from 'next/navigation'
-
+import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { SetupClient } from '@/lib/components/pages/setup/setup-client'
 import { getCurrentCoupleForUser } from '@/lib/supabase/couples'
 import { createClient } from '@/lib/supabase/server'
@@ -7,7 +6,12 @@ import { createClient } from '@/lib/supabase/server'
 export default async function SetupPage() {
   const supabase = createClient()
   if (!supabase) {
-    redirect('/auth?error=missing-env')
+    return (
+      <AuthRequired
+        title="Khong the tai setup"
+        message="Supabase env chua duoc cau hinh. Vui long dang nhap lai sau khi cau hinh xong."
+      />
+    )
   }
 
   const {
@@ -15,7 +19,12 @@ export default async function SetupPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/auth')
+    return (
+      <AuthRequired
+        title="Can dang nhap de setup couple"
+        message="Dang nhap de tao, join, hoac quan ly couple cua ban."
+      />
+    )
   }
 
   const currentCouple = await getCurrentCoupleForUser(supabase, user.id)
