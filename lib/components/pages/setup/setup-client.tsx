@@ -124,6 +124,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [isResettingCouple, setIsResettingCouple] = useState(false)
   const [isRotatingCoupleCode, setIsRotatingCoupleCode] = useState(false)
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
+  const [createWhoamiResult, setCreateWhoamiResult] = useState<string>('')
 
   const hasCouple = Boolean(couple?.id && couple?.code)
 
@@ -282,8 +283,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   }, [initialEmail, supabase])
 
   const onCreateCouple = async () => {
+    let whoamiSnapshot = ''
     try {
       setIsSubmitting(true)
+      setCreateWhoamiResult('')
       const insertContextLabel = 'client-component:createSupabaseBrowserClient'
       const createPathLabel =
         'SetupClient.onCreateCouple -> createSupabaseBrowserClient -> public.couples.insert({ code })'
@@ -372,6 +375,33 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         return
       }
 
+      const { data: whoamiData, error: whoamiError } = await supabase.rpc('whoami')
+      if (whoamiError) {
+        const whoamiMappedError = mapCreateError(whoamiError, 'Unable to resolve whoami role')
+        whoamiSnapshot = JSON.stringify(
+          {
+            error: {
+              code: whoamiMappedError.code,
+              message: whoamiMappedError.message,
+              details: whoamiMappedError.details,
+              hint: whoamiMappedError.hint
+            }
+          },
+          null,
+          2
+        )
+        console.error('[setup/create] whoami error:', {
+          'error.code': whoamiMappedError.code,
+          'error.message': whoamiMappedError.message,
+          'error.details': whoamiMappedError.details,
+          'error.hint': whoamiMappedError.hint
+        })
+      } else {
+        whoamiSnapshot = JSON.stringify(whoamiData ?? null, null, 2)
+        console.debug('[setup/create] whoami result:', whoamiData ?? null)
+      }
+      setCreateWhoamiResult(whoamiSnapshot)
+
       let createdCouple: CouplePayload | null = null
       let lastCreateError: CreateDiagnosticsError | null = null
 
@@ -444,7 +474,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         `error.code: ${diagnosticsError.code}`,
         `error.message: ${diagnosticsError.message}`,
         `error.details: ${diagnosticsError.details ?? 'null'}`,
-        `error.hint: ${diagnosticsError.hint ?? 'null'}`
+        `error.hint: ${diagnosticsError.hint ?? 'null'}`,
+        `whoami: ${whoamiSnapshot || createWhoamiResult || 'not_available'}`
       ].join(' | ')
 
       dispatch(
@@ -1007,6 +1038,11 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 User: {authUser.email ?? 'unknown'} ({authUser.id ?? 'unknown'})
               </p>
               <p className="mt-1">Session access_token: {String(hasAccessToken)}</p>
+              {createWhoamiResult ? (
+                <pre className="mt-2 overflow-x-auto rounded-md border border-rose-100 bg-white/90 p-2 text-[11px] leading-relaxed text-gray-700 dark:border-rose-900/50 dark:bg-gray-900 dark:text-gray-200">
+                  {createWhoamiResult}
+                </pre>
+              ) : null}
             </div>
             <button
               type="button"
