@@ -21,7 +21,7 @@ import { TaskModal } from '@/lib/components/pages/tasks/task-modal'
 import { ColumnModal } from '@/lib/components/pages/tasks/column-modal'
 
 type SyncMode = 'local' | 'supabase'
-type SyncStatus = 'Local' | 'Synced'
+type SyncStatus = 'OFFLINE' | 'SYNCED'
 type RemoteTaskRow = Database['public']['Tables']['tasks']['Row']
 type RemoteTaskInsert = Database['public']['Tables']['tasks']['Insert']
 
@@ -52,7 +52,11 @@ const sanitizeStatus = (value: string) =>
 const createTaskId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random()}`
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {
+      const rand = Math.floor(Math.random() * 16)
+      const value = char === 'x' ? rand : (rand & 0x3) | 0x8
+      return value.toString(16)
+    })
 
 const toStatusTitle = (status: string) =>
   status
@@ -60,21 +64,6 @@ const toStatusTitle = (status: string) =>
     .filter(Boolean)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
     .join(' ')
-
-const taskFingerprint = (tasks: KanbanTask[]) =>
-  JSON.stringify(
-    tasks
-      .map((task) => ({
-        id: task.id,
-        content: task.content,
-        status: task.status,
-        position: task.position,
-        note: task.note || '',
-        dueDate: task.dueDate || '',
-        priority: task.priority || 'normal'
-      }))
-      .sort((a, b) => a.id.localeCompare(b.id))
-  )
 
 const mapRemoteRowToTask = (
   row: RemoteTaskRow,
@@ -170,6 +159,7 @@ export const KanbanBoard = ({
   boardKey,
   syncMode,
   activeCoupleId,
+  refreshToken = 0,
   defaultColumns,
   defaultTasks
 }: {
@@ -178,14 +168,13 @@ export const KanbanBoard = ({
   boardKey: 'tasks' | 'travel'
   syncMode: SyncMode
   activeCoupleId: string | null
+  refreshToken?: number
   defaultColumns: KanbanColumn[]
   defaultTasks: KanbanTask[]
 }) => {
   const dispatch = useDispatch()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastSyncedFingerprintRef = useRef('')
-  const isSyncingRef = useRef(false)
+  const tasksRef = useRef<KanbanTask[]>(cloneTasks(defaultTasks))
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
   const [columns, setColumns] = useState<KanbanColumn[]>(cloneColumns(defaultColumns))
@@ -200,7 +189,7 @@ export const KanbanBoard = ({
   const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
   const [columnModalMode, setColumnModalMode] = useState<'create' | 'edit'>('create')
   const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('Local')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('OFFLINE')
   const [isSyncing, setIsSyncing] = useState(false)
 
   const isSupabaseMode = syncMode === 'supabase' && Boolean(activeCoupleId)
@@ -213,41 +202,49 @@ export const KanbanBoard = ({
     return groups
   }, [columns, tasks])
 
-  const syncSnapshotToSupabase = useCallback(
-    async (snapshot: KanbanTask[], fingerprint?: string) => {
+  useEffect(() => {
+    tasksRef.current = cloneTasks(tasks)
+  }, [tasks])
+
+  const logSupabaseError = useCallback(
+    (context: string, error: unknown) => {
+      const candidate = error as {
+        code?: string | null
+        message?: string | null
+        details?: string | null
+        hint?: string | null
+      }
+      console.error(`[tasks/${boardKey}] ${context}`, {
+        code: candidate?.code ?? null,
+        message: candidate?.message ?? String(error),
+        details: candidate?.details ?? null,
+        hint: candidate?.hint ?? null
+      })
+    },
+    [boardKey]
+  )
+
+  const toErrorMessage = useCallback((error: unknown, fallback: string) => {
+    const candidate = error as { code?: string | null; message?: string | null }
+    const message = candidate?.message ?? fallback
+    const code = candidate?.code ?? null
+    return code ? `${message} (${code})` : message
+  }, [])
+
+  const persistTaskChanges = useCallback(
+    async (nextTasks: KanbanTask[], affectedStatuses: string[], deletedIds: string[] = []) => {
       if (!isSupabaseMode || !activeCoupleId || !supabase) {
-        setSyncStatus('Local')
-        return false
+        setSyncStatus('OFFLINE')
+        return true
       }
 
-      if (isSyncingRef.current) {
-        return false
-      }
+      const statusSet = new Set(affectedStatuses.map((status) => sanitizeStatus(status)).filter(Boolean))
+      const payload = nextTasks
+        .filter((task) => statusSet.has(task.status))
+        .map((task) => mapTaskToRemoteInsert(task, activeCoupleId, boardKey))
 
-      isSyncingRef.current = true
       setIsSyncing(true)
       try {
-        const fallbackStatus = columns[0]?.status || 'todo'
-        const normalized = snapshot.map((task, index) => ({
-          ...task,
-          status: sanitizeStatus(task.status) || fallbackStatus,
-          position: Number.isFinite(task.position) ? Number(task.position) : index
-        }))
-        const payload = normalized.map((task) =>
-          mapTaskToRemoteInsert(task, activeCoupleId, boardKey)
-        )
-        const localIds = new Set(payload.map((row) => row.id as string))
-
-        const { data: existingRows, error: existingError } = await supabase
-          .from('tasks')
-          .select('id')
-          .eq('couple_id', activeCoupleId)
-          .eq('board', boardKey)
-
-        if (existingError) {
-          throw existingError
-        }
-
         if (payload.length > 0) {
           const { error: upsertError } = await supabase.from('tasks').upsert(payload, {
             onConflict: 'id'
@@ -257,178 +254,169 @@ export const KanbanBoard = ({
           }
         }
 
-        const staleIds = (existingRows || [])
-          .map((row) => row.id)
-          .filter((id) => !localIds.has(id))
-
-        if (staleIds.length > 0) {
+        if (deletedIds.length > 0) {
           const { error: deleteError } = await supabase
             .from('tasks')
             .delete()
             .eq('couple_id', activeCoupleId)
             .eq('board', boardKey)
-            .in('id', staleIds)
-
+            .in('id', deletedIds)
           if (deleteError) {
             throw deleteError
           }
         }
 
-        lastSyncedFingerprintRef.current = fingerprint ?? taskFingerprint(normalized)
-        setSyncStatus('Synced')
+        setSyncStatus('SYNCED')
         return true
-      } catch {
-        setSyncStatus('Local')
+      } catch (error) {
+        setSyncStatus('OFFLINE')
+        logSupabaseError('persistTaskChanges', error)
+        dispatch(
+          setAlert({
+            title: 'Sync failed',
+            message: toErrorMessage(error, 'Unable to sync tasks to Supabase'),
+            type: 'warning'
+          })
+        )
         return false
       } finally {
-        isSyncingRef.current = false
         setIsSyncing(false)
       }
     },
-    [activeCoupleId, boardKey, columns, isSupabaseMode, supabase]
+    [activeCoupleId, boardKey, dispatch, isSupabaseMode, logSupabaseError, supabase, toErrorMessage]
   )
 
-  useEffect(() => {
-    const raw = localStorage.getItem(storageKey)
-    if (!raw) {
-      setColumns(cloneColumns(defaultColumns))
-      setTasks(cloneTasks(defaultTasks))
-      setHydrated(true)
+  const loadBoardState = useCallback(async () => {
+    if (!isSupabaseMode || !activeCoupleId || !supabase) {
+      const raw = localStorage.getItem(storageKey)
+      if (!raw) {
+        const normalizedDefault = normalizeBoardState(null, defaultColumns, defaultTasks)
+        setColumns(normalizedDefault.columns)
+        setTasks(normalizedDefault.tasks)
+        setSyncStatus('OFFLINE')
+        setHydrated(true)
+        return
+      }
+
+      try {
+        const parsed = JSON.parse(raw) as Partial<BoardState>
+        const normalized = normalizeBoardState(parsed, defaultColumns, defaultTasks)
+        setColumns(normalized.columns)
+        setTasks(normalized.tasks)
+      } catch {
+        const normalizedDefault = normalizeBoardState(null, defaultColumns, defaultTasks)
+        setColumns(normalizedDefault.columns)
+        setTasks(normalizedDefault.tasks)
+      } finally {
+        setSyncStatus('OFFLINE')
+        setHydrated(true)
+      }
       return
     }
 
+    setIsSyncing(true)
     try {
-      const parsed = JSON.parse(raw) as Partial<BoardState>
-      const normalized = normalizeBoardState(parsed, defaultColumns, defaultTasks)
-      setColumns(normalized.columns)
-      setTasks(normalized.tasks)
-    } catch {
-      setColumns(cloneColumns(defaultColumns))
-      setTasks(cloneTasks(defaultTasks))
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(
+          'id, title, description, status, priority, due_date, sort_order, board, created_at, updated_at, couple_id'
+        )
+        .eq('couple_id', activeCoupleId)
+        .in('board', ['tasks', 'travel'])
+        .order('board', { ascending: true })
+        .order('status', { ascending: true })
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        throw error
+      }
+
+      const boardRows = (data || []).filter((row) => row.board === boardKey)
+      const fallbackStatus = defaultColumns[0]?.status || 'todo'
+      const mapped = boardRows.map((row, index) =>
+        mapRemoteRowToTask(row as RemoteTaskRow, index, fallbackStatus)
+      )
+
+      const knownStatuses = new Set(defaultColumns.map((column) => column.status))
+      const missingStatuses = mapped
+        .map((task) => task.status)
+        .filter((status) => !knownStatuses.has(status))
+
+      const nextColumns = [
+        ...cloneColumns(defaultColumns),
+        ...Array.from(new Set(missingStatuses)).map((status) => ({
+          id: status,
+          status,
+          title: toStatusTitle(status) || status
+        }))
+      ]
+
+      setColumns(nextColumns)
+      setTasks(mapped)
+      setSyncStatus('SYNCED')
+    } catch (error) {
+      logSupabaseError('loadBoardState', error)
+      setSyncStatus('OFFLINE')
+      dispatch(
+        setAlert({
+          title: 'Load failed',
+          message: toErrorMessage(error, 'Unable to load tasks from Supabase'),
+          type: 'warning'
+        })
+      )
     } finally {
       setHydrated(true)
-    }
-  }, [storageKey, defaultColumns, defaultTasks])
-
-  useEffect(() => {
-    if (!hydrated) return
-    const payload: BoardState = { columns, tasks }
-    localStorage.setItem(storageKey, JSON.stringify(payload))
-  }, [columns, tasks, hydrated, storageKey])
-
-  useEffect(() => {
-    if (!hydrated) {
-      return
-    }
-
-    if (!isSupabaseMode || !activeCoupleId || !supabase) {
-      setSyncStatus('Local')
-      return
-    }
-
-    let cancelled = false
-
-    const loadRemoteTasks = async () => {
-      setIsSyncing(true)
-      try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('id, title, description, status, priority, due_date, sort_order, board, created_at, updated_at, couple_id')
-          .eq('couple_id', activeCoupleId)
-          .eq('board', boardKey)
-          .order('sort_order', { ascending: true })
-
-        if (error) {
-          throw error
-        }
-
-        if (cancelled) {
-          return
-        }
-
-        const fallbackStatus = columns[0]?.status || defaultColumns[0]?.status || 'todo'
-        const mapped = (data || []).map((row, index) =>
-          mapRemoteRowToTask(row as RemoteTaskRow, index, fallbackStatus)
-        )
-
-        const missingStatuses = mapped
-          .map((task) => task.status)
-          .filter((status) => !columns.some((column) => column.status === status))
-
-        if (missingStatuses.length > 0) {
-          setColumns((prev) => [
-            ...prev,
-            ...Array.from(new Set(missingStatuses)).map((status) => ({
-              id: status,
-              status,
-              title: toStatusTitle(status) || status
-            }))
-          ])
-        }
-
-        setTasks(mapped)
-        lastSyncedFingerprintRef.current = taskFingerprint(mapped)
-        setSyncStatus('Synced')
-      } catch {
-        if (!cancelled) {
-          setSyncStatus('Local')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsSyncing(false)
-        }
-      }
-    }
-
-    void loadRemoteTasks()
-
-    return () => {
-      cancelled = true
+      setIsSyncing(false)
     }
   }, [
     activeCoupleId,
     boardKey,
-    columns,
     defaultColumns,
-    hydrated,
+    defaultTasks,
+    dispatch,
     isSupabaseMode,
-    supabase
+    logSupabaseError,
+    storageKey,
+    supabase,
+    toErrorMessage
   ])
 
   useEffect(() => {
-    if (!hydrated || !isSupabaseMode || !activeCoupleId || !supabase) {
+    setHydrated(false)
+    void loadBoardState()
+  }, [loadBoardState, refreshToken])
+
+  useEffect(() => {
+    if (!hydrated || isSupabaseMode) {
       return
     }
+    const payload: BoardState = { columns, tasks }
+    localStorage.setItem(storageKey, JSON.stringify(payload))
+  }, [columns, tasks, hydrated, isSupabaseMode, storageKey])
 
-    const fingerprint = taskFingerprint(tasks)
-    if (fingerprint === lastSyncedFingerprintRef.current) {
-      return
-    }
+  const commitTaskMutation = useCallback(
+    async (
+      buildNext: (previous: KanbanTask[]) => KanbanTask[],
+      options: { affectedStatuses: string[]; deletedIds?: string[] }
+    ) => {
+      const previous = cloneTasks(tasksRef.current)
+      const next = buildNext(previous)
+      setTasks(next)
 
-    setSyncStatus('Local')
-
-    if (syncTimeoutRef.current) {
-      clearTimeout(syncTimeoutRef.current)
-    }
-
-    const snapshot = cloneTasks(tasks)
-    syncTimeoutRef.current = setTimeout(() => {
-      void syncSnapshotToSupabase(snapshot, fingerprint)
-    }, 700)
-
-    return () => {
-      if (syncTimeoutRef.current) {
-        clearTimeout(syncTimeoutRef.current)
+      if (!isSupabaseMode) {
+        setSyncStatus('OFFLINE')
+        return true
       }
-    }
-  }, [
-    activeCoupleId,
-    hydrated,
-    isSupabaseMode,
-    supabase,
-    syncSnapshotToSupabase,
-    tasks
-  ])
+
+      const ok = await persistTaskChanges(next, options.affectedStatuses, options.deletedIds ?? [])
+      if (!ok) {
+        setTasks(previous)
+      }
+      return ok
+    },
+    [isSupabaseMode, persistTaskChanges]
+  )
 
   const onDragEnd = (result: DropResult) => {
     const { source, destination } = result
@@ -440,50 +428,58 @@ export const KanbanBoard = ({
       return
     }
 
-    setTasks((prev) => {
-      const sourceStatus = source.droppableId
-      const destinationStatus = destination.droppableId
-      const sourceTasks = tasksByStatus(prev, sourceStatus)
-      const movedTask = sourceTasks[source.index]
-      if (!movedTask) return prev
+    const sourceStatus = source.droppableId
+    const destinationStatus = destination.droppableId
+    void commitTaskMutation(
+      (prev) => {
+        const sourceTasks = tasksByStatus(prev, sourceStatus)
+        const movedTask = sourceTasks[source.index]
+        if (!movedTask) return prev
 
-      const withoutMoved = prev.filter((task) => task.id !== movedTask.id)
+        const withoutMoved = prev.filter((task) => task.id !== movedTask.id)
 
-      if (sourceStatus === destinationStatus) {
-        const sameColumn = tasksByStatus(withoutMoved, sourceStatus)
-        sameColumn.splice(destination.index, 0, {
+        if (sourceStatus === destinationStatus) {
+          const sameColumn = tasksByStatus(withoutMoved, sourceStatus)
+          sameColumn.splice(destination.index, 0, {
+            ...movedTask,
+            status: sourceStatus
+          })
+
+          const untouched = withoutMoved.filter((task) => task.status !== sourceStatus)
+          const reindexed = sameColumn.map((task, index) => ({
+            ...task,
+            position: index
+          }))
+          return [...untouched, ...reindexed]
+        }
+
+        const destinationTasks = tasksByStatus(withoutMoved, destinationStatus)
+        destinationTasks.splice(destination.index, 0, {
           ...movedTask,
-          status: sourceStatus
+          status: destinationStatus
         })
 
-        const untouched = withoutMoved.filter((task) => task.status !== sourceStatus)
-        const reindexed = sameColumn.map((task, index) => ({
+        const sourceReindexed = tasksByStatus(withoutMoved, sourceStatus).map((task, index) => ({
           ...task,
           position: index
         }))
-        return [...untouched, ...reindexed]
+        const destinationReindexed = destinationTasks.map((task, index) => ({
+          ...task,
+          position: index
+        }))
+        const untouched = withoutMoved.filter(
+          (task) => task.status !== sourceStatus && task.status !== destinationStatus
+        )
+
+        return [...untouched, ...sourceReindexed, ...destinationReindexed]
+      },
+      {
+        affectedStatuses:
+          sourceStatus === destinationStatus
+            ? [sourceStatus]
+            : [sourceStatus, destinationStatus]
       }
-
-      const destinationTasks = tasksByStatus(withoutMoved, destinationStatus)
-      destinationTasks.splice(destination.index, 0, {
-        ...movedTask,
-        status: destinationStatus
-      })
-
-      const sourceReindexed = tasksByStatus(withoutMoved, sourceStatus).map((task, index) => ({
-        ...task,
-        position: index
-      }))
-      const destinationReindexed = destinationTasks.map((task, index) => ({
-        ...task,
-        position: index
-      }))
-      const untouched = withoutMoved.filter(
-        (task) => task.status !== sourceStatus && task.status !== destinationStatus
-      )
-
-      return [...untouched, ...sourceReindexed, ...destinationReindexed]
-    })
+    )
   }
 
   const openCreateTaskModal = (status: string) => {
@@ -500,84 +496,105 @@ export const KanbanBoard = ({
     setIsTaskModalOpen(true)
   }
 
-  const handleTaskSubmit = (input: TaskModalInput) => {
+  const handleTaskSubmit = async (input: TaskModalInput) => {
     if (taskModalMode === 'edit' && editingTask) {
-      setTasks((prev) => {
-        const current = prev.find((task) => task.id === editingTask.id)
-        if (!current) return prev
+      const nextStatus = sanitizeStatus(input.status) || editingTask.status
+      const ok = await commitTaskMutation(
+        (prev) => {
+          const current = prev.find((task) => task.id === editingTask.id)
+          if (!current) return prev
 
-        const nextStatus = input.status
-        const removed = prev.filter((task) => task.id !== current.id)
-        const nextPosition = tasksByStatus(removed, nextStatus).length
-        const updatedTask: KanbanTask = {
-          ...current,
+          const removed = prev.filter((task) => task.id !== current.id)
+          const nextPosition = tasksByStatus(removed, nextStatus).length
+          const updatedTask: KanbanTask = {
+            ...current,
+            content: input.content,
+            note: input.note,
+            dueDate: input.dueDate,
+            status: nextStatus,
+            position: nextPosition
+          }
+
+          let merged = [...removed, updatedTask]
+          merged = reindexStatus(merged, current.status)
+          if (current.status !== nextStatus) {
+            merged = reindexStatus(merged, nextStatus)
+          }
+          return merged
+        },
+        {
+          affectedStatuses:
+            editingTask.status === nextStatus ? [nextStatus] : [editingTask.status, nextStatus]
+        }
+      )
+
+      if (ok) {
+        dispatch(
+          setAlert({
+            title: 'Da cap nhat',
+            message: 'Task da duoc cap nhat.',
+            type: 'success'
+          })
+        )
+        setIsTaskModalOpen(false)
+      }
+      return
+    }
+
+    const createStatus = sanitizeStatus(input.status) || columns[0]?.status || 'todo'
+    const ok = await commitTaskMutation(
+      (prev) => {
+        const nextPosition = tasksByStatus(prev, createStatus).length
+        const newTask: KanbanTask = {
+          id: createTaskId(),
           content: input.content,
           note: input.note,
           dueDate: input.dueDate,
-          status: nextStatus,
-          position: nextPosition
+          priority: 'normal',
+          status: createStatus,
+          position: nextPosition,
+          createdAt: new Date().toISOString()
         }
+        return [...prev, newTask]
+      },
+      { affectedStatuses: [createStatus] }
+    )
 
-        let merged = [...removed, updatedTask]
-        merged = reindexStatus(merged, current.status)
-        if (current.status !== nextStatus) {
-          merged = reindexStatus(merged, nextStatus)
-        }
-        return merged
-      })
-
+    if (ok) {
       dispatch(
         setAlert({
-          title: 'Đã cập nhật',
-          message: 'Task đã được cập nhật.',
+          title: 'Da tao task',
+          message: 'Task moi da duoc them vao board.',
           type: 'success'
         })
       )
       setIsTaskModalOpen(false)
+    }
+  }
+
+  const handleDeleteTask = async (taskId: string) => {
+    const currentTask = tasksRef.current.find((task) => task.id === taskId)
+    if (!currentTask) {
       return
     }
 
-    setTasks((prev) => {
-      const status = input.status
-      const nextPosition = tasksByStatus(prev, status).length
-      const newTask: KanbanTask = {
-        id: createTaskId(),
-        content: input.content,
-        note: input.note,
-        dueDate: input.dueDate,
-        priority: 'normal',
-        status,
-        position: nextPosition,
-        createdAt: new Date().toISOString()
-      }
-      return [...prev, newTask]
-    })
-
-    dispatch(
-      setAlert({
-        title: 'Đã tạo task',
-        message: 'Task mới đã được thêm vào board.',
-        type: 'success'
-      })
+    const ok = await commitTaskMutation(
+      (prev) => {
+        const filtered = prev.filter((task) => task.id !== taskId)
+        return reindexStatus(filtered, currentTask.status)
+      },
+      { affectedStatuses: [currentTask.status], deletedIds: [taskId] }
     )
-    setIsTaskModalOpen(false)
-  }
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks((prev) => {
-      const target = prev.find((task) => task.id === taskId)
-      if (!target) return prev
-      const filtered = prev.filter((task) => task.id !== taskId)
-      return reindexStatus(filtered, target.status)
-    })
-
-    dispatch(
-      setAlert({
-        title: 'Đã xóa task',
-        message: 'Task đã được xóa khỏi board.',
-        type: 'info'
-      })
-    )
+    if (ok) {
+      dispatch(
+        setAlert({
+          title: 'Da xoa task',
+          message: 'Task da duoc xoa khoi board.',
+          type: 'info'
+        })
+      )
+    }
   }
 
   const openCreateColumnModal = () => {
@@ -602,8 +619,8 @@ export const KanbanBoard = ({
 
       dispatch(
         setAlert({
-          title: 'Đã cập nhật cột',
-          message: 'Tên cột đã được thay đổi.',
+          title: 'Da cap nhat cot',
+          message: 'Ten cot da duoc thay doi.',
           type: 'success'
         })
       )
@@ -615,8 +632,8 @@ export const KanbanBoard = ({
     if (!status) {
       dispatch(
         setAlert({
-          title: 'Status key không hợp lệ',
-          message: 'Vui lòng nhập status key khác.',
+          title: 'Status key khong hop le',
+          message: 'Vui long nhap status key khac.',
           type: 'error'
         })
       )
@@ -626,8 +643,8 @@ export const KanbanBoard = ({
     if (columns.some((column) => column.status === status)) {
       dispatch(
         setAlert({
-          title: 'Status key trùng',
-          message: 'Status key đã tồn tại, hãy chọn key khác.',
+          title: 'Status key trung',
+          message: 'Status key da ton tai, hay chon key khac.',
           type: 'error'
         })
       )
@@ -639,19 +656,19 @@ export const KanbanBoard = ({
 
     dispatch(
       setAlert({
-        title: 'Đã tạo cột',
-        message: `Cột "${input.title}" đã được thêm.`,
+        title: 'Da tao cot',
+        message: `Cot "${input.title}" da duoc them.`,
         type: 'success'
       })
     )
   }
 
-  const handleDeleteColumn = (column: KanbanColumn) => {
+  const handleDeleteColumn = async (column: KanbanColumn) => {
     if (columns.length === 1) {
       dispatch(
         setAlert({
-          title: 'Không thể xóa',
-          message: 'Board phải có ít nhất một cột.',
+          title: 'Khong the xoa',
+          message: 'Board phai co it nhat mot cot.',
           type: 'warning'
         })
       )
@@ -662,42 +679,56 @@ export const KanbanBoard = ({
     if (
       taskCount > 0 &&
       !window.confirm(
-        `Cột "${column.title}" có ${taskCount} task. Bạn có chắc muốn xóa cột này?`
+        `Cot "${column.title}" co ${taskCount} task. Ban co chac muon xoa cot nay?`
       )
     ) {
       return
     }
 
+    const deletedTaskIds = tasksRef.current
+      .filter((task) => task.status === column.status)
+      .map((task) => task.id)
+    const ok = await commitTaskMutation(
+      (prev) => prev.filter((task) => task.status !== column.status),
+      { affectedStatuses: [column.status], deletedIds: deletedTaskIds }
+    )
+    if (!ok) {
+      return
+    }
     setColumns((prev) => prev.filter((item) => item.status !== column.status))
-    setTasks((prev) => prev.filter((task) => task.status !== column.status))
 
     dispatch(
       setAlert({
-        title: 'Đã xóa cột',
-        message: `Cột "${column.title}" đã được xóa.`,
+        title: 'Da xoa cot',
+        message: `Cot "${column.title}" da duoc xoa.`,
         type: 'info'
       })
     )
   }
 
-  const handleQuickMove = (taskId: string, nextStatus: string) => {
-    setTasks((prev) => {
-      const current = prev.find((task) => task.id === taskId)
-      if (!current || current.status === nextStatus) return prev
+  const handleQuickMove = async (taskId: string, nextStatus: string) => {
+    const current = tasksRef.current.find((task) => task.id === taskId)
+    if (!current || current.status === nextStatus) {
+      return
+    }
 
-      const removed = prev.filter((task) => task.id !== taskId)
-      const nextPosition = tasksByStatus(removed, nextStatus).length
-      const moved: KanbanTask = {
-        ...current,
-        status: nextStatus,
-        position: nextPosition
-      }
+    await commitTaskMutation(
+      (prev) => {
+        const removed = prev.filter((task) => task.id !== taskId)
+        const nextPosition = tasksByStatus(removed, nextStatus).length
+        const moved: KanbanTask = {
+          ...current,
+          status: nextStatus,
+          position: nextPosition
+        }
 
-      let merged = [...removed, moved]
-      merged = reindexStatus(merged, current.status)
-      merged = reindexStatus(merged, nextStatus)
-      return merged
-    })
+        let merged = [...removed, moved]
+        merged = reindexStatus(merged, current.status)
+        merged = reindexStatus(merged, nextStatus)
+        return merged
+      },
+      { affectedStatuses: [current.status, nextStatus] }
+    )
   }
 
   const handleExport = () => {
@@ -722,8 +753,26 @@ export const KanbanBoard = ({
       const text = await file.text()
       const parsed = JSON.parse(text) as Partial<BoardState>
       const normalized = normalizeBoardState(parsed, defaultColumns, defaultTasks)
+      const previousColumns = cloneColumns(columns)
+      const previousTasks = cloneTasks(tasksRef.current)
       setColumns(normalized.columns)
       setTasks(normalized.tasks)
+
+      if (isSupabaseMode) {
+        const removedIds = previousTasks
+          .filter((task) => !normalized.tasks.some((item) => item.id === task.id))
+          .map((task) => task.id)
+        const ok = await persistTaskChanges(
+          normalized.tasks,
+          normalized.columns.map((column) => column.status),
+          removedIds
+        )
+        if (!ok) {
+          setColumns(previousColumns)
+          setTasks(previousTasks)
+          throw new Error('Unable to sync imported data to Supabase')
+        }
+      }
 
       dispatch(
         setAlert({
@@ -749,7 +798,7 @@ export const KanbanBoard = ({
     if (!isSupabaseMode) {
       dispatch(
         setAlert({
-          title: 'Local mode',
+          title: 'OFFLINE',
           message: 'Login and join a couple to enable Supabase sync.',
           type: 'info'
         })
@@ -757,13 +806,12 @@ export const KanbanBoard = ({
       return
     }
 
-    const snapshot = cloneTasks(tasks)
-    const fingerprint = taskFingerprint(snapshot)
-    const ok = await syncSnapshotToSupabase(snapshot, fingerprint)
+    const snapshot = cloneTasks(tasksRef.current)
+    const ok = await persistTaskChanges(snapshot, columns.map((column) => column.status))
     dispatch(
       setAlert({
         title: ok ? 'Synced' : 'Sync failed',
-        message: ok ? 'Tasks synced to Supabase.' : 'Unable to sync now. Data kept local.',
+        message: ok ? 'Tasks synced to Supabase.' : 'Unable to sync now. Rolled back not applied.',
         type: ok ? 'success' : 'warning'
       })
     )
@@ -805,7 +853,7 @@ export const KanbanBoard = ({
 
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${syncStatus === 'Synced'
+              className={`rounded-full px-3 py-1 text-[11px] font-semibold ${syncStatus === 'SYNCED'
                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
                 : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                 }`}
