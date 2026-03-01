@@ -7,16 +7,14 @@ import { useDispatch } from 'react-redux'
 
 import { LetterPaper } from '@/lib/components/letters/LetterPaper'
 import { setAlert } from '@/lib/features/alert/alertSlice'
-import { markOpened } from '@/lib/letters/openedLocal'
 import { getLetterDisplayTitle, type LetterRecord } from '@/lib/letters/types'
 
 interface SealedEnvelopeViewerProps {
   letter: LetterRecord
-  coupleId: string
   canDelete: boolean
 }
 
-export function SealedEnvelopeViewer({ letter, coupleId, canDelete }: SealedEnvelopeViewerProps) {
+export function SealedEnvelopeViewer({ letter, canDelete }: SealedEnvelopeViewerProps) {
   const router = useRouter()
   const dispatch = useDispatch()
 
@@ -33,7 +31,28 @@ export function SealedEnvelopeViewer({ letter, coupleId, canDelete }: SealedEnve
     window.setTimeout(() => {
       setIsOpen(true)
       setIsOpening(false)
-      markOpened(coupleId, letter.id)
+      void fetch('/api/letters/read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: letter.id })
+      }).then(async (response) => {
+        if (response.ok) {
+          return
+        }
+
+        const payload = (await response.json().catch(() => ({}))) as { error?: string }
+        throw new Error(payload.error || 'Không thể cập nhật trạng thái đã mở.')
+      }).catch((error) => {
+        dispatch(
+          setAlert({
+            type: 'warning',
+            title: 'Chưa lưu trạng thái đọc',
+            message: error instanceof Error ? error.message : 'Không thể cập nhật trạng thái đọc.'
+          })
+        )
+      })
     }, 450)
   }
 

@@ -15,8 +15,39 @@ interface CoupleMembersPayload {
   error?: string
 }
 
+interface NicknameRow {
+  target_user_id: string
+  nickname: string
+  updated_at: string
+}
+
 function normalizeNickname(value: string) {
   return value.trim().slice(0, MAX_NICKNAME_LENGTH)
+}
+
+function parseLatestNicknames(rows: NicknameRow[]) {
+  const map = new Map<string, { nickname: string; updatedAt: number }>()
+
+  for (const row of rows) {
+    const targetId = row.target_user_id
+    const nickname = row.nickname?.trim()
+    if (!targetId || !nickname) {
+      continue
+    }
+
+    const updatedAtMs = Number.isNaN(Date.parse(row.updated_at)) ? 0 : Date.parse(row.updated_at)
+    const existing = map.get(targetId)
+
+    if (!existing || updatedAtMs >= existing.updatedAt) {
+      map.set(targetId, { nickname, updatedAt: updatedAtMs })
+    }
+  }
+
+  const result = new Map<string, string>()
+  map.forEach((value, targetId) => {
+    result.set(targetId, value.nickname)
+  })
+  return result
 }
 
 export function NicknameSettingsPage() {
@@ -45,9 +76,8 @@ export function NicknameSettingsPage() {
         fetch('/api/couple/members', { method: 'GET', cache: 'no-store' }),
         supabase
           .from('couple_nicknames')
-          .select('target_user_id, nickname')
+          .select('target_user_id, nickname, updated_at')
           .eq('couple_id', couple.id)
-          .eq('owner_user_id', user.id)
       ])
 
       const membersPayload = (await membersResponse.json().catch(() => ({}))) as CoupleMembersPayload
@@ -64,16 +94,10 @@ export function NicknameSettingsPage() {
         (Array.isArray(membersPayload.members)
           ? membersPayload.members.find((memberId) => memberId !== user.id) || null
           : null)
+
       setPartnerUserId(resolvedPartnerUserId)
 
-      const nicknameMap = new Map<string, string>()
-      for (const row of nicknamesResult.data || []) {
-        const nickname = row.nickname?.trim()
-        if (nickname) {
-          nicknameMap.set(row.target_user_id, nickname)
-        }
-      }
-
+      const nicknameMap = parseLatestNicknames((nicknamesResult.data || []) as NicknameRow[])
       setSelfNickname(nicknameMap.get(user.id) || '')
       setPartnerNickname(resolvedPartnerUserId ? nicknameMap.get(resolvedPartnerUserId) || '' : '')
     } catch (error) {
@@ -150,16 +174,15 @@ export function NicknameSettingsPage() {
         await upsertOrDeleteNickname(partnerUserId, partnerNickname)
       }
 
-      setSelfNickname(normalizeNickname(selfNickname))
-      setPartnerNickname(normalizeNickname(partnerNickname))
-
       dispatch(
         setAlert({
           type: 'success',
           title: 'Đã lưu biệt danh',
-          message: 'Biệt danh mới sẽ hiển thị trong hộp thư.'
+          message: 'Biệt danh đã đồng bộ cho cả hai người trong couple.'
         })
       )
+
+      await loadData()
     } catch (error) {
       dispatch(
         setAlert({
@@ -198,7 +221,7 @@ export function NicknameSettingsPage() {
             Biệt danh couple
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            Đặt biệt danh để khi đọc thư sẽ hiện “Từ &lt;biệt danh&gt;”.
+            Cập nhật biệt danh để hộp thư hiển thị đồng bộ giữa hai người.
           </p>
         </div>
 

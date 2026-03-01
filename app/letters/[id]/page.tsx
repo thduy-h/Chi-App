@@ -92,16 +92,16 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
 
   let senderNickname: string | null = null
   if (!data.anonymous && data.created_by) {
-    const { data: nicknameRow } = await supabase
+    const { data: nicknameRows } = await supabase
       .from('couple_nicknames')
-      .select('nickname')
+      .select('nickname, updated_at')
       .eq('couple_id', couple.coupleId)
-      .eq('owner_user_id', user.id)
       .eq('target_user_id', data.created_by)
-      .maybeSingle()
+      .order('updated_at', { ascending: false })
+      .limit(1)
 
-    const cleaned = nicknameRow?.nickname?.trim()
-    senderNickname = cleaned || null
+    const nickname = nicknameRows?.[0]?.nickname?.trim()
+    senderNickname = nickname || null
   }
 
   return (
@@ -116,7 +116,6 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
         created_at: data.created_at,
         senderNickname
       })}
-      coupleId={couple.coupleId}
       canDelete={Boolean(data.created_by && data.created_by === user.id)}
     />
   )

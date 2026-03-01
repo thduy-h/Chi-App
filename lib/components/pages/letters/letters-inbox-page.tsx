@@ -6,7 +6,6 @@ import { useDispatch } from 'react-redux'
 
 import { LetterEnvelopeCard } from '@/lib/components/letters/LetterEnvelopeCard'
 import { setAlert } from '@/lib/features/alert/alertSlice'
-import { getOpenedIds } from '@/lib/letters/openedLocal'
 import type { LetterKind, LetterRecord } from '@/lib/letters/types'
 
 type InboxState = 'ready' | 'no_couple' | 'error'
@@ -18,7 +17,6 @@ interface InboxPayload {
   reason?: string
   error?: string
   coupleCode?: string | null
-  coupleId?: string | null
 }
 
 export function LettersInboxPage() {
@@ -28,10 +26,14 @@ export function LettersInboxPage() {
   const [loading, setLoading] = useState(true)
   const [state, setState] = useState<InboxState>('ready')
   const [coupleCode, setCoupleCode] = useState<string | null>(null)
-  const [coupleId, setCoupleId] = useState<string | null>(null)
-  const [openedIds, setOpenedIds] = useState<Set<string>>(new Set())
   const [kindFilter, setKindFilter] = useState<KindFilter>('all')
   const [openedFilter, setOpenedFilter] = useState<OpenedFilter>('all')
+
+  const getOpenedStatus = useCallback((letter: LetterRecord) => {
+    const opened = letter.createdByMe ? Boolean(letter.openedByPartner) : Boolean(letter.openedByMe)
+    const label = letter.createdByMe ? (opened ? 'Người ấy đã mở' : 'Người ấy chưa mở') : opened ? 'Đã mở' : 'Chưa mở'
+    return { opened, label }
+  }, [])
 
   const reloadInbox = useCallback(async () => {
     try {
@@ -46,20 +48,14 @@ export function LettersInboxPage() {
       if (payload.reason === 'no-couple') {
         setLetters([])
         setCoupleCode(null)
-        setCoupleId(null)
-        setOpenedIds(new Set())
         setState('no_couple')
         return
       }
 
       const nextLetters = Array.isArray(payload.letters) ? payload.letters : []
-      const nextCoupleId = payload.coupleId || null
-      const opened = nextCoupleId ? new Set(getOpenedIds(nextCoupleId)) : new Set<string>()
 
       setLetters(nextLetters)
       setCoupleCode(payload.coupleCode || null)
-      setCoupleId(nextCoupleId)
-      setOpenedIds(opened)
       setState('ready')
     } catch (error) {
       setState('error')
@@ -81,7 +77,7 @@ export function LettersInboxPage() {
 
   const filteredLetters = useMemo(() => {
     return letters.filter((letter) => {
-      const opened = openedIds.has(letter.id)
+      const opened = getOpenedStatus(letter).opened
 
       const passKind = kindFilter === 'all' ? true : letter.kind === kindFilter
       const passOpened =
@@ -93,7 +89,7 @@ export function LettersInboxPage() {
 
       return passKind && passOpened
     })
-  }, [kindFilter, letters, openedFilter, openedIds])
+  }, [getOpenedStatus, kindFilter, letters, openedFilter])
 
   return (
     <main className="relative overflow-hidden">
@@ -204,14 +200,19 @@ export function LettersInboxPage() {
 
         {!loading && state === 'ready' && filteredLetters.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {filteredLetters.map((letter) => (
-              <LetterEnvelopeCard
-                key={letter.id}
-                letter={letter}
-                opened={openedIds.has(letter.id)}
-                href={`/letters/${letter.id}`}
-              />
-            ))}
+            {filteredLetters.map((letter) => {
+              const openedStatus = getOpenedStatus(letter)
+
+              return (
+                <LetterEnvelopeCard
+                  key={letter.id}
+                  letter={letter}
+                  opened={openedStatus.opened}
+                  openedLabel={openedStatus.label}
+                  href={`/letters/${letter.id}`}
+                />
+              )
+            })}
           </div>
         ) : null}
       </section>

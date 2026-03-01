@@ -10,11 +10,13 @@ import {
 export function LetterEnvelopeCard({
   letter,
   href,
-  opened
+  opened,
+  openedLabel
 }: {
   letter: LetterRecord
   href: string
   opened: boolean
+  openedLabel: string
 }) {
   const senderLabel = letter.anonymous ? 'Từ ẩn danh' : `Từ ${letter.senderNickname?.trim() || 'người ấy'}`
 
@@ -40,7 +42,7 @@ export function LetterEnvelopeCard({
         <div className="flex flex-col items-end gap-2">
           {!opened ? <span className="inline-flex h-2.5 w-2.5 rounded-full bg-rose-500" /> : null}
           <span className="inline-flex rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-            {opened ? 'Đã mở' : 'Chưa mở'}
+            {openedLabel}
           </span>
         </div>
       </div>

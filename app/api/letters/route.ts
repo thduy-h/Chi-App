@@ -27,7 +27,36 @@ type LetterRow = {
   created_by: string | null
 }
 
+type NicknameRow = {
+  target_user_id: string | null
+  nickname: string | null
+  updated_at: string | null
+}
+
+type LetterReadRow = {
+  letter_id: string | null
+  user_id: string | null
+}
+
+type CoupleMemberRow = {
+  user_id: string | null
+}
+
 const validModes = new Set(['feedback', 'love'])
+
+function logSupabaseError(scope: string, error: {
+  code?: string | null
+  message?: string | null
+  details?: string | null
+  hint?: string | null
+}) {
+  console.error(`[letters:${scope}]`, {
+    code: error.code ?? null,
+    message: error.message ?? null,
+    details: error.details ?? null,
+    hint: error.hint ?? null
+  })
+}
 
 const forwardLettersToWebhook = async (body: LettersRequestBody) => {
   const formspreeUrl = process.env.FORMSPREE_LETTERS_URL
@@ -78,36 +107,67 @@ const forwardLettersToWebhook = async (body: LettersRequestBody) => {
   return NextResponse.json({ ok: true, source: 'webhook' })
 }
 
-async function loadNicknameMap(args: {
-  supabase: NonNullable<ReturnType<typeof createClient>>
-  coupleId: string
-  ownerUserId: string
-  targetUserIds: string[]
-}) {
-  const { supabase, coupleId, ownerUserId, targetUserIds } = args
-  if (targetUserIds.length < 1) {
-    return new Map<string, string>()
-  }
+function parseLatestNicknames(rows: NicknameRow[]) {
+  const output = new Map<string, { nickname: string; updatedAt: number }>()
 
-  const { data, error } = await supabase
-    .from('couple_nicknames')
-    .select('target_user_id, nickname')
-    .eq('couple_id', coupleId)
-    .eq('owner_user_id', ownerUserId)
-    .in('target_user_id', targetUserIds)
-
-  if (error || !data) {
-    return new Map<string, string>()
-  }
-
-  const output = new Map<string, string>()
-  for (const row of data) {
+  for (const row of rows) {
+    const targetUserId = row.target_user_id?.trim()
     const nickname = row.nickname?.trim()
-    if (row.target_user_id && nickname) {
-      output.set(row.target_user_id, nickname)
+    if (!targetUserId || !nickname) {
+      continue
+    }
+
+    const updatedAt = row.updated_at ? Date.parse(row.updated_at) : Number.NaN
+    const updatedAtMs = Number.isNaN(updatedAt) ? 0 : updatedAt
+    const existing = output.get(targetUserId)
+    if (!existing || updatedAtMs >= existing.updatedAt) {
+      output.set(targetUserId, { nickname, updatedAt: updatedAtMs })
     }
   }
-  return output
+
+  const nicknames = new Map<string, string>()
+  output.forEach((value, targetUserId) => {
+    nicknames.set(targetUserId, value.nickname)
+  })
+  return nicknames
+}
+
+function buildReadsByLetter(rows: LetterReadRow[]) {
+  const map = new Map<string, Set<string>>()
+  for (const row of rows) {
+    const letterId = row.letter_id?.trim()
+    const userId = row.user_id?.trim()
+    if (!letterId || !userId) {
+      continue
+    }
+
+    const existing = map.get(letterId)
+    if (existing) {
+      existing.add(userId)
+      continue
+    }
+
+    map.set(letterId, new Set([userId]))
+  }
+
+  return map
+}
+
+function hasPartnerOpened(args: {
+  readers: Set<string> | undefined
+  me: string
+  partnerUserIds: Set<string>
+}) {
+  const { readers, me, partnerUserIds } = args
+  if (!readers || readers.size < 1) {
+    return false
+  }
+
+  if (partnerUserIds.size > 0) {
+    return Array.from(partnerUserIds).some((partnerUserId) => readers.has(partnerUserId))
+  }
+
+  return Array.from(readers).some((readerId) => readerId !== me)
 }
 
 export async function GET() {
@@ -139,10 +199,13 @@ export async function GET() {
       .limit(50)
 
     if (error) {
+      logSupabaseError('get-letters', error)
       return NextResponse.json({ letters: [], error: error.message }, { status: 500 })
     }
 
     const letterRows = (data || []) as LetterRow[]
+    const letterIds = letterRows.map((letter) => letter.id)
+
     const creatorIds = Array.from(
       new Set(
         letterRows
@@ -151,24 +214,79 @@ export async function GET() {
       )
     )
 
-    const nicknameMap = await loadNicknameMap({
-      supabase,
-      coupleId: currentCouple.coupleId,
-      ownerUserId: user.id,
-      targetUserIds: creatorIds
-    })
+    let nicknameMap = new Map<string, string>()
+    if (creatorIds.length > 0) {
+      const { data: nicknameRows, error: nicknameError } = await supabase
+        .from('couple_nicknames')
+        .select('target_user_id, nickname, updated_at')
+        .eq('couple_id', currentCouple.coupleId)
+        .in('target_user_id', creatorIds)
 
-    const letters = letterRows.map((letter) => ({
-      id: letter.id,
-      kind: letter.kind,
-      title: letter.title,
-      message: letter.message,
-      mood: letter.mood,
-      anonymous: letter.anonymous,
-      created_at: letter.created_at,
-      senderNickname:
-        !letter.anonymous && letter.created_by ? nicknameMap.get(letter.created_by) || null : null
-    }))
+      if (!nicknameError && Array.isArray(nicknameRows)) {
+        nicknameMap = parseLatestNicknames(nicknameRows as NicknameRow[])
+      } else if (nicknameError) {
+        logSupabaseError('get-nicknames', nicknameError)
+      }
+    }
+
+    let readsByLetter = new Map<string, Set<string>>()
+    if (letterIds.length > 0) {
+      const { data: readRows, error: readError } = await supabase
+        .from('letter_reads')
+        .select('letter_id, user_id')
+        .eq('couple_id', currentCouple.coupleId)
+        .in('letter_id', letterIds)
+
+      if (!readError && Array.isArray(readRows)) {
+        readsByLetter = buildReadsByLetter(readRows as LetterReadRow[])
+      } else if (readError) {
+        logSupabaseError('get-letter-reads', readError)
+      }
+    }
+
+    const partnerUserIds = new Set<string>()
+    const { data: memberRows, error: memberError } = await supabase
+      .from('couple_members')
+      .select('user_id')
+      .eq('couple_id', currentCouple.coupleId)
+      .neq('user_id', user.id)
+
+    if (!memberError && Array.isArray(memberRows)) {
+      for (const row of memberRows as CoupleMemberRow[]) {
+        const partnerId = row.user_id?.trim()
+        if (partnerId) {
+          partnerUserIds.add(partnerId)
+        }
+      }
+    } else if (memberError) {
+      logSupabaseError('get-couple-members', memberError)
+    }
+
+    const letters = letterRows.map((letter) => {
+      const readers = readsByLetter.get(letter.id)
+      const openedByMe = Boolean(readers?.has(user.id))
+      const openedByPartner = hasPartnerOpened({
+        readers,
+        me: user.id,
+        partnerUserIds
+      })
+      const createdByMe = Boolean(letter.created_by && letter.created_by === user.id)
+
+      return {
+        id: letter.id,
+        kind: letter.kind,
+        title: letter.title,
+        message: letter.message,
+        mood: letter.mood,
+        anonymous: letter.anonymous,
+        created_at: letter.created_at,
+        createdByMe,
+        openedByMe,
+        openedByPartner,
+        senderNickname:
+          !letter.anonymous && letter.created_by ? nicknameMap.get(letter.created_by) || null : null
+      }
+    })
 
     return NextResponse.json(
       {
@@ -219,6 +337,7 @@ export async function POST(request: Request) {
             .single()
 
           if (error) {
+            logSupabaseError('create-letter', error)
             return NextResponse.json({ error: error.message }, { status: 500 })
           }
 
@@ -280,6 +399,7 @@ export async function DELETE(request: Request) {
       .maybeSingle()
 
     if (findError) {
+      logSupabaseError('find-letter-for-delete', findError)
       return NextResponse.json({ error: findError.message }, { status: 500 })
     }
 
@@ -299,6 +419,7 @@ export async function DELETE(request: Request) {
       .eq('created_by', user.id)
 
     if (deleteError) {
+      logSupabaseError('delete-letter', deleteError)
       return NextResponse.json({ error: deleteError.message }, { status: 500 })
     }
 

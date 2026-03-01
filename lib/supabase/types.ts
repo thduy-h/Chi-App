@@ -228,6 +228,30 @@ export type Database = {
         }
         Relationships: []
       }
+      letter_reads: {
+        Row: {
+          id: string
+          couple_id: string
+          letter_id: string
+          user_id: string
+          opened_at: string
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          letter_id: string
+          user_id: string
+          opened_at?: string
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          letter_id?: string
+          user_id?: string
+          opened_at?: string
+        }
+        Relationships: []
+      }
       user_integrations: {
         Row: {
           user_id: string
