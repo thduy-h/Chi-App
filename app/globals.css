@@ -17,27 +17,27 @@ html,body{
 /* Premium mode (a, b): shift blue/sky accents to pink to avoid missed hardcoded classes */
 html.mode-premium .bg-sky-50,
 html.mode-premium .bg-blue-50 {
-  background-color: rgb(255 241 242) !important;
+  background-color: rgb(255 228 230) !important;
 }
 
 html.mode-premium .hover\:bg-sky-50:hover,
 html.mode-premium .hover\:bg-blue-50:hover {
-  background-color: rgb(255 241 242) !important;
+  background-color: rgb(255 228 230) !important;
 }
 
 html.mode-premium .bg-sky-100,
 html.mode-premium .bg-blue-100 {
-  background-color: rgb(255 228 230) !important;
+  background-color: rgb(254 205 211) !important;
 }
 
 html.mode-premium .hover\:bg-sky-100:hover,
 html.mode-premium .hover\:bg-blue-100:hover {
-  background-color: rgb(255 228 230) !important;
+  background-color: rgb(254 205 211) !important;
 }
 
 html.mode-premium .bg-sky-200,
 html.mode-premium .bg-blue-200 {
-  background-color: rgb(254 205 211) !important;
+  background-color: rgb(253 164 175) !important;
 }
 
 html.mode-premium .bg-sky-500,
@@ -59,26 +59,25 @@ html.mode-premium .hover\:bg-blue-600:hover {
   background-color: rgb(190 18 60) !important;
 }
 
-html.mode-premium .text-sky-300,
-html.mode-premium .text-blue-300 {
-  color: rgb(253 164 175) !important;
-}
-
 html.mode-premium .text-sky-500,
 html.mode-premium .text-blue-500 {
-  color: rgb(244 63 94) !important;
+  color: rgb(190 18 60) !important;
 }
 
 html.mode-premium .text-sky-600,
 html.mode-premium .text-blue-600 {
-  color: rgb(225 29 72) !important;
+  color: rgb(159 18 57) !important;
 }
 
 html.mode-premium .text-sky-700,
 html.mode-premium .text-blue-700,
+html.mode-premium .text-sky-800,
+html.mode-premium .text-blue-800,
 html.mode-premium .hover\:text-sky-700:hover,
-html.mode-premium .hover\:text-blue-700:hover {
-  color: rgb(190 18 60) !important;
+html.mode-premium .hover\:text-blue-700:hover,
+html.mode-premium .hover\:text-sky-800:hover,
+html.mode-premium .hover\:text-blue-800:hover {
+  color: rgb(136 19 55) !important;
 }
 
 html.mode-premium .border-sky-100,
@@ -147,7 +146,7 @@ html.mode-premium .dark\:text-sky-200,
 html.mode-premium .dark\:text-sky-300,
 html.mode-premium .dark\:text-blue-200,
 html.mode-premium .dark\:text-blue-300 {
-  color: rgb(253 164 175) !important;
+  color: rgb(255 228 230) !important;
 }
 
 html.mode-premium .dark\:border-sky-800,

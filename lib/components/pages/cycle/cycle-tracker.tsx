@@ -604,7 +604,7 @@ export const CycleTracker = () => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-700 dark:border-sky-900/50 dark:bg-sky-900/20 dark:text-sky-300">
+            <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-sm font-medium text-gray-800 dark:border-sky-900/50 dark:bg-sky-900/20 dark:text-gray-100">
               Chỉ mang tính tham khảo, không thay thế tư vấn y tế.
             </div>
           </div>
