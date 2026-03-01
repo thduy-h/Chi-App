@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 
@@ -31,12 +31,12 @@ export const ColumnModal = ({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!title.trim()) {
-      setError('Vui lòng nhập tên cột.')
+      setError('Vui lòng nh?p tên c?t.')
       return
     }
 
     if (!status.trim()) {
-      setError('Vui lòng nhập status key.')
+      setError('Vui lòng nh?p status key.')
       return
     }
 
@@ -51,14 +51,14 @@ export const ColumnModal = ({
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {mode === 'create' ? 'Tạo cột mới' : 'Đổi tên cột'}
+            {mode === 'create' ? 'T?o c?t m?i' : 'Ð?i tên c?t'}
           </h3>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           >
-            <span className="sr-only">Đóng</span>
+            <span className="sr-only">Ðóng</span>
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
@@ -75,7 +75,7 @@ export const ColumnModal = ({
               htmlFor="column-title"
               className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Tên cột
+              Tên c?t
             </label>
             <input
               id="column-title"
@@ -84,8 +84,8 @@ export const ColumnModal = ({
                 setTitle(event.target.value)
                 if (error) setError('')
               }}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              placeholder="Ví dụ: Đang thực hiện"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              placeholder="Ví d?: Ðang th?c hi?n"
             />
           </div>
 
@@ -104,7 +104,7 @@ export const ColumnModal = ({
                 setStatus(event.target.value)
                 if (error) setError('')
               }}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:disabled:bg-gray-900/70"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:disabled:bg-gray-900/70"
               placeholder="dang-thuc-hien"
             />
           </div>
@@ -117,13 +117,13 @@ export const ColumnModal = ({
               onClick={onClose}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              Huỷ
+              Hu?
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
             >
-              {mode === 'create' ? 'Tạo cột' : 'Lưu'}
+              {mode === 'create' ? 'T?o c?t' : 'Luu'}
             </button>
           </div>
         </form>
