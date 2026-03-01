@@ -76,7 +76,7 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
 
   const { data, error } = await supabase
     .from('letters')
-    .select('id, kind, title, message, mood, anonymous, created_at')
+    .select('id, kind, title, message, mood, anonymous, created_at, created_by')
     .eq('id', params.id)
     .eq('couple_id', couple.coupleId)
     .maybeSingle()
@@ -85,5 +85,11 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
     notFound()
   }
 
-  return <SealedEnvelopeViewer letter={toLetterRecord(data)} coupleId={couple.coupleId} />
+  return (
+    <SealedEnvelopeViewer
+      letter={toLetterRecord(data)}
+      coupleId={couple.coupleId}
+      canDelete={Boolean(data.created_by && data.created_by === user.id)}
+    />
+  )
 }

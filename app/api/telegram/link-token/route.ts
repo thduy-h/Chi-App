@@ -44,6 +44,32 @@ export async function POST() {
     const admin = createSupabaseAdminClient()
     const dbClient = admin ?? supabase
 
+    const { data: integrationRow, error: integrationError } = await dbClient
+      .from('user_integrations')
+      .select('telegram_chat_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (integrationError) {
+      console.error('[telegram/link-token] check integration failed', {
+        code: integrationError.code,
+        message: integrationError.message,
+        details: integrationError.details,
+        hint: integrationError.hint
+      })
+      return NextResponse.json({ error: formatDbError(integrationError) }, { status: 500 })
+    }
+
+    if (integrationRow?.telegram_chat_id) {
+      return NextResponse.json(
+        {
+          error: 'Tài khoản này đã liên kết Telegram. Hãy hủy liên kết trước khi tạo mã mới.',
+          code: 'telegram_already_linked'
+        },
+        { status: 409 }
+      )
+    }
+
     const { error: cleanupError } = await dbClient
       .from('telegram_link_tokens')
       .delete()

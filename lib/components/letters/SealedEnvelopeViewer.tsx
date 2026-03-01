@@ -1,21 +1,28 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { useDispatch } from 'react-redux'
 
 import { LetterPaper } from '@/lib/components/letters/LetterPaper'
+import { setAlert } from '@/lib/features/alert/alertSlice'
 import { markOpened } from '@/lib/letters/openedLocal'
 import { getLetterDisplayTitle, type LetterRecord } from '@/lib/letters/types'
 
-export function SealedEnvelopeViewer({
-  letter,
-  coupleId
-}: {
+interface SealedEnvelopeViewerProps {
   letter: LetterRecord
   coupleId: string
-}) {
+  canDelete: boolean
+}
+
+export function SealedEnvelopeViewer({ letter, coupleId, canDelete }: SealedEnvelopeViewerProps) {
+  const router = useRouter()
+  const dispatch = useDispatch()
+
   const [isOpen, setIsOpen] = useState(false)
   const [isOpening, setIsOpening] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const openLetter = () => {
     if (isOpen || isOpening) {
@@ -28,6 +35,55 @@ export function SealedEnvelopeViewer({
       setIsOpening(false)
       markOpened(coupleId, letter.id)
     }, 450)
+  }
+
+  const onDeleteLetter = async () => {
+    if (!canDelete || isDeleting) {
+      return
+    }
+
+    const confirmed = window.confirm('Bạn chắc chắn muốn xoá lá thư này? Hành động này không thể hoàn tác.')
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+
+      const response = await fetch('/api/letters', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: letter.id })
+      })
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      if (!response.ok) {
+        throw new Error(payload.error || 'Không thể xoá thư.')
+      }
+
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Đã xoá thư',
+          message: 'Lá thư của bạn đã được xoá.'
+        })
+      )
+
+      router.push('/letters')
+      router.refresh()
+    } catch (error) {
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Xoá thư thất bại',
+          message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
+        })
+      )
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -47,7 +103,9 @@ export function SealedEnvelopeViewer({
               <div className="mx-auto mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-3xl dark:bg-rose-900/30">
                 💌
               </div>
-              <p className="text-lg font-semibold text-gray-900 dark:text-white">{getLetterDisplayTitle(letter)}</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                {getLetterDisplayTitle(letter)}
+              </p>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Một phong thư đang niêm phong, mở ra để xem lời nhắn.
               </p>
@@ -81,6 +139,16 @@ export function SealedEnvelopeViewer({
           >
             Quay lại
           </Link>
+          {canDelete ? (
+            <button
+              type="button"
+              onClick={() => void onDeleteLetter()}
+              disabled={isDeleting}
+              className="inline-flex rounded-full border border-red-300 bg-red-50 px-5 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-800/70 dark:bg-red-950/30 dark:text-red-200 dark:hover:bg-red-900/30"
+            >
+              {isDeleting ? 'Đang xoá...' : 'Xoá thư của mình'}
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

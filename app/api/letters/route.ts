@@ -12,6 +12,10 @@ interface LettersRequestBody {
   anonymous?: boolean
 }
 
+interface DeleteLetterRequestBody {
+  id?: string
+}
+
 const validModes = new Set(['feedback', 'love'])
 
 const forwardLettersToWebhook = async (body: LettersRequestBody) => {
@@ -163,6 +167,71 @@ export async function POST(request: Request) {
     }
 
     return forwardLettersToWebhook(body)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Lỗi máy chủ không xác định.'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = (await request.json().catch(() => ({}))) as DeleteLetterRequestBody
+    const letterId = body.id?.trim()
+
+    if (!letterId) {
+      return NextResponse.json({ error: 'Thiếu id thư cần xoá.' }, { status: 400 })
+    }
+
+    const supabase = createClient()
+    if (!supabase) {
+      return NextResponse.json({ error: 'Supabase chưa được cấu hình.' }, { status: 500 })
+    }
+
+    const {
+      data: { user },
+      error: userError
+    } = await supabase.auth.getUser()
+
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Bạn cần đăng nhập.' }, { status: 401 })
+    }
+
+    const currentCouple = await getCurrentCoupleForUser(supabase, user.id)
+    if (!currentCouple.coupleId) {
+      return NextResponse.json({ error: 'Bạn chưa có couple.' }, { status: 403 })
+    }
+
+    const { data: existingLetter, error: findError } = await supabase
+      .from('letters')
+      .select('id, created_by')
+      .eq('id', letterId)
+      .eq('couple_id', currentCouple.coupleId)
+      .maybeSingle()
+
+    if (findError) {
+      return NextResponse.json({ error: findError.message }, { status: 500 })
+    }
+
+    if (!existingLetter) {
+      return NextResponse.json({ error: 'Không tìm thấy thư.' }, { status: 404 })
+    }
+
+    if (!existingLetter.created_by || existingLetter.created_by !== user.id) {
+      return NextResponse.json({ error: 'Bạn chỉ có thể xoá thư do chính bạn tạo.' }, { status: 403 })
+    }
+
+    const { error: deleteError } = await supabase
+      .from('letters')
+      .delete()
+      .eq('id', letterId)
+      .eq('couple_id', currentCouple.coupleId)
+      .eq('created_by', user.id)
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Lỗi máy chủ không xác định.'
     return NextResponse.json({ error: message }, { status: 500 })
