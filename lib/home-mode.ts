@@ -61,6 +61,16 @@ export async function resolveHomeMode(
       return 'a'
     }
 
+    const allowedModeBEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_B_EMAILS)
+    if (userEmail && allowedModeBEmails.has(userEmail)) {
+      return 'b'
+    }
+
+    const allowedModeCEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_C_EMAILS)
+    if (userEmail && allowedModeCEmails.has(userEmail)) {
+      return 'c'
+    }
+
     const ownerUserId = process.env.LOVEHUB_HOME_OWNER_USER_ID?.trim()
     if (ownerUserId) {
       const currentCouple = await getCurrentCoupleForUser(supabase, user.id)
@@ -70,16 +80,6 @@ export async function resolveHomeMode(
           return 'a'
         }
       }
-    }
-
-    const allowedModeBEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_B_EMAILS)
-    if (userEmail && allowedModeBEmails.has(userEmail)) {
-      return 'b'
-    }
-
-    const allowedModeCEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_C_EMAILS)
-    if (userEmail && allowedModeCEmails.has(userEmail)) {
-      return 'c'
     }
 
     const { data: modeRow, error: modeError } = await supabase

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch } from 'react-redux'
 
+import type { HomeMode } from '@/lib/home-mode'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { useCoupleContext } from '@/lib/hooks/use-couple-context'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -18,7 +19,7 @@ function compactEmail(email: string) {
   return `${firstPart.slice(0, 11)}...`
 }
 
-export function CoupleAuthWidget() {
+export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
   const router = useRouter()
   const dispatch = useDispatch()
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -28,6 +29,32 @@ export function CoupleAuthWidget() {
 
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const colorMode = mode === 'c' ? 'blue' : 'pink'
+  const isPremiumMode = mode === 'a' || mode === 'b'
+  const theme =
+    colorMode === 'pink'
+      ? {
+          loadingWrap: 'border-rose-100 bg-rose-50 dark:border-rose-900/40',
+          loadingDot: 'bg-rose-400',
+          login: 'bg-rose-500 hover:bg-rose-600',
+          button:
+            'border-rose-100 bg-rose-50 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-gray-800 dark:hover:bg-gray-700',
+          coupleText: 'text-rose-600 dark:text-rose-300',
+          coupleButton:
+            'border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-gray-800',
+          setupLink: 'text-rose-600 hover:underline dark:text-rose-300'
+        }
+      : {
+          loadingWrap: 'border-sky-100 bg-sky-50 dark:border-sky-900/40',
+          loadingDot: 'bg-sky-400',
+          login: 'bg-sky-500 hover:bg-sky-600',
+          button:
+            'border-sky-100 bg-sky-50 hover:bg-sky-100 dark:border-sky-900/40 dark:bg-gray-800 dark:hover:bg-gray-700',
+          coupleText: 'text-sky-600 dark:text-sky-300',
+          coupleButton:
+            'border-sky-200 text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:text-sky-200 dark:hover:bg-gray-800',
+          setupLink: 'text-sky-600 hover:underline dark:text-sky-300'
+        }
 
   useEffect(() => {
     if (!menuOpen) {
@@ -76,8 +103,8 @@ export function CoupleAuthWidget() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs text-gray-600 dark:border-sky-900/40 dark:bg-gray-800 dark:text-gray-200">
-        <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-sky-400" />
+      <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-200 ${theme.loadingWrap}`}>
+        <span className={`inline-flex h-2 w-2 animate-pulse rounded-full ${theme.loadingDot}`} />
         Đang tải...
       </div>
     )
@@ -87,7 +114,7 @@ export function CoupleAuthWidget() {
     return (
       <Link
         href="/auth"
-        className="rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-600"
+        className={`rounded-full px-4 py-2 text-sm font-medium text-white transition ${theme.login}`}
       >
         Đăng nhập
       </Link>
@@ -99,9 +126,14 @@ export function CoupleAuthWidget() {
       <button
         type="button"
         onClick={() => setMenuOpen((previous) => !previous)}
-        className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-sky-100 dark:border-sky-900/40 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium text-gray-700 transition dark:text-gray-200 ${theme.button}`}
       >
         <span>{compactEmail(user.email)}</span>
+        {isPremiumMode ? (
+          <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-900">
+            Premium
+          </span>
+        ) : null}
         <span className="text-[10px] text-gray-500 dark:text-gray-400">v</span>
       </button>
 
@@ -111,11 +143,11 @@ export function CoupleAuthWidget() {
 
           {couple?.code ? (
             <div className="mb-2 flex items-center justify-between gap-2 px-2 pb-2">
-              <p className="text-[11px] text-sky-600 dark:text-sky-300">Mã couple: {couple.code}</p>
+              <p className={`text-[11px] ${theme.coupleText}`}>Mã couple: {couple.code}</p>
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(couple.code || '')}
-                className="rounded-md border border-sky-200 px-2 py-1 text-[10px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:text-sky-200 dark:hover:bg-gray-800"
+                className={`rounded-md border px-2 py-1 text-[10px] font-medium transition ${theme.coupleButton}`}
               >
                 Sao chép
               </button>
@@ -126,7 +158,7 @@ export function CoupleAuthWidget() {
               <Link
                 href="/setup"
                 onClick={() => setMenuOpen(false)}
-                className="text-[11px] font-medium text-sky-600 hover:underline dark:text-sky-300"
+                className={`text-[11px] font-medium ${theme.setupLink}`}
               >
                 Tạo hoặc tham gia couple
               </Link>

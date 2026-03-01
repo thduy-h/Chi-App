@@ -4,6 +4,7 @@ import { getCategories } from '@/lib/features/categories/categoriesSlice'
 import { store } from '@/lib/store'
 import { cookies } from 'next/headers'
 
+import { resolveHomeMode } from '@/lib/home-mode'
 import { Header } from '@/lib/components/shared/layout/header/header'
 import { Footer } from '@/lib/components/shared/layout/footer'
 import { Alert } from '@/lib/components/shared/alert'
@@ -12,6 +13,7 @@ import { Cookies } from '@/lib/components/shared/cookies'
 import { getProducts } from '@/lib/features/products/productsSlice'
 import { getUser, setUser } from '@/lib/features/auth/authSlice'
 import { IUser } from '@/lib/definitions'
+import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
 
 export default async function RootLayout({
   children,
@@ -28,6 +30,7 @@ export default async function RootLayout({
   const cookieStore = cookies()
   const token = cookieStore.get('token')
   let user: null | IUser = null;
+  const homeMode = await resolveHomeMode(createSupabaseServerClient())
 
   if (token && token.value) {
     await store.dispatch(getUser(token.value as string)).unwrap().then((res: IUser) => {
@@ -52,7 +55,7 @@ export default async function RootLayout({
           }
         }}>
           <div className="app bg-white dark:bg-gray-900">
-            <Header />
+            <Header mode={homeMode} />
 
             {children}
 
