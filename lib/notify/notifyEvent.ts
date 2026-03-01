@@ -6,6 +6,7 @@ type NotifyEvent = Database['public']['Tables']['notification_prefs']['Row']['ev
 interface NotifyPayload {
   item?: string | null
   note?: string | null
+  title?: string | null
 }
 
 interface NotifyEventInput {
@@ -32,7 +33,12 @@ function buildMessage(event: NotifyEvent, payload?: NotifyPayload) {
     return `🍜 Có đơn mới từ người ấy. Món: ${item} • Ghi chú: ${note}`
   }
 
-  return '💌 Bạn có một lá thư mới trong LoveHub.'
+  const title = payload?.title?.trim()
+  if (title) {
+    return `💌 Bạn có thư mới từ người ấy.\nTiêu đề: ${title}`
+  }
+
+  return '💌 Bạn có thư mới từ người ấy.'
 }
 
 async function sendTelegramMessage(chatId: string, text: string) {

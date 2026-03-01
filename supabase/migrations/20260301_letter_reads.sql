@@ -25,3 +25,9 @@ create policy "letter_reads_insert_own"
   on public.letter_reads
   for insert
   with check (is_couple_member(couple_id) and user_id = auth.uid());
+
+drop policy if exists "letter_reads_delete_member" on public.letter_reads;
+create policy "letter_reads_delete_member"
+  on public.letter_reads
+  for delete
+  using (is_couple_member(couple_id));

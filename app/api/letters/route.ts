@@ -344,7 +344,10 @@ export async function POST(request: Request) {
           void notifyEvent({
             event: 'letter_received',
             coupleId: currentCouple.coupleId,
-            actorUserId: user.id
+            actorUserId: user.id,
+            payload: {
+              title: body.title?.trim() || null
+            }
           })
 
           return NextResponse.json({
