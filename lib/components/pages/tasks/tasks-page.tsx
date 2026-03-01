@@ -160,6 +160,7 @@ export const TasksPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
   const mode = useResolvedHomeMode(initialMode)
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const isPremiumMode = mode === 'a' || mode === 'b'
 
   const [activeTab, setActiveTab] = useState<TaskTab>('shared')
   const [syncMode, setSyncMode] = useState<SyncMode>('local')
@@ -170,7 +171,7 @@ export const TasksPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
   const [showImportBanner, setShowImportBanner] = useState(false)
   const [isImportingOffline, setIsImportingOffline] = useState(false)
   const [boardRefreshToken, setBoardRefreshToken] = useState(0)
-  const colorMode: TaskColorMode = mode === 'c' ? 'blue' : 'pink'
+  const colorMode: TaskColorMode = isPremiumMode ? 'pink' : 'blue'
 
   const palette = useMemo(
     () =>
@@ -410,7 +411,7 @@ export const TasksPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
         <div className="mb-6">
           <div className="inline-flex flex-wrap items-center gap-2">
             <span className={palette.badge}>{palette.badgeText}</span>
-            {mode !== 'c' ? (
+            {isPremiumMode ? (
               <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900 shadow-sm">
                 Premium
               </span>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import type { HomeMode } from '@/lib/home-mode'
 import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
@@ -28,6 +28,12 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
   const colorMode = mode === 'c' ? 'blue' : 'pink'
   const isPremiumMode = mode === 'a' || mode === 'b'
   const brandLabel = mode === 'a' ? 'Nhà Cáo Thỏ' : 'LoveHub'
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.homeMode = mode
+    root.classList.toggle('mode-premium', isPremiumMode)
+  }, [isPremiumMode, mode])
 
   const theme =
     colorMode === 'pink'

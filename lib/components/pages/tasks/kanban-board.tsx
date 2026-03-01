@@ -211,7 +211,8 @@ export const KanbanBoard = ({
             deleteAction:
               'text-rose-600 hover:bg-rose-100 dark:text-rose-300 dark:hover:bg-rose-900/30',
             deleteText:
-              'text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-900/20'
+              'text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-900/20',
+            syncedBadge: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
           }
         : {
             frame: 'border-sky-100 dark:border-sky-900/40',
@@ -226,7 +227,8 @@ export const KanbanBoard = ({
             deleteAction:
               'text-sky-600 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-900/30',
             deleteText:
-              'text-sky-600 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-900/20'
+              'text-sky-600 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-900/20',
+            syncedBadge: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
           },
     [colorMode]
   )
@@ -891,7 +893,7 @@ export const KanbanBoard = ({
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`rounded-full px-3 py-1 text-[11px] font-semibold ${syncStatus === 'SYNCED'
-                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                ? theme.syncedBadge
                 : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                 }`}
             >
