@@ -199,7 +199,7 @@ export function NicknameSettingsPage() {
   if (coupleLoading || loading) {
     return (
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-300">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-300">
           Đang tải cài đặt biệt danh...
         </div>
       </main>
@@ -209,12 +209,12 @@ export function NicknameSettingsPage() {
   return (
     <main className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-6rem] top-[-6rem] h-64 w-64 rounded-full bg-rose-200/60 blur-3xl dark:bg-rose-900/20" />
+        <div className="absolute left-[-6rem] top-[-6rem] h-64 w-64 rounded-full bg-sky-200/60 blur-3xl dark:bg-sky-900/20" />
       </div>
 
       <section className="relative container mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600 dark:text-rose-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600 dark:text-sky-300">
             Settings
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
@@ -230,7 +230,7 @@ export function NicknameSettingsPage() {
             Bạn chưa có couple nên chưa thể đặt biệt danh.
           </div>
         ) : (
-          <div className="space-y-4 rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+          <div className="space-y-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
             <div>
               <label
                 htmlFor="self-nickname"
@@ -244,7 +244,7 @@ export function NicknameSettingsPage() {
                 maxLength={MAX_NICKNAME_LENGTH}
                 onChange={(event) => setSelfNickname(event.target.value)}
                 placeholder="Ví dụ: Cáo"
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
 
@@ -262,7 +262,7 @@ export function NicknameSettingsPage() {
                 disabled={!partnerUserId}
                 onChange={(event) => setPartnerNickname(event.target.value)}
                 placeholder={partnerUserId ? 'Ví dụ: Thỏ' : 'Chưa có thành viên thứ 2'}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
 
@@ -270,7 +270,7 @@ export function NicknameSettingsPage() {
               type="button"
               onClick={() => void onSaveNicknames()}
               disabled={saving}
-              className="inline-flex rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {saving ? 'Đang lưu...' : 'Lưu biệt danh'}
             </button>

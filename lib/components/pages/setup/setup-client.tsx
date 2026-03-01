@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -953,7 +953,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   if (coupleState.status === 'loading' && !loadError) {
     return (
       <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <div className="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
           <p className="text-sm text-gray-600 dark:text-gray-300">Đang tải trạng thái couple...</p>
         </div>
       </section>
@@ -962,7 +962,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
   return (
     <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
-      <div className="rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+      <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
         <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Thiết lập couple</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           Đăng nhập: <span className="font-medium">{email || 'không rõ'}</span>
@@ -971,10 +971,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           Có access_token trong phiên: {String(hasAccessToken)}
         </p>
 
-        <div className="mt-5 rounded-xl border border-rose-100 bg-rose-50/70 p-4 dark:border-rose-900/40 dark:bg-gray-800">
+        <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-gray-800">
           <p className="text-sm text-gray-700 dark:text-gray-200">
             Trạng thái:{' '}
-            <span className="font-semibold text-rose-700 dark:text-rose-200">
+            <span className="font-semibold text-sky-700 dark:text-sky-200">
               {coupleState.status === 'active'
                 ? 'Đã ghép đôi'
                 : coupleState.status === 'none'
@@ -985,12 +985,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           {activeCouple ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sm text-gray-700 dark:text-gray-200">
-                Mã couple: <span className="font-semibold text-rose-700 dark:text-rose-200">{activeCouple.code}</span>
+                Mã couple: <span className="font-semibold text-sky-700 dark:text-sky-200">{activeCouple.code}</span>
               </span>
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(activeCouple.code)}
-                className="rounded-md border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-800 dark:bg-gray-900 dark:text-rose-200 dark:hover:bg-gray-700"
+                className="rounded-md border border-sky-200 bg-white px-2 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:bg-gray-900 dark:text-sky-200 dark:hover:bg-gray-700"
               >
                 Sao chép mã
               </button>
@@ -1150,7 +1150,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               type="button"
               onClick={onCreateCouple}
               disabled={isBusy || coupleState.status === 'active'}
-              className="mt-4 rounded-xl bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
+              className="mt-4 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-300"
             >
               {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
             </button>
@@ -1166,7 +1166,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               <input
                 value={joinCode}
                 onChange={(event) => setJoinCode(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-sky-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 placeholder="VD: A9K2QX"
                 maxLength={12}
                 disabled={isBusy || coupleState.status === 'active'}
@@ -1186,7 +1186,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           type="button"
           onClick={() => void loadCoupleState()}
           disabled={isRefreshing || isBusy}
-          className="mt-6 text-sm font-medium text-rose-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
+          className="mt-6 text-sm font-medium text-sky-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-sky-300"
         >
           {isRefreshing ? 'Đang làm mới...' : 'Làm mới trạng thái từ server'}
         </button>

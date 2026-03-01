@@ -30,14 +30,14 @@ const featureLinksA: FeatureLink[] = [
     title: 'Bếp Nhà Cáo Thỏ',
     subtitle: 'Hôm nay ăn gì?',
     description: 'Chọn món nhanh, lọc theo nhóm món, bấm random và gửi order cho bữa ăn chung.',
-    color: 'from-orange-400 to-rose-500'
+    color: 'from-orange-400 to-sky-500'
   },
   {
     href: '/cycle',
     title: 'Lịch Chu Kỳ',
     subtitle: 'Nhớ nhau đúng lúc',
     description: 'Theo dõi ngày dự đoán, đếm ngược và lịch tháng để Cáo luôn chủ động chăm sóc Thỏ.',
-    color: 'from-fuchsia-400 to-rose-500'
+    color: 'from-fuchsia-400 to-sky-500'
   },
   {
     href: '/tasks',
@@ -58,7 +58,7 @@ const featureLinksA: FeatureLink[] = [
     title: 'Thư Cho Nhau',
     subtitle: 'Lưu lời thương',
     description: 'Gửi thư tình hoặc góp ý nhẹ nhàng, giữ lại những điều đôi khi khó nói trực tiếp.',
-    color: 'from-rose-400 to-pink-500'
+    color: 'from-sky-400 to-indigo-500'
   }
 ]
 
@@ -152,35 +152,35 @@ export const LoveHubLanding = ({ mode = 'b' }: LoveHubLandingProps) => {
 
   const palette = isModeA
     ? {
-        glowPrimary: 'bg-rose-300/30 dark:bg-rose-900/20',
-        glowSecondary: 'bg-pink-200/50 dark:bg-pink-900/20',
+        glowPrimary: 'bg-sky-300/30 dark:bg-sky-900/20',
+        glowSecondary: 'bg-indigo-200/50 dark:bg-indigo-900/20',
         badge:
-          'border border-rose-200 bg-white text-rose-600 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
-        heroAccent: 'from-rose-600 to-pink-500',
-        primaryButton: 'bg-rose-600 hover:bg-rose-700',
+          'border border-sky-200 bg-white text-sky-600 dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300',
+        heroAccent: 'from-sky-600 to-indigo-500',
+        primaryButton: 'bg-sky-600 hover:bg-sky-700',
         secondaryButton:
-          'border border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-200 dark:hover:bg-gray-800',
-        panelGlow: 'bg-rose-200/60 dark:bg-rose-900/30',
-        panelCard: 'border border-rose-100 bg-white/90 dark:border-rose-900/50 dark:bg-gray-900/90',
-        panelTag: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-        check: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-        planNote: 'from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/20',
-        planNoteText: 'text-rose-700 dark:text-rose-300',
-        statCard: 'border border-rose-100 bg-white/80 dark:border-rose-900/40 dark:bg-gray-900/70',
+          'border border-sky-200 bg-white text-sky-700 hover:border-sky-300 hover:bg-sky-50 dark:border-sky-900 dark:bg-gray-900 dark:text-sky-200 dark:hover:bg-gray-800',
+        panelGlow: 'bg-sky-200/60 dark:bg-sky-900/30',
+        panelCard: 'border border-sky-100 bg-white/90 dark:border-sky-900/50 dark:bg-gray-900/90',
+        panelTag: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+        check: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+        planNote: 'from-sky-100 to-indigo-100 dark:from-sky-900/30 dark:to-indigo-900/20',
+        planNoteText: 'text-sky-700 dark:text-sky-300',
+        statCard: 'border border-sky-100 bg-white/80 dark:border-sky-900/40 dark:bg-gray-900/70',
         featureCard:
-          'border border-rose-100 bg-white hover:border-rose-300 dark:border-rose-900/40 dark:bg-gray-900',
-        featureLink: 'text-rose-700 group-hover:text-rose-800 dark:text-rose-300 dark:group-hover:text-rose-200',
-        flowBg: 'from-rose-50/70 to-white dark:from-rose-950/10 dark:to-gray-900',
-        stepCard: 'border border-rose-100 bg-white dark:border-rose-900/40 dark:bg-gray-900',
-        stepIndex: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-        reasonCard: 'border border-rose-100 bg-white dark:border-rose-900/40 dark:bg-gray-900',
-        reasonLabel: 'text-rose-600 dark:text-rose-300',
-        reasonBullet: 'bg-rose-500',
-        ctaCard: 'border border-rose-100 bg-gradient-to-br from-rose-600 to-pink-500',
-        ctaTag: 'text-rose-100',
-        ctaDescription: 'text-rose-50',
-        ctaPrimaryButton: 'text-rose-700 hover:bg-rose-50',
-        ctaSecondaryButton: 'border-rose-200/50'
+          'border border-sky-100 bg-white hover:border-sky-300 dark:border-sky-900/40 dark:bg-gray-900',
+        featureLink: 'text-sky-700 group-hover:text-sky-800 dark:text-sky-300 dark:group-hover:text-sky-200',
+        flowBg: 'from-sky-50/70 to-white dark:from-sky-950/10 dark:to-gray-900',
+        stepCard: 'border border-sky-100 bg-white dark:border-sky-900/40 dark:bg-gray-900',
+        stepIndex: 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
+        reasonCard: 'border border-sky-100 bg-white dark:border-sky-900/40 dark:bg-gray-900',
+        reasonLabel: 'text-sky-600 dark:text-sky-300',
+        reasonBullet: 'bg-sky-500',
+        ctaCard: 'border border-sky-100 bg-gradient-to-br from-sky-600 to-indigo-500',
+        ctaTag: 'text-sky-100',
+        ctaDescription: 'text-sky-50',
+        ctaPrimaryButton: 'text-sky-700 hover:bg-sky-50',
+        ctaSecondaryButton: 'border-sky-200/50'
       }
     : {
         glowPrimary: 'bg-sky-300/30 dark:bg-sky-900/20',

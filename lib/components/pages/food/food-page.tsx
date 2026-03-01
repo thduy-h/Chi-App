@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { FormEvent, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -22,7 +22,7 @@ const FoodImage = ({ src, alt }: { src?: string; alt: string }) => {
 
   if (!imageSrc) {
     return (
-      <div className="flex h-44 w-full items-center justify-center rounded-md bg-rose-100 text-center text-xs font-medium text-rose-700 dark:bg-rose-900/30 dark:text-rose-200">
+      <div className="flex h-44 w-full items-center justify-center rounded-md bg-sky-100 text-center text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-200">
         Ảnh món ăn
       </div>
     )
@@ -193,7 +193,7 @@ export const FoodPage = () => {
       <div className="container grid grid-cols-2 items-start gap-6 pb-16 pt-4 md:grid-cols-4">
         <div className="text-center md:hidden">
           <button
-            className="mb-2 mr-2 block rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-300 dark:focus:ring-rose-900"
+            className="mb-2 mr-2 block rounded-lg bg-sky-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-300 dark:focus:ring-sky-900"
             type="button"
             onClick={() => setIsDrawerOpen(!isDrawerOpen)}
           >
@@ -262,13 +262,13 @@ export const FoodPage = () => {
                 onChange={(event) => setKeyword(event.target.value)}
                 type="text"
                 placeholder="Tìm theo tên món..."
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
               />
 
               <button
                 type="button"
                 onClick={handleRandomFood}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
               >
                 Random món
               </button>
@@ -279,7 +279,7 @@ export const FoodPage = () => {
                   onClick={() => setIsGridView(true)}
                   className={`flex h-9 w-10 items-center justify-center rounded border ${
                     isGridView
-                      ? 'border-rose-600 bg-rose-600 text-white'
+                      ? 'border-sky-600 bg-sky-600 text-white'
                       : 'border-gray-300 text-gray-700 dark:text-gray-300'
                   }`}
                 >
@@ -292,7 +292,7 @@ export const FoodPage = () => {
                   onClick={() => setIsGridView(false)}
                   className={`flex h-9 w-10 items-center justify-center rounded border ${
                     !isGridView
-                      ? 'border-rose-600 bg-rose-600 text-white'
+                      ? 'border-sky-600 bg-sky-600 text-white'
                       : 'border-gray-300 text-gray-700 dark:text-gray-300'
                   }`}
                 >
@@ -309,8 +309,8 @@ export const FoodPage = () => {
           </div>
 
           {randomFood && (
-            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 dark:border-rose-900/50 dark:bg-rose-950/10">
-              <p className="text-sm text-rose-700 dark:text-rose-300">
+            <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 dark:border-sky-900/50 dark:bg-sky-950/10">
+              <p className="text-sm text-sky-700 dark:text-sky-300">
                 Gợi ý hôm nay: <span className="font-semibold">{randomFood.name}</span> ({randomFood.priceRange})
               </p>
             </div>
@@ -323,7 +323,7 @@ export const FoodPage = () => {
               </p>
               <button
                 type="button"
-                className="mt-2 text-sm text-rose-600 hover:text-rose-700 dark:text-rose-300"
+                className="mt-2 text-sm text-sky-600 hover:text-sky-700 dark:text-sky-300"
                 onClick={clearFilters}
               >
                 Xóa bộ lọc
@@ -339,7 +339,7 @@ export const FoodPage = () => {
                   isGridView ? 'flex-col' : 'flex-col sm:flex-row'
                 }`}
               >
-                <div className={`bg-rose-50 p-4 dark:bg-gray-800/30 ${isGridView ? '' : 'sm:w-1/3'}`}>
+                <div className={`bg-sky-50 p-4 dark:bg-gray-800/30 ${isGridView ? '' : 'sm:w-1/3'}`}>
                   <FoodImage src={food.image} alt={food.name} />
                 </div>
 
@@ -349,7 +349,7 @@ export const FoodPage = () => {
                     {FOOD_CATEGORIES.find((category) => category.value === food.category)?.label}
                   </p>
 
-                  <p className="mt-4 text-base font-semibold text-rose-700 dark:text-rose-300">{food.priceRange}</p>
+                  <p className="mt-4 text-base font-semibold text-sky-700 dark:text-sky-300">{food.priceRange}</p>
 
                   {food.note && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{food.note}</p>}
 
@@ -402,7 +402,7 @@ export const FoodPage = () => {
                   value={orderName}
                   onChange={(event) => setOrderName(event.target.value)}
                   required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                 />
               </div>
 
@@ -420,7 +420,7 @@ export const FoodPage = () => {
                   onChange={(event) => setOrderNotes(event.target.value)}
                   rows={3}
                   placeholder="Ví dụ: ít hành, không cay..."
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                 />
               </div>
 
@@ -436,7 +436,7 @@ export const FoodPage = () => {
                   name="delivery-time"
                   value={deliveryTime}
                   onChange={(event) => setDeliveryTime(event.target.value)}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
                 >
                   {DELIVERY_TIME_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -458,7 +458,7 @@ export const FoodPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? 'Đang gửi...' : 'Gửi đơn'}
                 </button>
@@ -490,7 +490,7 @@ const FoodFilters = ({
         {FOOD_CATEGORIES.map((category) => (
           <label
             key={category.value}
-            className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm transition hover:border-rose-200 hover:bg-rose-50 dark:border-gray-800 dark:hover:border-rose-900 dark:hover:bg-rose-950/10"
+            className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm transition hover:border-sky-200 hover:bg-sky-50 dark:border-gray-800 dark:hover:border-sky-900 dark:hover:bg-sky-950/10"
           >
             <span className="text-gray-700 dark:text-gray-200">{category.label}</span>
             <div className="flex items-center gap-2">
@@ -501,7 +501,7 @@ const FoodFilters = ({
                 type="checkbox"
                 checked={selectedCategories.includes(category.value)}
                 onChange={() => toggleCategory(category.value)}
-                className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
               />
             </div>
           </label>

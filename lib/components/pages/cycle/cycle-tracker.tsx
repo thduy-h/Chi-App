@@ -405,11 +405,11 @@ export const CycleTracker = () => {
 
   return (
     <main className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-rose-100/80 via-white to-white dark:from-rose-950/20 dark:via-gray-900 dark:to-gray-900" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900" />
 
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
+          <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
             LoveHub Chu kỳ
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
@@ -444,7 +444,7 @@ export const CycleTracker = () => {
                     onChange={(event) =>
                       setSettings((prev) => ({ ...prev, lastPeriodStart: event.target.value }))
                     }
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </div>
 
@@ -463,7 +463,7 @@ export const CycleTracker = () => {
                         cycleLength: clampInteger(Number(event.target.value), 20, 40)
                       }))
                     }
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </div>
 
@@ -482,14 +482,14 @@ export const CycleTracker = () => {
                         periodLength: clampInteger(Number(event.target.value), 2, 10)
                       }))
                     }
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="mt-4 w-full rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
+                className="mt-4 w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
               >
                 Lưu cài đặt
               </button>
@@ -585,16 +585,16 @@ export const CycleTracker = () => {
                       className={`min-h-[4.2rem] rounded-lg border px-2 py-2 text-xs ${inMonth
                         ? 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
                         : 'border-transparent bg-gray-100/70 text-gray-400 dark:bg-gray-900/50 dark:text-gray-600'
-                        } ${isPeriodDay ? 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20' : ''}`}
+                        } ${isPeriodDay ? 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-900/20' : ''}`}
                     >
                       <p className="font-semibold">{format(day, 'd')}</p>
                       {isNextStart && (
-                        <span className="mt-1 inline-block rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        <span className="mt-1 inline-block rounded-full bg-sky-600 px-2 py-0.5 text-[10px] font-semibold text-white">
                           Bắt đầu
                         </span>
                       )}
                       {!isNextStart && isPeriodDay && (
-                        <span className="mt-1 inline-block rounded-full bg-rose-200 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-900/40 dark:text-rose-300">
+                        <span className="mt-1 inline-block rounded-full bg-sky-200 px-2 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/40 dark:text-sky-300">
                           Kỳ kinh
                         </span>
                       )}
@@ -604,7 +604,7 @@ export const CycleTracker = () => {
               </div>
             </div>
 
-            <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-4 text-sm text-rose-700 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300">
+            <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-4 text-sm text-sky-700 dark:border-sky-900/50 dark:bg-sky-900/20 dark:text-sky-300">
               Chỉ mang tính tham khảo, không thay thế tư vấn y tế.
             </div>
           </div>

@@ -280,7 +280,7 @@ export function NotificationsSettingsPage() {
   if (coupleLoading || loading) {
     return (
       <main className="container mx-auto max-w-4xl px-4 py-12 sm:px-6">
-        <div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-300">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-300">
           Đang tải cài đặt thông báo...
         </div>
       </main>
@@ -290,12 +290,12 @@ export function NotificationsSettingsPage() {
   return (
     <main className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-[-8rem] top-[-8rem] h-72 w-72 rounded-full bg-rose-200/60 blur-3xl dark:bg-rose-900/20" />
+        <div className="absolute left-[-8rem] top-[-8rem] h-72 w-72 rounded-full bg-sky-200/60 blur-3xl dark:bg-sky-900/20" />
       </div>
 
       <section className="relative container mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600 dark:text-rose-300">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600 dark:text-sky-300">
             Settings
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
@@ -307,7 +307,7 @@ export function NotificationsSettingsPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+          <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Kết nối Telegram</h2>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
               Trạng thái: {telegramLinked ? 'Đã liên kết' : 'Chưa liên kết'}
@@ -326,7 +326,7 @@ export function NotificationsSettingsPage() {
                 type="button"
                 onClick={() => void onGenerateLinkToken()}
                 disabled={generatingToken}
-                className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {generatingToken ? 'Đang tạo mã...' : 'Kết nối Telegram'}
               </button>
@@ -352,7 +352,7 @@ export function NotificationsSettingsPage() {
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+          <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tùy chọn thông báo</h2>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
               {couple?.id
@@ -373,7 +373,7 @@ export function NotificationsSettingsPage() {
                           key={channel.id}
                           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
                             checked
-                              ? 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200'
+                              ? 'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200'
                               : 'border-gray-300 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300'
                           } ${disableTelegram ? 'opacity-60' : ''}`}
                         >
@@ -384,7 +384,7 @@ export function NotificationsSettingsPage() {
                             onChange={(eventInput) =>
                               void onTogglePref(event.id, channel.id, eventInput.target.checked)
                             }
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                            className="h-3.5 w-3.5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
                           />
                           {channel.label}
                         </label>

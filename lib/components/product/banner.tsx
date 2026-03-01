@@ -30,7 +30,7 @@ export const Banner = () => {
 						<h1 className="text-3xl font-extrabold dark:text-white sm:text-5xl">
 							Explore the Infinite,
 
-							<strong className="block font-extrabold text-rose-700"> All in One Place </strong>
+							<strong className="block font-extrabold text-sky-700"> All in One Place </strong>
 						</h1>
 
 						<p className="mt-4 max-w-lg dark:text-gray-300 sm:text-xl/relaxed">
@@ -41,14 +41,14 @@ export const Banner = () => {
 						<div className="mt-8 flex flex-wrap gap-4 text-center">
 							<button
 								onClick={scrollToProducts}
-								className="block w-full rounded bg-rose-600 px-12 py-3 text-sm font-medium text-white shadow hover:bg-rose-700 focus:outline-none active:bg-rose-500 sm:w-auto"
+								className="block w-full rounded bg-sky-600 px-12 py-3 text-sm font-medium text-white shadow hover:bg-sky-700 focus:outline-none active:bg-sky-500 sm:w-auto"
 							>
 								Get Started
 							</button>
 
 							<Link
 								href="/about"
-								className="block w-full rounded bg-white px-12 py-3 text-sm font-medium text-rose-600 shadow hover:text-rose-700 focus:outline-none active:text-rose-500 sm:w-auto"
+								className="block w-full rounded bg-white px-12 py-3 text-sm font-medium text-sky-600 shadow hover:text-sky-700 focus:outline-none active:text-sky-500 sm:w-auto"
 							>
 								Learn More
 							</Link>

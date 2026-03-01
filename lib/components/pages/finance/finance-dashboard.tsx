@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -725,12 +725,12 @@ export const FinanceDashboard = () => {
 
   return (
     <main className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-rose-100/80 via-white to-white dark:from-rose-950/20 dark:via-gray-900 dark:to-gray-900" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900" />
 
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
+            <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
               LoveHub Tài Chính
             </span>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
@@ -756,7 +756,7 @@ export const FinanceDashboard = () => {
               type="month"
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
             />
           </div>
         </div>
@@ -818,7 +818,7 @@ export const FinanceDashboard = () => {
                           </div>
                           <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
                             <div
-                              className="h-2 rounded-full bg-rose-500"
+                              className="h-2 rounded-full bg-sky-500"
                               style={{ width: `${width}%` }}
                             />
                           </div>
@@ -890,7 +890,7 @@ export const FinanceDashboard = () => {
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-medium ${entry.type === 'income'
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                                : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
                                 }`}
                             >
                               {entry.type === 'income' ? 'Thu' : 'Chi'}
@@ -900,7 +900,7 @@ export const FinanceDashboard = () => {
                           <td
                             className={`py-2 pr-3 font-semibold ${entry.type === 'income'
                               ? 'text-emerald-700 dark:text-emerald-300'
-                              : 'text-rose-700 dark:text-rose-300'
+                              : 'text-sky-700 dark:text-sky-300'
                               }`}
                           >
                             {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
@@ -955,7 +955,7 @@ export const FinanceDashboard = () => {
                     type="button"
                     onClick={() => setType('expense')}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${type === 'expense'
-                      ? 'bg-rose-600 text-white'
+                      ? 'bg-sky-600 text-white'
                       : 'border border-gray-300 text-gray-700 hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
                       }`}
                   >
@@ -977,7 +977,7 @@ export const FinanceDashboard = () => {
                       if (formError) setFormError('')
                     }}
                     placeholder="500000"
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </div>
 
@@ -988,7 +988,7 @@ export const FinanceDashboard = () => {
                   <select
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   >
                     {categoryOptions.map((option) => (
                       <option key={option} value={option}>
@@ -1006,7 +1006,7 @@ export const FinanceDashboard = () => {
                     type="date"
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                   />
                 </div>
 
@@ -1018,7 +1018,7 @@ export const FinanceDashboard = () => {
                     rows={3}
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
                     placeholder="Thêm ghi chú nếu cần..."
                   />
                 </div>
@@ -1108,9 +1108,9 @@ const SummaryCard = ({
       valueText: 'text-emerald-700 dark:text-emerald-300'
     },
     rose: {
-      iconBg: 'bg-rose-100 dark:bg-rose-900/30',
-      iconText: 'text-rose-700 dark:text-rose-300',
-      valueText: 'text-rose-700 dark:text-rose-300'
+      iconBg: 'bg-sky-100 dark:bg-sky-900/30',
+      iconText: 'text-sky-700 dark:text-sky-300',
+      valueText: 'text-sky-700 dark:text-sky-300'
     },
     blue: {
       iconBg: 'bg-blue-100 dark:bg-blue-900/30',

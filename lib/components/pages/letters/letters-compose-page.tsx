@@ -84,7 +84,7 @@ export function LettersComposePage() {
   return (
     <main className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute right-[-4rem] top-[-5rem] h-56 w-56 rounded-full bg-pink-200/60 blur-3xl dark:bg-pink-900/20" />
+        <div className="absolute right-[-4rem] top-[-5rem] h-56 w-56 rounded-full bg-indigo-200/60 blur-3xl dark:bg-indigo-900/20" />
       </div>
 
       <section className="relative container mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
