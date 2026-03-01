@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 
+import { notifyEvent } from '@/lib/notify/notifyEvent'
 import { getCurrentCoupleForUser } from '@/lib/supabase/couples'
 import { createClient } from '@/lib/supabase/server'
 
@@ -21,7 +22,8 @@ const forwardLettersToWebhook = async (body: LettersRequestBody) => {
   if (!targetUrl) {
     return NextResponse.json(
       {
-        error: 'Chưa cấu hình endpoint nhận thư. Hãy đặt FORMSPREE_LETTERS_URL hoặc LETTERS_WEBHOOK_URL.'
+        error:
+          'Chưa cấu hình endpoint nhận thư. Hãy đặt FORMSPREE_LETTERS_URL hoặc LETTERS_WEBHOOK_URL.'
       },
       { status: 503 }
     )
@@ -96,6 +98,7 @@ export async function GET() {
     return NextResponse.json(
       {
         letters: data || [],
+        coupleId: currentCouple.coupleId,
         coupleCode: currentCouple.coupleCode
       },
       { status: 200 }
@@ -111,14 +114,11 @@ export async function POST(request: Request) {
     const body = (await request.json()) as LettersRequestBody
 
     if (!body.mode || !validModes.has(body.mode)) {
-      return NextResponse.json({ error: 'Mode không hợp lệ.' }, { status: 400 })
+      return NextResponse.json({ error: 'Loại thư không hợp lệ.' }, { status: 400 })
     }
 
-    if (!body.title || !body.message) {
-      return NextResponse.json(
-        { error: 'Thiếu trường bắt buộc: title và message.' },
-        { status: 400 }
-      )
+    if (!body.message?.trim()) {
+      return NextResponse.json({ error: 'Thiếu trường bắt buộc: message.' }, { status: 400 })
     }
 
     const supabase = createClient()
@@ -135,9 +135,9 @@ export async function POST(request: Request) {
             .insert({
               couple_id: currentCouple.coupleId,
               kind: body.mode,
-              title: body.title.trim(),
+              title: body.title?.trim() || null,
               message: body.message.trim(),
-              mood: body.mood?.trim() || null,
+              mood: body.mode === 'love' ? body.mood?.trim() || null : null,
               anonymous: Boolean(body.anonymous)
             })
             .select('id, kind, title, message, mood, anonymous, created_at')
@@ -146,6 +146,12 @@ export async function POST(request: Request) {
           if (error) {
             return NextResponse.json({ error: error.message }, { status: 500 })
           }
+
+          void notifyEvent({
+            event: 'letter_received',
+            coupleId: currentCouple.coupleId,
+            actorUserId: user.id
+          })
 
           return NextResponse.json({
             ok: true,
@@ -156,7 +162,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Logged-out (or no couple) behavior: keep existing webhook submit path.
     return forwardLettersToWebhook(body)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Lỗi máy chủ không xác định.'

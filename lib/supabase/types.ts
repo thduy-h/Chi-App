@@ -164,10 +164,11 @@ export type Database = {
           id: string
           couple_id: string
           kind: 'feedback' | 'love'
-          title: string
+          title: string | null
           message: string
           mood: string | null
           anonymous: boolean
+          created_by: string | null
           created_at: string | null
           updated_at: string | null
         }
@@ -175,10 +176,11 @@ export type Database = {
           id?: string
           couple_id: string
           kind: 'feedback' | 'love'
-          title: string
+          title?: string | null
           message: string
           mood?: string | null
           anonymous?: boolean
+          created_by?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -186,12 +188,85 @@ export type Database = {
           id?: string
           couple_id?: string
           kind?: 'feedback' | 'love'
-          title?: string
+          title?: string | null
           message?: string
           mood?: string | null
           anonymous?: boolean
+          created_by?: string | null
           created_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_integrations: {
+        Row: {
+          user_id: string
+          telegram_chat_id: string | null
+          telegram_linked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          telegram_chat_id?: string | null
+          telegram_linked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          telegram_chat_id?: string | null
+          telegram_linked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notification_prefs: {
+        Row: {
+          id: string
+          couple_id: string
+          user_id: string
+          event: 'order_created' | 'letter_received'
+          channel: 'telegram' | 'email' | 'in_app'
+          enabled: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          user_id: string
+          event: 'order_created' | 'letter_received'
+          channel: 'telegram' | 'email' | 'in_app'
+          enabled?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          user_id?: string
+          event?: 'order_created' | 'letter_received'
+          channel?: 'telegram' | 'email' | 'in_app'
+          enabled?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      telegram_link_tokens: {
+        Row: {
+          token: string
+          user_id: string
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          token: string
+          user_id: string
+          expires_at: string
+          created_at?: string
+        }
+        Update: {
+          token?: string
+          user_id?: string
+          expires_at?: string
+          created_at?: string
         }
         Relationships: []
       }

@@ -1,19 +1,20 @@
-﻿import { Metadata } from 'next'
+import { Metadata } from 'next'
+
+import { LettersInboxPage } from '@/lib/components/pages/letters/letters-inbox-page'
 import { AuthRequired } from '@/lib/components/shared/auth-required'
-import { LettersPage } from '@/lib/components/pages/letters/letters-page'
 import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
-  title: 'LoveHub | Lá thư',
-  description: 'Gửi góp ý hoặc thư tình qua route server-side an toàn.'
+  title: 'LoveHub | Hộp thư',
+  description: 'Hộp thư couple với giao diện phong bì và trạng thái đã mở.'
 }
 
-export default async function Page() {
+export default async function LettersInboxRoute() {
   const supabase = createClient()
   if (!supabase) {
     return (
       <AuthRequired
-        title="Không thể tải trang Lá thư"
+        title="Không thể tải hộp thư"
         message="Supabase chưa được cấu hình. Vui lòng thử lại sau."
       />
     )
@@ -26,11 +27,11 @@ export default async function Page() {
   if (!user) {
     return (
       <AuthRequired
-        title="Cần đăng nhập để xem Lá thư"
+        title="Cần đăng nhập để xem hộp thư"
         message="Đăng nhập để gửi và nhận thư trong couple."
       />
     )
   }
 
-  return <LettersPage />
+  return <LettersInboxPage />
 }
