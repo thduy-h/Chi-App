@@ -21,6 +21,7 @@ function toLetterRecord(input: {
   mood: string | null
   anonymous: boolean
   created_at: string | null
+  senderNickname: string | null
 }): LetterRecord {
   return {
     id: input.id,
@@ -29,7 +30,8 @@ function toLetterRecord(input: {
     message: input.message,
     mood: input.mood,
     anonymous: input.anonymous,
-    created_at: input.created_at
+    created_at: input.created_at,
+    senderNickname: input.senderNickname
   }
 }
 
@@ -66,7 +68,10 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
           <p className="mt-3 text-sm text-amber-900/90 dark:text-amber-200/90">
             Hãy vào trang thiết lập để tạo hoặc tham gia couple trước khi đọc thư.
           </p>
-          <Link href="/setup" className="mt-6 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700">
+          <Link
+            href="/setup"
+            className="mt-6 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
+          >
             Đi tới /setup
           </Link>
         </section>
@@ -85,9 +90,32 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
     notFound()
   }
 
+  let senderNickname: string | null = null
+  if (!data.anonymous && data.created_by) {
+    const { data: nicknameRow } = await supabase
+      .from('couple_nicknames')
+      .select('nickname')
+      .eq('couple_id', couple.coupleId)
+      .eq('owner_user_id', user.id)
+      .eq('target_user_id', data.created_by)
+      .maybeSingle()
+
+    const cleaned = nicknameRow?.nickname?.trim()
+    senderNickname = cleaned || null
+  }
+
   return (
     <SealedEnvelopeViewer
-      letter={toLetterRecord(data)}
+      letter={toLetterRecord({
+        id: data.id,
+        kind: data.kind,
+        title: data.title,
+        message: data.message,
+        mood: data.mood,
+        anonymous: data.anonymous,
+        created_at: data.created_at,
+        senderNickname
+      })}
       coupleId={couple.coupleId}
       canDelete={Boolean(data.created_by && data.created_by === user.id)}
     />

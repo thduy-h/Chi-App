@@ -147,6 +147,13 @@ export function CoupleAuthWidget() {
           >
             Cài đặt thông báo
           </Link>
+          <Link
+            href="/settings/nicknames"
+            onClick={() => setMenuOpen(false)}
+            className="block rounded-lg px-2 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+          >
+            Cài đặt biệt danh
+          </Link>
           <button
             type="button"
             onClick={() => void onLogout()}

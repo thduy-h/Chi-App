@@ -1,0 +1,242 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useDispatch } from 'react-redux'
+
+import { setAlert } from '@/lib/features/alert/alertSlice'
+import { useCoupleContext } from '@/lib/hooks/use-couple-context'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+
+const MAX_NICKNAME_LENGTH = 60
+
+function normalizeNickname(value: string) {
+  return value.trim().slice(0, MAX_NICKNAME_LENGTH)
+}
+
+export function NicknameSettingsPage() {
+  const dispatch = useDispatch()
+  const { user, couple, loading: coupleLoading } = useCoupleContext()
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [selfNickname, setSelfNickname] = useState('')
+  const [partnerNickname, setPartnerNickname] = useState('')
+  const [partnerUserId, setPartnerUserId] = useState<string | null>(null)
+
+  const loadData = useCallback(async () => {
+    if (!supabase || !user?.id || !couple?.id) {
+      setLoading(false)
+      setPartnerUserId(null)
+      setSelfNickname('')
+      setPartnerNickname('')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const [{ data: members, error: membersError }, { data: nicknameRows, error: nicknamesError }] =
+        await Promise.all([
+          supabase.from('couple_members').select('user_id').eq('couple_id', couple.id),
+          supabase
+            .from('couple_nicknames')
+            .select('target_user_id, nickname')
+            .eq('couple_id', couple.id)
+            .eq('owner_user_id', user.id)
+        ])
+
+      if (membersError) {
+        throw membersError
+      }
+      if (nicknamesError) {
+        throw nicknamesError
+      }
+
+      const partner = (members || []).find((member) => member.user_id !== user.id)?.user_id ?? null
+      setPartnerUserId(partner)
+
+      const nicknameMap = new Map<string, string>()
+      for (const row of nicknameRows || []) {
+        const nickname = row.nickname?.trim()
+        if (nickname) {
+          nicknameMap.set(row.target_user_id, nickname)
+        }
+      }
+
+      setSelfNickname(nicknameMap.get(user.id) || '')
+      setPartnerNickname(partner ? nicknameMap.get(partner) || '' : '')
+    } catch (error) {
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Không thể tải biệt danh',
+          message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
+        })
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [couple?.id, dispatch, supabase, user?.id])
+
+  useEffect(() => {
+    if (coupleLoading) {
+      return
+    }
+    void loadData()
+  }, [coupleLoading, loadData])
+
+  const upsertOrDeleteNickname = async (targetUserId: string, rawValue: string) => {
+    if (!supabase || !user?.id || !couple?.id) {
+      return
+    }
+
+    const nickname = normalizeNickname(rawValue)
+    if (!nickname) {
+      await supabase
+        .from('couple_nicknames')
+        .delete()
+        .eq('couple_id', couple.id)
+        .eq('owner_user_id', user.id)
+        .eq('target_user_id', targetUserId)
+      return
+    }
+
+    const { error } = await supabase.from('couple_nicknames').upsert(
+      {
+        couple_id: couple.id,
+        owner_user_id: user.id,
+        target_user_id: targetUserId,
+        nickname,
+        updated_at: new Date().toISOString()
+      },
+      {
+        onConflict: 'couple_id,owner_user_id,target_user_id'
+      }
+    )
+
+    if (error) {
+      throw error
+    }
+  }
+
+  const onSaveNicknames = async () => {
+    if (!supabase || !user?.id || !couple?.id) {
+      dispatch(
+        setAlert({
+          type: 'warning',
+          title: 'Thiếu couple',
+          message: 'Bạn cần có couple để đặt biệt danh.'
+        })
+      )
+      return
+    }
+
+    try {
+      setSaving(true)
+
+      await upsertOrDeleteNickname(user.id, selfNickname)
+      if (partnerUserId) {
+        await upsertOrDeleteNickname(partnerUserId, partnerNickname)
+      }
+
+      setSelfNickname(normalizeNickname(selfNickname))
+      setPartnerNickname(normalizeNickname(partnerNickname))
+
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'Đã lưu biệt danh',
+          message: 'Biệt danh mới sẽ hiển thị trong hộp thư.'
+        })
+      )
+    } catch (error) {
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'Lưu biệt danh thất bại',
+          message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
+        })
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (coupleLoading || loading) {
+    return (
+      <main className="container mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-300">
+          Đang tải cài đặt biệt danh...
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className="relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-[-6rem] top-[-6rem] h-64 w-64 rounded-full bg-rose-200/60 blur-3xl dark:bg-rose-900/20" />
+      </div>
+
+      <section className="relative container mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
+        <div className="mb-6">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600 dark:text-rose-300">
+            Settings
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
+            Biệt danh couple
+          </h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            Đặt biệt danh để khi đọc thư sẽ hiện “Từ &lt;biệt danh&gt;”.
+          </p>
+        </div>
+
+        {!couple?.id ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/20 dark:text-amber-200">
+            Bạn chưa có couple nên chưa thể đặt biệt danh.
+          </div>
+        ) : (
+          <div className="space-y-4 rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+            <div>
+              <label htmlFor="self-nickname" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Biệt danh của bạn
+              </label>
+              <input
+                id="self-nickname"
+                value={selfNickname}
+                maxLength={MAX_NICKNAME_LENGTH}
+                onChange={(event) => setSelfNickname(event.target.value)}
+                placeholder="Ví dụ: Cáo"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="partner-nickname" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Biệt danh của người ấy
+              </label>
+              <input
+                id="partner-nickname"
+                value={partnerNickname}
+                maxLength={MAX_NICKNAME_LENGTH}
+                disabled={!partnerUserId}
+                onChange={(event) => setPartnerNickname(event.target.value)}
+                placeholder={partnerUserId ? 'Ví dụ: Thỏ' : 'Chưa có thành viên thứ hai'}
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void onSaveNicknames()}
+              disabled={saving}
+              className="inline-flex rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {saving ? 'Đang lưu...' : 'Lưu biệt danh'}
+            </button>
+          </div>
+        )}
+      </section>
+    </main>
+  )
+}

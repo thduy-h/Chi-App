@@ -16,6 +16,17 @@ interface DeleteLetterRequestBody {
   id?: string
 }
 
+type LetterRow = {
+  id: string
+  kind: 'feedback' | 'love'
+  title: string | null
+  message: string
+  mood: string | null
+  anonymous: boolean
+  created_at: string | null
+  created_by: string | null
+}
+
 const validModes = new Set(['feedback', 'love'])
 
 const forwardLettersToWebhook = async (body: LettersRequestBody) => {
@@ -67,6 +78,38 @@ const forwardLettersToWebhook = async (body: LettersRequestBody) => {
   return NextResponse.json({ ok: true, source: 'webhook' })
 }
 
+async function loadNicknameMap(args: {
+  supabase: NonNullable<ReturnType<typeof createClient>>
+  coupleId: string
+  ownerUserId: string
+  targetUserIds: string[]
+}) {
+  const { supabase, coupleId, ownerUserId, targetUserIds } = args
+  if (targetUserIds.length < 1) {
+    return new Map<string, string>()
+  }
+
+  const { data, error } = await supabase
+    .from('couple_nicknames')
+    .select('target_user_id, nickname')
+    .eq('couple_id', coupleId)
+    .eq('owner_user_id', ownerUserId)
+    .in('target_user_id', targetUserIds)
+
+  if (error || !data) {
+    return new Map<string, string>()
+  }
+
+  const output = new Map<string, string>()
+  for (const row of data) {
+    const nickname = row.nickname?.trim()
+    if (row.target_user_id && nickname) {
+      output.set(row.target_user_id, nickname)
+    }
+  }
+  return output
+}
+
 export async function GET() {
   try {
     const supabase = createClient()
@@ -90,7 +133,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('letters')
-      .select('id, kind, title, message, mood, anonymous, created_at')
+      .select('id, kind, title, message, mood, anonymous, created_at, created_by')
       .eq('couple_id', currentCouple.coupleId)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -99,9 +142,37 @@ export async function GET() {
       return NextResponse.json({ letters: [], error: error.message }, { status: 500 })
     }
 
+    const letterRows = (data || []) as LetterRow[]
+    const creatorIds = Array.from(
+      new Set(
+        letterRows
+          .map((letter) => letter.created_by)
+          .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      )
+    )
+
+    const nicknameMap = await loadNicknameMap({
+      supabase,
+      coupleId: currentCouple.coupleId,
+      ownerUserId: user.id,
+      targetUserIds: creatorIds
+    })
+
+    const letters = letterRows.map((letter) => ({
+      id: letter.id,
+      kind: letter.kind,
+      title: letter.title,
+      message: letter.message,
+      mood: letter.mood,
+      anonymous: letter.anonymous,
+      created_at: letter.created_at,
+      senderNickname:
+        !letter.anonymous && letter.created_by ? nicknameMap.get(letter.created_by) || null : null
+    }))
+
     return NextResponse.json(
       {
-        letters: data || [],
+        letters,
         coupleId: currentCouple.coupleId,
         coupleCode: currentCouple.coupleCode
       },

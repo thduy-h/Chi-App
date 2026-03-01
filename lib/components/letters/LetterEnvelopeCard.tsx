@@ -1,6 +1,11 @@
 import Link from 'next/link'
 
-import { formatLetterDate, getLetterDisplayTitle, getLetterKindLabel, type LetterRecord } from '@/lib/letters/types'
+import {
+  formatLetterDate,
+  getLetterDisplayTitle,
+  getLetterKindLabel,
+  type LetterRecord
+} from '@/lib/letters/types'
 
 export function LetterEnvelopeCard({
   letter,
@@ -11,6 +16,8 @@ export function LetterEnvelopeCard({
   href: string
   opened: boolean
 }) {
+  const senderLabel = letter.anonymous ? 'Từ ẩn danh' : `Từ ${letter.senderNickname?.trim() || 'người ấy'}`
+
   return (
     <Link
       href={href}
@@ -23,10 +30,10 @@ export function LetterEnvelopeCard({
           </div>
 
           <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-white">{getLetterDisplayTitle(letter)}</p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              {letter.anonymous ? 'Từ ẩn danh' : 'Từ người ấy'}
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              {getLetterDisplayTitle(letter)}
             </p>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{senderLabel}</p>
           </div>
         </div>
 
@@ -42,7 +49,9 @@ export function LetterEnvelopeCard({
         <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200">
           {getLetterKindLabel(letter.kind)}
         </span>
-        <span className="text-[11px] text-gray-500 dark:text-gray-400">{formatLetterDate(letter.created_at)}</span>
+        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+          {formatLetterDate(letter.created_at)}
+        </span>
       </div>
     </Link>
   )

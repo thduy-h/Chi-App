@@ -7,6 +7,7 @@ export interface LetterRecord {
   message: string
   mood: string | null
   anonymous: boolean
+  senderNickname?: string | null
   created_at: string | null
 }
 

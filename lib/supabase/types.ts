@@ -198,6 +198,36 @@ export type Database = {
         }
         Relationships: []
       }
+      couple_nicknames: {
+        Row: {
+          id: string
+          couple_id: string
+          owner_user_id: string
+          target_user_id: string
+          nickname: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          couple_id: string
+          owner_user_id: string
+          target_user_id: string
+          nickname: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          couple_id?: string
+          owner_user_id?: string
+          target_user_id?: string
+          nickname?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_integrations: {
         Row: {
           user_id: string
