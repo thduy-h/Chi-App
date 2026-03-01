@@ -157,6 +157,18 @@ export async function getCurrentCoupleForUser(
   supabase: SupabaseClient<Database>,
   userId: string
 ): Promise<CurrentCoupleForUser> {
+  // Prefer RPC source of truth (auth.uid-based) to avoid privacy RLS drift.
+  const { data: rpcPayload, error: rpcError } = await supabase.rpc('get_my_couple')
+  logGetMyCoupleRawOnce('getCurrentCoupleForUser', rpcPayload)
+  const rpcCouple = normalizeRpcRow(rpcPayload)
+
+  if (!rpcError && rpcCouple?.id) {
+    return {
+      coupleId: rpcCouple.id,
+      coupleCode: rpcCouple.code ?? null
+    }
+  }
+
   const { data: membership, error: membershipError } = await supabase
     .from('couple_members')
     .select('couple_id')
