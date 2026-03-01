@@ -1,7 +1,7 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useDispatch } from 'react-redux'
 
@@ -39,33 +39,83 @@ export function CoupleAuthWidget() {
   const [menuOpen, setMenuOpen] = useState(false)
 
   const canUseSupabase = hasSupabaseEnv()
+  const supabase = useMemo(() => {
+    if (!canUseSupabase) {
+      return null
+    }
+    return createSupabaseBrowserClient()
+  }, [canUseSupabase])
 
-  const loadCurrent = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/couple/current', {
-        method: 'GET',
-        cache: 'no-store'
-      })
-      const payload = (await response.json()) as CurrentCoupleResponse
-      setEmail(payload.user?.email ?? null)
-      setCoupleCode(payload.couple?.code ?? null)
+  const loadCurrent = useCallback(
+    async (withSpinner = true) => {
+      try {
+        if (withSpinner) {
+          setLoading(true)
+        }
 
-      if (!payload.couple) {
+        let clientEmail: string | null = null
+        if (supabase) {
+          const {
+            data: { user }
+          } = await supabase.auth.getUser()
+          clientEmail = user?.email ?? null
+          setEmail(clientEmail)
+        }
+
+        const response = await fetch('/api/couple/current', {
+          method: 'GET',
+          cache: 'no-store'
+        })
+        const payload = (await response.json()) as CurrentCoupleResponse
+
+        setEmail(payload.user?.email ?? clientEmail ?? null)
+
+        if (payload.couple?.code) {
+          setCoupleCode(payload.couple.code)
+        } else {
+          const cached = readActiveCoupleCache()
+          setCoupleCode(cached?.code ?? null)
+        }
+      } catch {
         const cached = readActiveCoupleCache()
         setCoupleCode(cached?.code ?? null)
+      } finally {
+        if (withSpinner) {
+          setLoading(false)
+        }
       }
-    } catch {
-      const cached = readActiveCoupleCache()
-      setCoupleCode(cached?.code ?? null)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+    },
+    [supabase]
+  )
 
   useEffect(() => {
-    void loadCurrent()
+    void loadCurrent(true)
   }, [loadCurrent])
+
+  useEffect(() => {
+    if (!supabase) {
+      return
+    }
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const nextEmail = session?.user?.email ?? null
+      setEmail(nextEmail)
+
+      if (!nextEmail) {
+        setCoupleCode(null)
+        setMenuOpen(false)
+        return
+      }
+
+      void loadCurrent(false)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [loadCurrent, supabase])
 
   useEffect(() => {
     if (!menuOpen) {
@@ -90,11 +140,8 @@ export function CoupleAuthWidget() {
   const onLogout = async () => {
     try {
       setIsLoggingOut(true)
-      if (canUseSupabase) {
-        const supabase = createSupabaseBrowserClient()
-        if (supabase) {
-          await supabase.auth.signOut()
-        }
+      if (supabase) {
+        await supabase.auth.signOut()
       }
       clearLovehubLocalStorage()
       setEmail(null)
