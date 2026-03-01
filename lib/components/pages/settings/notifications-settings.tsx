@@ -43,6 +43,8 @@ interface LinkTokenResponse {
   token: string
   instructions: string
   expiresAt: string
+  details?: string
+  code?: string
 }
 
 export function NotificationsSettingsPage() {
@@ -137,7 +139,11 @@ export function NotificationsSettingsPage() {
       }
 
       if (!response.ok || !payload.token || !payload.instructions || !payload.expiresAt) {
-        throw new Error(payload.error || 'Không thể tạo mã liên kết Telegram.')
+        const debugSuffix =
+          payload.code || payload.details
+            ? ` [${[payload.code, payload.details].filter(Boolean).join(' | ')}]`
+            : ''
+        throw new Error((payload.error || 'Không thể tạo mã liên kết Telegram.') + debugSuffix)
       }
 
       setLinkTokenInfo({
