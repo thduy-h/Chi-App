@@ -583,8 +583,8 @@ export const CycleTracker = () => {
                     <div
                       key={day.toISOString()}
                       className={`min-h-[4.2rem] rounded-lg border px-2 py-2 text-xs ${inMonth
-                        ? 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
-                        : 'border-transparent bg-gray-100/70 text-gray-400 dark:bg-gray-900/50 dark:text-gray-600'
+                        ? 'border-gray-200 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
+                        : 'border-transparent bg-gray-100/70 text-gray-400 dark:bg-gray-900/50 dark:text-gray-500'
                         } ${isPeriodDay ? 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-900/20' : ''}`}
                     >
                       <p className="font-semibold">{format(day, 'd')}</p>
