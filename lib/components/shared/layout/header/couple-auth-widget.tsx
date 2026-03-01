@@ -30,7 +30,6 @@ export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const colorMode = mode === 'c' ? 'blue' : 'pink'
-  const isPremiumMode = mode === 'a' || mode === 'b'
   const theme =
     colorMode === 'pink'
       ? {
@@ -129,11 +128,6 @@ export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
         className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium text-gray-700 transition dark:text-gray-200 ${theme.button}`}
       >
         <span>{compactEmail(user.email)}</span>
-        {isPremiumMode ? (
-          <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-amber-900">
-            Premium
-          </span>
-        ) : null}
         <span className="text-[10px] text-gray-500 dark:text-gray-400">v</span>
       </button>
 
