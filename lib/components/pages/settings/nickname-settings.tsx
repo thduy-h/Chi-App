@@ -9,6 +9,12 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 const MAX_NICKNAME_LENGTH = 60
 
+interface CoupleMembersPayload {
+  members?: string[]
+  partnerUserId?: string | null
+  error?: string
+}
+
 function normalizeNickname(value: string) {
   return value.trim().slice(0, MAX_NICKNAME_LENGTH)
 }
@@ -35,28 +41,33 @@ export function NicknameSettingsPage() {
 
     setLoading(true)
     try {
-      const [{ data: members, error: membersError }, { data: nicknameRows, error: nicknamesError }] =
-        await Promise.all([
-          supabase.from('couple_members').select('user_id').eq('couple_id', couple.id),
-          supabase
-            .from('couple_nicknames')
-            .select('target_user_id, nickname')
-            .eq('couple_id', couple.id)
-            .eq('owner_user_id', user.id)
-        ])
+      const [membersResponse, nicknamesResult] = await Promise.all([
+        fetch('/api/couple/members', { method: 'GET', cache: 'no-store' }),
+        supabase
+          .from('couple_nicknames')
+          .select('target_user_id, nickname')
+          .eq('couple_id', couple.id)
+          .eq('owner_user_id', user.id)
+      ])
 
-      if (membersError) {
-        throw membersError
-      }
-      if (nicknamesError) {
-        throw nicknamesError
+      const membersPayload = (await membersResponse.json().catch(() => ({}))) as CoupleMembersPayload
+      if (!membersResponse.ok) {
+        throw new Error(membersPayload.error || 'Không thể tải danh sách thành viên couple.')
       }
 
-      const partner = (members || []).find((member) => member.user_id !== user.id)?.user_id ?? null
-      setPartnerUserId(partner)
+      if (nicknamesResult.error) {
+        throw nicknamesResult.error
+      }
+
+      const resolvedPartnerUserId =
+        membersPayload.partnerUserId ||
+        (Array.isArray(membersPayload.members)
+          ? membersPayload.members.find((memberId) => memberId !== user.id) || null
+          : null)
+      setPartnerUserId(resolvedPartnerUserId)
 
       const nicknameMap = new Map<string, string>()
-      for (const row of nicknameRows || []) {
+      for (const row of nicknamesResult.data || []) {
         const nickname = row.nickname?.trim()
         if (nickname) {
           nicknameMap.set(row.target_user_id, nickname)
@@ -64,7 +75,7 @@ export function NicknameSettingsPage() {
       }
 
       setSelfNickname(nicknameMap.get(user.id) || '')
-      setPartnerNickname(partner ? nicknameMap.get(partner) || '' : '')
+      setPartnerNickname(resolvedPartnerUserId ? nicknameMap.get(resolvedPartnerUserId) || '' : '')
     } catch (error) {
       dispatch(
         setAlert({
@@ -198,7 +209,10 @@ export function NicknameSettingsPage() {
         ) : (
           <div className="space-y-4 rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
             <div>
-              <label htmlFor="self-nickname" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="self-nickname"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Biệt danh của bạn
               </label>
               <input
@@ -212,7 +226,10 @@ export function NicknameSettingsPage() {
             </div>
 
             <div>
-              <label htmlFor="partner-nickname" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="partner-nickname"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Biệt danh của người ấy
               </label>
               <input
@@ -221,7 +238,7 @@ export function NicknameSettingsPage() {
                 maxLength={MAX_NICKNAME_LENGTH}
                 disabled={!partnerUserId}
                 onChange={(event) => setPartnerNickname(event.target.value)}
-                placeholder={partnerUserId ? 'Ví dụ: Thỏ' : 'Chưa có thành viên thứ hai'}
+                placeholder={partnerUserId ? 'Ví dụ: Thỏ' : 'Chưa có thành viên thứ 2'}
                 className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>

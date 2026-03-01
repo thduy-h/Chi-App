@@ -312,6 +312,12 @@ export type Database = {
           id: string
         } | null
       }
+      cleanup_orphan_couples: {
+        Args: {
+          p_older_than_days?: number
+        }
+        Returns: number
+      }
       delete_my_couple: {
         Args: {
           p_couple_id: string

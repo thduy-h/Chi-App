@@ -30,6 +30,14 @@ interface SetupClientProps {
   initialCouple: CouplePayload | null
 }
 
+interface CreatedCoupleHistoryItem {
+  id: string
+  code: string
+  created_at: string | null
+  memberCount: number
+  isCurrentMember: boolean
+}
+
 interface QueryDebugState {
   data: unknown
   rawType: string
@@ -204,6 +212,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [createCoupleDebug, setCreateCoupleDebug] = useState<CreateCoupleDebugState | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
+  const [createdCouplesHistory, setCreatedCouplesHistory] = useState<CreatedCoupleHistoryItem[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -224,6 +234,34 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const applyCoupleState = useCallback((next: CoupleState) => {
     setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
   }, [])
+
+  const loadCreatedCouplesHistory = useCallback(async () => {
+    try {
+      setHistoryLoading(true)
+      const response = await fetch('/api/couple/history', { method: 'GET', cache: 'no-store' })
+      const payload = (await response.json().catch(() => ({}))) as {
+        history?: CreatedCoupleHistoryItem[]
+        error?: string
+      }
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Không thể tải lịch sử couple đã tạo.')
+      }
+
+      setCreatedCouplesHistory(Array.isArray(payload.history) ? payload.history : [])
+    } catch (error) {
+      setCreatedCouplesHistory([])
+      dispatch(
+        setAlert({
+          type: 'warning',
+          title: 'Không tải được lịch sử couple',
+          message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
+        })
+      )
+    } finally {
+      setHistoryLoading(false)
+    }
+  }, [dispatch])
 
   const loadCoupleState = useCallback(
     async (options?: { initial?: boolean; expectedCoupleId?: string | null }) => {
@@ -356,6 +394,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   useEffect(() => {
     void loadCoupleState({ initial: true })
   }, [loadCoupleState])
+
+  useEffect(() => {
+    void loadCreatedCouplesHistory()
+  }, [loadCreatedCouplesHistory])
 
   const onCreateCouple = async () => {
     try {
@@ -497,6 +539,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       emitCoupleChangedEvent('create')
       setLatestRotatedCode(null)
       setLoadError(null)
+      void loadCreatedCouplesHistory()
 
       void loadCoupleState({ expectedCoupleId: verifiedCouple.id })
 
@@ -613,6 +656,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       applyCoupleState({ status: 'none' })
       emitCoupleChangedEvent('leave')
       setLatestRotatedCode(null)
+      void loadCreatedCouplesHistory()
       void loadCoupleState()
 
       dispatch(
@@ -663,6 +707,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       applyCoupleState({ status: 'none' })
       emitCoupleChangedEvent('delete')
       setLatestRotatedCode(null)
+      void loadCreatedCouplesHistory()
       void loadCoupleState()
 
       dispatch(
@@ -800,6 +845,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       })
       emitCoupleChangedEvent('reset')
       setLatestRotatedCode(null)
+      void loadCreatedCouplesHistory()
 
       void loadCoupleState({ expectedCoupleId: createdCouple.id })
 
@@ -879,6 +925,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         isOwner: true
       })
       emitCoupleChangedEvent('rotate')
+      void loadCreatedCouplesHistory()
 
       void loadCoupleState({ expectedCoupleId: coupleState.coupleId })
 
@@ -1050,6 +1097,48 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             Bạn đã có couple. Nút tạo/tham gia sẽ khóa cho tới khi bạn rời hoặc đặt lại couple.
           </div>
         ) : null}
+
+        <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Couple mình đã từng tạo</h2>
+          <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+            Danh sách các couple do bạn tạo và chưa bị xóa.
+          </p>
+
+          {historyLoading ? (
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">Đang tải lịch sử...</p>
+          ) : createdCouplesHistory.length < 1 ? (
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
+              Bạn chưa có couple nào đã tạo (hoặc đã bị xóa hết).
+            </p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {createdCouplesHistory.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">Mã: {item.code}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Tạo lúc:{' '}
+                      {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : 'không rõ'} · Thành viên:{' '}
+                      {item.memberCount}
+                    </p>
+                  </div>
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                      item.isCurrentMember
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
+                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                    }`}
+                  >
+                    {item.isCurrentMember ? 'Đang tham gia' : 'Đã rời'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
