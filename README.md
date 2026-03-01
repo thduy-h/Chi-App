@@ -35,6 +35,10 @@ Add these in `.env.local` (or Vercel project settings):
 
 \* For each feature (`/food`, `/letters`), set at least one destination URL so submit actions can forward successfully.
 
+### Supabase Couple RPC Notes
+- `create_couple(p_code)` must return `{ id, code }` and also insert membership for `auth.uid()` into `couple_members`.
+- `/setup` assumes the source of truth is `get_my_couple()`. If membership insert is missing in DB function, UI can show "Chưa có couple" right after create.
+
 ### Deploy To Vercel
 1. Push your branch to GitHub.
 2. In Vercel, click **Add New Project** and import this repo.

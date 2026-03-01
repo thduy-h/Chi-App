@@ -39,6 +39,19 @@ interface QueryDebugState {
   } | null
 }
 
+interface CreateCoupleDebugState {
+  data: unknown
+  rawType: string
+  parsedCoupleId: string | null
+  parsedCode: string | null
+  error: {
+    code: string | null
+    message: string | null
+    details: string | null
+    hint: string | null
+  } | null
+}
+
 interface CreateDiagnosticsError {
   message: string
   code: string
@@ -156,6 +169,19 @@ function isSameCoupleState(current: CoupleState, next: CoupleState) {
   )
 }
 
+function parseWhoami(payload: unknown): { uid: string | null; role: string | null } {
+  const row = Array.isArray(payload) ? (payload[0] ?? null) : payload
+  if (!row || typeof row !== 'object') {
+    return { uid: null, role: null }
+  }
+
+  const candidate = row as { uid?: unknown; role?: unknown }
+  return {
+    uid: typeof candidate.uid === 'string' ? candidate.uid : null,
+    role: typeof candidate.role === 'string' ? candidate.role : null
+  }
+}
+
 export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const router = useRouter()
   const dispatch = useDispatch()
@@ -174,6 +200,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [debugUserId, setDebugUserId] = useState<string | null>(null)
   const [whoamiDebug, setWhoamiDebug] = useState<QueryDebugState | null>(null)
   const [myCoupleDebug, setMyCoupleDebug] = useState<QueryDebugState | null>(null)
+  const [createCoupleDebug, setCreateCoupleDebug] = useState<CreateCoupleDebugState | null>(null)
   const [joinCode, setJoinCode] = useState('')
   const [latestRotatedCode, setLatestRotatedCode] = useState<string | null>(null)
 
@@ -185,6 +212,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [isRotatingCoupleCode, setIsRotatingCoupleCode] = useState(false)
 
   const activeCouple = coupleState.status === 'active' ? coupleState : null
+  const whoamiInfo = useMemo(() => parseWhoami(whoamiDebug?.data), [whoamiDebug?.data])
   const isBusy =
     isSubmitting ||
     isLeavingCouple ||
@@ -229,6 +257,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           setDebugUserId(null)
           setWhoamiDebug(null)
           setMyCoupleDebug(null)
+          setCreateCoupleDebug(null)
           setAuthUser({ id: null, email: initialEmail || null })
           setEmail(initialEmail || '')
           setLoadError(null)
@@ -330,6 +359,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const onCreateCouple = async () => {
     try {
       setIsSubmitting(true)
+      setLoadError(null)
 
       if (!supabase) {
         throw mapCreateError(null, 'Thiếu cấu hình Supabase')
@@ -382,13 +412,29 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const { data, error } = await supabase.rpc('create_couple', {
           p_code: code
         })
+        const parsed = parseCreatedCouple(data)
+        if (isDev) {
+          setCreateCoupleDebug({
+            data: data ?? null,
+            rawType: getRpcRowType(data),
+            parsedCoupleId: parsed?.id ?? null,
+            parsedCode: parsed?.code ?? null,
+            error: error
+              ? {
+                  code: error.code ?? null,
+                  message: error.message ?? null,
+                  details: error.details ?? null,
+                  hint: error.hint ?? null
+                }
+              : null
+          })
+        }
 
         if (error) {
           lastCreateError = mapCreateError(error, 'Không thể tạo couple')
           continue
         }
 
-        const parsed = parseCreatedCouple(data)
         if (!parsed) {
           lastCreateError = mapCreateError(
             {
@@ -410,15 +456,47 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw lastCreateError ?? mapCreateError(null, 'Không thể tạo couple')
       }
 
+      const { data: verifiedCoupleRaw, error: verifiedCoupleError } = await supabase.rpc('get_my_couple')
+      const verifiedCouple = normalizeRpcRow(verifiedCoupleRaw)
+      if (isDev) {
+        setMyCoupleDebug({
+          data: verifiedCoupleRaw ?? null,
+          rawType: getRpcRowType(verifiedCoupleRaw),
+          normalizedCoupleId: verifiedCouple?.id ?? null,
+          error: verifiedCoupleError
+            ? {
+                code: verifiedCoupleError.code ?? null,
+                message: verifiedCoupleError.message ?? null
+              }
+            : null
+        })
+      }
+
+      if (verifiedCoupleError || !verifiedCouple?.id) {
+        const blockingMessage =
+          'Tạo couple thành công nhưng chưa ghép vào couple. Vui lòng bấm làm mới hoặc Reset.'
+        setLoadError(blockingMessage)
+        applyCoupleState({ status: 'none' })
+        dispatch(
+          setAlert({
+            type: 'error',
+            title: 'Cần xử lý thêm',
+            message: blockingMessage
+          })
+        )
+        return
+      }
+
       applyCoupleState({
         status: 'active',
-        coupleId: createdCouple.id,
-        code: createdCouple.code,
+        coupleId: verifiedCouple.id,
+        code: verifiedCouple.code ?? createdCouple.code,
         isOwner: true
       })
       setLatestRotatedCode(null)
+      setLoadError(null)
 
-      void loadCoupleState({ expectedCoupleId: createdCouple.id })
+      void loadCoupleState({ expectedCoupleId: verifiedCouple.id })
 
       dispatch(
         setAlert({
@@ -875,12 +953,15 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         {isDev ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-200">
             <p className="font-semibold">Bảng debug (chỉ hiện ở môi trường dev)</p>
+            <p className="mt-2">whoami uid: {whoamiInfo.uid ?? '-'}</p>
+            <p>whoami role: {whoamiInfo.role ?? '-'}</p>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
               {JSON.stringify(
                 {
                   userId: debugUserId,
                   whoami: whoamiDebug,
-                  myCoupleRpc: myCoupleDebug
+                  myCoupleRpc: myCoupleDebug,
+                  createCoupleRpc: createCoupleDebug
                 },
                 null,
                 2
