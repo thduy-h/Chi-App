@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 
+import { resolveHomeMode } from '@/lib/home-mode'
 import { LettersComposePage } from '@/lib/components/pages/letters/letters-compose-page'
 import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { getCurrentCoupleForUser } from '@/lib/supabase/couples'
@@ -44,7 +45,10 @@ export default async function NewLetterPage() {
           <p className="mt-3 text-sm text-amber-900/90 dark:text-amber-200/90">
             Hãy vào trang thiết lập để tạo hoặc tham gia couple trước khi gửi thư.
           </p>
-          <Link href="/setup" className="mt-6 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700">
+          <Link
+            href="/setup"
+            className="mt-6 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700"
+          >
             Đi tới /setup
           </Link>
         </section>
@@ -52,5 +56,6 @@ export default async function NewLetterPage() {
     )
   }
 
-  return <LettersComposePage />
+  const mode = await resolveHomeMode(supabase)
+  return <LettersComposePage mode={mode} />
 }

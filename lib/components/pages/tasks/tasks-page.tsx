@@ -193,7 +193,7 @@ export const TasksPage = ({ mode = 'c' }: { mode?: HomeMode }) => {
             tabActive: 'bg-rose-600 text-white shadow',
             tabInactive:
               'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800',
-            badgeText: mode === 'a' ? 'Nhà Cáo Thỏ • Việc chung' : 'LoveHub Premium • Việc chung'
+            badgeText: mode === 'a' ? 'Nhà Cáo Thỏ • Việc chung' : 'LoveHub • Việc chung'
           },
     [colorMode, mode]
   )
@@ -406,7 +406,14 @@ export const TasksPage = ({ mode = 'c' }: { mode?: HomeMode }) => {
 
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <span className={palette.badge}>{palette.badgeText}</span>
+          <div className="inline-flex flex-wrap items-center gap-2">
+            <span className={palette.badge}>{palette.badgeText}</span>
+            {mode !== 'c' ? (
+              <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900 shadow-sm">
+                Premium
+              </span>
+            ) : null}
+          </div>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
             Quản lý việc chung và kế hoạch du lịch
           </h1>

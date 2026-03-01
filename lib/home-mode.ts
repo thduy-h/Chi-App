@@ -72,6 +72,16 @@ export async function resolveHomeMode(
       }
     }
 
+    const allowedModeBEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_B_EMAILS)
+    if (userEmail && allowedModeBEmails.has(userEmail)) {
+      return 'b'
+    }
+
+    const allowedModeCEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_C_EMAILS)
+    if (userEmail && allowedModeCEmails.has(userEmail)) {
+      return 'c'
+    }
+
     const { data: modeRow, error: modeError } = await supabase
       .from('user_home_modes')
       .select('mode')
@@ -85,16 +95,6 @@ export async function resolveHomeMode(
       }
     } else if (!isMissingTableError(modeError)) {
       return defaultMode
-    }
-
-    const allowedModeBEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_B_EMAILS)
-    if (userEmail && allowedModeBEmails.has(userEmail)) {
-      return 'b'
-    }
-
-    const allowedModeCEmails = parseEmailList(process.env.LOVEHUB_HOME_MODE_C_EMAILS)
-    if (userEmail && allowedModeCEmails.has(userEmail)) {
-      return 'c'
     }
 
     return defaultMode

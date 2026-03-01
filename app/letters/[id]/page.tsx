@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+import { resolveHomeMode } from '@/lib/home-mode'
 import { SealedEnvelopeViewer } from '@/lib/components/letters/SealedEnvelopeViewer'
 import { AuthRequired } from '@/lib/components/shared/auth-required'
 import type { LetterRecord } from '@/lib/letters/types'
@@ -104,6 +105,8 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
     senderNickname = nickname || null
   }
 
+  const mode = await resolveHomeMode(supabase)
+
   return (
     <SealedEnvelopeViewer
       letter={toLetterRecord({
@@ -117,6 +120,7 @@ export default async function LetterDetailPage({ params }: { params: { id: strin
         senderNickname
       })}
       canDelete={Boolean(data.created_by && data.created_by === user.id)}
+      mode={mode}
     />
   )
 }

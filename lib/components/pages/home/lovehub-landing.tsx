@@ -344,6 +344,9 @@ export const LoveHubLanding = ({ mode = 'c' }: LoveHubLandingProps) => {
         ctaSecondary: 'Mở Tài Chính'
       }
 
+  const isPremiumMode = mode === 'a' || mode === 'b'
+  const badgeLabel = isModeA ? 'Nhà Cáo Thỏ' : isModeBPink ? 'LoveHub' : 'LoveHub Public'
+
   return (
     <main className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
@@ -358,11 +361,18 @@ export const LoveHubLanding = ({ mode = 'c' }: LoveHubLandingProps) => {
       <section className="relative container mx-auto px-4 pb-12 pt-14 sm:px-6 lg:px-8 lg:pt-20">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <span
-              className={`inline-flex rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] shadow-sm ${palette.badge}`}
-            >
-              {copy.badge}
-            </span>
+            <div className="inline-flex flex-wrap items-center gap-2">
+              <span
+                className={`inline-flex rounded-full px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] shadow-sm ${palette.badge}`}
+              >
+                {badgeLabel}
+              </span>
+              {isPremiumMode ? (
+                <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900 shadow-sm">
+                  Premium
+                </span>
+              ) : null}
+            </div>
 
             <h1 className="mt-6 text-4xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
               {copy.heroPrefix}

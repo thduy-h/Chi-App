@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 
+import { resolveHomeMode } from '@/lib/home-mode'
 import { LettersInboxPage } from '@/lib/components/pages/letters/letters-inbox-page'
 import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { createClient } from '@/lib/supabase/server'
@@ -33,5 +34,6 @@ export default async function LettersInboxRoute() {
     )
   }
 
-  return <LettersInboxPage />
+  const mode = await resolveHomeMode(supabase)
+  return <LettersInboxPage mode={mode} />
 }

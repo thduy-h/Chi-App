@@ -5,14 +5,16 @@ import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
+import type { HomeMode } from '@/lib/home-mode'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import type { LetterKind } from '@/lib/letters/types'
 
 const moodOptions = ['Vui vẻ', 'Bình yên', 'Nhớ nhung', 'Biết ơn', 'Lãng mạn', 'Hào hứng']
 
-export function LettersComposePage() {
+export function LettersComposePage({ mode = 'c' }: { mode?: HomeMode }) {
   const router = useRouter()
   const dispatch = useDispatch()
+  const colorMode = mode === 'c' ? 'blue' : 'pink'
 
   const [kind, setKind] = useState<LetterKind>('love')
   const [title, setTitle] = useState('')
@@ -22,6 +24,31 @@ export function LettersComposePage() {
   const [submitting, setSubmitting] = useState(false)
 
   const messageCount = useMemo(() => message.trim().length, [message])
+
+  const theme =
+    colorMode === 'pink'
+      ? {
+          badge: 'text-rose-600 dark:text-rose-300',
+          panel: 'border-rose-100 dark:border-rose-900/40',
+          tabsWrap: 'border-rose-100 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/20',
+          activeTab: 'bg-rose-600 text-white',
+          inactiveTab: 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-900',
+          ring: 'ring-rose-300',
+          check: 'text-rose-600 focus:ring-rose-500',
+          primary: 'bg-rose-600 hover:bg-rose-700'
+        }
+      : {
+          badge: 'text-sky-600 dark:text-sky-300',
+          panel: 'border-sky-100 dark:border-sky-900/40',
+          tabsWrap: 'border-sky-100 bg-sky-50/70 dark:border-sky-900/50 dark:bg-sky-950/20',
+          activeTab: 'bg-sky-600 text-white',
+          inactiveTab: 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-900',
+          ring: 'ring-sky-300',
+          check: 'text-sky-600 focus:ring-sky-500',
+          primary: 'bg-sky-600 hover:bg-sky-700'
+        }
+
+  const badgeText = mode === 'a' ? 'Nhà Cáo Thỏ • Compose' : 'LoveHub • Compose'
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -90,9 +117,14 @@ export function LettersComposePage() {
       <section className="relative container mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600 dark:text-sky-300">
-              Compose
-            </p>
+            <div className="inline-flex flex-wrap items-center gap-2">
+              <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${theme.badge}`}>{badgeText}</p>
+              {mode !== 'c' ? (
+                <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-900 shadow-sm">
+                  Premium
+                </span>
+              ) : null}
+            </div>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
               Viết thư mới
             </h1>
@@ -106,15 +138,13 @@ export function LettersComposePage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
-          <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-sky-100 bg-sky-50/70 p-2 dark:border-sky-900/50 dark:bg-sky-950/20">
+        <div className={`rounded-2xl border bg-white p-5 shadow-sm dark:bg-gray-900 ${theme.panel}`}>
+          <div className={`mb-5 grid grid-cols-2 gap-2 rounded-xl border p-2 ${theme.tabsWrap}`}>
             <button
               type="button"
               onClick={() => setKind('love')}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                kind === 'love'
-                  ? 'bg-sky-600 text-white'
-                  : 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-900'
+                kind === 'love' ? theme.activeTab : theme.inactiveTab
               }`}
             >
               Thư tình
@@ -123,9 +153,7 @@ export function LettersComposePage() {
               type="button"
               onClick={() => setKind('feedback')}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                kind === 'feedback'
-                  ? 'bg-sky-600 text-white'
-                  : 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-900'
+                kind === 'feedback' ? theme.activeTab : theme.inactiveTab
               }`}
             >
               Góp ý
@@ -134,7 +162,10 @@ export function LettersComposePage() {
 
           <form className="space-y-4" onSubmit={onSubmit}>
             <div>
-              <label htmlFor="letters-title" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="letters-title"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Tiêu đề (tuỳ chọn)
               </label>
               <input
@@ -142,20 +173,23 @@ export function LettersComposePage() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={kind === 'love' ? 'Một chút dịu dàng...' : 'Ý kiến của mình...'}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className={`w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               />
             </div>
 
             {kind === 'love' ? (
               <div>
-                <label htmlFor="letters-mood" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                <label
+                  htmlFor="letters-mood"
+                  className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Tâm trạng (tuỳ chọn)
                 </label>
                 <select
                   id="letters-mood"
                   value={mood}
                   onChange={(event) => setMood(event.target.value)}
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                  className={`w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
                 >
                   <option value="">Không chọn</option>
                   {moodOptions.map((item) => (
@@ -168,7 +202,10 @@ export function LettersComposePage() {
             ) : null}
 
             <div>
-              <label htmlFor="letters-message" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="letters-message"
+                className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Nội dung
               </label>
               <textarea
@@ -181,7 +218,7 @@ export function LettersComposePage() {
                     ? 'Viết vài lời yêu thương cho người ấy...'
                     : 'Chia sẻ góp ý của bạn một cách cụ thể...'
                 }
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className={`w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               />
               <p className="mt-1 text-right text-xs text-gray-500 dark:text-gray-400">{messageCount} ký tự</p>
             </div>
@@ -191,7 +228,7 @@ export function LettersComposePage() {
                 type="checkbox"
                 checked={anonymous}
                 onChange={(event) => setAnonymous(event.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                className={`h-4 w-4 rounded border-gray-300 ${theme.check}`}
               />
               Gửi ẩn danh
             </label>
@@ -200,13 +237,9 @@ export function LettersComposePage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className={`inline-flex rounded-full px-6 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-70 ${theme.primary}`}
               >
-                {submitting
-                  ? 'Đang gửi...'
-                  : kind === 'love'
-                    ? 'Niêm phong & Gửi 💌'
-                    : 'Gửi góp ý 📝'}
+                {submitting ? 'Đang gửi...' : kind === 'love' ? 'Niêm phong & Gửi 💌' : 'Gửi góp ý 📝'}
               </button>
             </div>
           </form>
