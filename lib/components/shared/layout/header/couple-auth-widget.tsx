@@ -76,8 +76,8 @@ export function CoupleAuthWidget() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-xs text-gray-600 dark:border-rose-900/40 dark:bg-gray-800 dark:text-gray-200">
-        <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-rose-400" />
+      <div className="flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs text-gray-600 dark:border-sky-900/40 dark:bg-gray-800 dark:text-gray-200">
+        <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-sky-400" />
         Đang tải...
       </div>
     )
@@ -87,7 +87,7 @@ export function CoupleAuthWidget() {
     return (
       <Link
         href="/auth"
-        className="rounded-full bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-600"
+        className="rounded-full bg-sky-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-600"
       >
         Đăng nhập
       </Link>
@@ -99,7 +99,7 @@ export function CoupleAuthWidget() {
       <button
         type="button"
         onClick={() => setMenuOpen((previous) => !previous)}
-        className="inline-flex items-center gap-2 rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+        className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-sky-100 dark:border-sky-900/40 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
       >
         <span>{compactEmail(user.email)}</span>
         <span className="text-[10px] text-gray-500 dark:text-gray-400">v</span>
@@ -111,11 +111,11 @@ export function CoupleAuthWidget() {
 
           {couple?.code ? (
             <div className="mb-2 flex items-center justify-between gap-2 px-2 pb-2">
-              <p className="text-[11px] text-rose-600 dark:text-rose-300">Mã couple: {couple.code}</p>
+              <p className="text-[11px] text-sky-600 dark:text-sky-300">Mã couple: {couple.code}</p>
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(couple.code || '')}
-                className="rounded-md border border-rose-200 px-2 py-1 text-[10px] font-medium text-rose-700 transition hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-gray-800"
+                className="rounded-md border border-sky-200 px-2 py-1 text-[10px] font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:text-sky-200 dark:hover:bg-gray-800"
               >
                 Sao chép
               </button>
@@ -126,7 +126,7 @@ export function CoupleAuthWidget() {
               <Link
                 href="/setup"
                 onClick={() => setMenuOpen(false)}
-                className="text-[11px] font-medium text-rose-600 hover:underline dark:text-rose-300"
+                className="text-[11px] font-medium text-sky-600 hover:underline dark:text-sky-300"
               >
                 Tạo hoặc tham gia couple
               </Link>

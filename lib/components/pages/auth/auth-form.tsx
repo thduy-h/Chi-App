@@ -77,7 +77,7 @@ export function AuthForm() {
   }
 
   return (
-    <div className="mx-auto my-16 w-full max-w-md overflow-hidden rounded-2xl border border-rose-100 bg-white p-6 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+    <div className="mx-auto my-16 w-full max-w-md overflow-hidden rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
       <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Đăng nhập vào LoveHub</h1>
       <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
         Nhập email để nhận magic link hoặc OTP từ Supabase.
@@ -93,14 +93,14 @@ export function AuthForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none ring-rose-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 outline-none ring-sky-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
           placeholder="ban@vi-du.com"
         />
 
         <button
           type="submit"
           disabled={sending || !canUseSupabase}
-          className="w-full rounded-xl bg-rose-500 px-4 py-2.5 font-medium text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-rose-300"
+          className="w-full rounded-xl bg-sky-500 px-4 py-2.5 font-medium text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-300"
         >
           {sending ? 'Đang gửi...' : 'Gửi liên kết đăng nhập'}
         </button>
@@ -111,7 +111,7 @@ export function AuthForm() {
       </p>
 
       <div className="mt-4 text-sm">
-        <Link className="text-rose-600 hover:underline dark:text-rose-300" href="/">
+        <Link className="text-sky-600 hover:underline dark:text-sky-300" href="/">
           Về trang chủ
         </Link>
       </div>

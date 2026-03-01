@@ -90,7 +90,7 @@ export function LettersComposePage() {
       <section className="relative container mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600 dark:text-rose-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600 dark:text-sky-300">
               Compose
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
@@ -106,14 +106,14 @@ export function LettersComposePage() {
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-rose-100 bg-white p-5 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
-          <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-rose-100 bg-rose-50/70 p-2 dark:border-rose-900/50 dark:bg-rose-950/20">
+        <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
+          <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-sky-100 bg-sky-50/70 p-2 dark:border-sky-900/50 dark:bg-sky-950/20">
             <button
               type="button"
               onClick={() => setKind('love')}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                 kind === 'love'
-                  ? 'bg-rose-600 text-white'
+                  ? 'bg-sky-600 text-white'
                   : 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-900'
               }`}
             >
@@ -124,7 +124,7 @@ export function LettersComposePage() {
               onClick={() => setKind('feedback')}
               className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
                 kind === 'feedback'
-                  ? 'bg-rose-600 text-white'
+                  ? 'bg-sky-600 text-white'
                   : 'text-gray-600 hover:bg-white dark:text-gray-300 dark:hover:bg-gray-900'
               }`}
             >
@@ -142,7 +142,7 @@ export function LettersComposePage() {
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={kind === 'love' ? 'Một chút dịu dàng...' : 'Ý kiến của mình...'}
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               />
             </div>
 
@@ -155,7 +155,7 @@ export function LettersComposePage() {
                   id="letters-mood"
                   value={mood}
                   onChange={(event) => setMood(event.target.value)}
-                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                  className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 >
                   <option value="">Không chọn</option>
                   {moodOptions.map((item) => (
@@ -181,7 +181,7 @@ export function LettersComposePage() {
                     ? 'Viết vài lời yêu thương cho người ấy...'
                     : 'Chia sẻ góp ý của bạn một cách cụ thể...'
                 }
-                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-rose-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
               />
               <p className="mt-1 text-right text-xs text-gray-500 dark:text-gray-400">{messageCount} ký tự</p>
             </div>
@@ -191,7 +191,7 @@ export function LettersComposePage() {
                 type="checkbox"
                 checked={anonymous}
                 onChange={(event) => setAnonymous(event.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
               />
               Gửi ẩn danh
             </label>
@@ -200,7 +200,7 @@ export function LettersComposePage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex rounded-full bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {submitting
                   ? 'Đang gửi...'

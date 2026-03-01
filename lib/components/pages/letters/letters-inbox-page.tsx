@@ -94,13 +94,13 @@ export function LettersInboxPage() {
   return (
     <main className="relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-[-8rem] h-[22rem] w-[22rem] -translate-x-1/2 rounded-full bg-rose-200/60 blur-3xl dark:bg-rose-900/20" />
+        <div className="absolute left-1/2 top-[-8rem] h-[22rem] w-[22rem] -translate-x-1/2 rounded-full bg-sky-200/60 blur-3xl dark:bg-sky-900/20" />
       </div>
 
       <section className="relative container mx-auto max-w-5xl px-4 pb-16 pt-10 sm:px-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600 dark:text-rose-300">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600 dark:text-sky-300">
               LoveHub Letters
             </p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
@@ -113,13 +113,13 @@ export function LettersInboxPage() {
 
           <Link
             href="/letters/new"
-            className="inline-flex rounded-full bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+            className="inline-flex rounded-full bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700"
           >
             Viết thư mới 💌
           </Link>
         </div>
 
-        <div className="mb-4 rounded-2xl border border-rose-100 bg-white/90 p-4 shadow-sm dark:border-rose-900/40 dark:bg-gray-900/80">
+        <div className="mb-4 rounded-2xl border border-sky-100 bg-white/90 p-4 shadow-sm dark:border-sky-900/40 dark:bg-gray-900/80">
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Loại</p>
             <div className="flex flex-wrap gap-2">
@@ -134,8 +134,8 @@ export function LettersInboxPage() {
                   onClick={() => setKindFilter(item.id as KindFilter)}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                     kindFilter === item.id
-                      ? 'bg-rose-600 text-white'
-                      : 'border border-gray-300 bg-white text-gray-600 hover:bg-rose-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+                      ? 'bg-sky-600 text-white'
+                      : 'border border-gray-300 bg-white text-gray-600 hover:bg-sky-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
                   }`}
                 >
                   {item.label}
@@ -158,8 +158,8 @@ export function LettersInboxPage() {
                   onClick={() => setOpenedFilter(item.id as OpenedFilter)}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                     openedFilter === item.id
-                      ? 'bg-rose-600 text-white'
-                      : 'border border-gray-300 bg-white text-gray-600 hover:bg-rose-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
+                      ? 'bg-sky-600 text-white'
+                      : 'border border-gray-300 bg-white text-gray-600 hover:bg-sky-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800'
                   }`}
                 >
                   {item.label}
@@ -170,7 +170,7 @@ export function LettersInboxPage() {
         </div>
 
         {loading ? (
-          <div className="rounded-2xl border border-rose-100 bg-white p-6 text-sm text-gray-500 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-300">
+          <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-500 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-300">
             Đang tải hộp thư...
           </div>
         ) : null}
@@ -193,7 +193,7 @@ export function LettersInboxPage() {
         ) : null}
 
         {!loading && state === 'ready' && filteredLetters.length < 1 ? (
-          <div className="rounded-2xl border border-dashed border-rose-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-300">
+          <div className="rounded-2xl border border-dashed border-sky-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-300">
             Chưa có lá thư nào theo bộ lọc hiện tại.
           </div>
         ) : null}

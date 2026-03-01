@@ -24,7 +24,7 @@ export const Header = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-30 border-b border-rose-100/70 bg-white/90 shadow-sm backdrop-blur dark:border-rose-900/40 dark:bg-gray-900/90">
+      <nav className="sticky top-0 z-30 border-b border-sky-100/70 bg-white/90 shadow-sm backdrop-blur dark:border-sky-900/40 dark:bg-gray-900/90">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="flex h-16 items-center justify-between gap-3">
             <Link href="/" className="flex items-center gap-2">
@@ -42,8 +42,8 @@ export const Header = () => {
                   aria-current={isActive(item.href) ? 'page' : undefined}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     isActive(item.href)
-                      ? 'bg-rose-100 text-rose-700 ring-1 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-800'
-                      : 'text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:text-gray-200 dark:hover:bg-gray-800'
+                      ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-300 dark:bg-sky-900/40 dark:text-sky-200 dark:ring-sky-800'
+                      : 'text-gray-700 hover:bg-sky-50 hover:text-sky-700 dark:text-gray-200 dark:hover:bg-gray-800'
                   }`}
                 >
                   {item.label}
@@ -93,7 +93,7 @@ export const Header = () => {
         </div>
 
         <div
-          className={`border-t border-rose-100/80 bg-white/95 transition-all duration-200 dark:border-rose-900/30 dark:bg-gray-900/95 md:hidden ${
+          className={`border-t border-sky-100/80 bg-white/95 transition-all duration-200 dark:border-sky-900/30 dark:bg-gray-900/95 md:hidden ${
             isMenuOpen ? 'max-h-80 opacity-100' : 'max-h-0 overflow-hidden opacity-0'
           }`}
         >
@@ -106,8 +106,8 @@ export const Header = () => {
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={`rounded-xl px-4 py-3 text-sm font-medium transition ${
                   isActive(item.href)
-                    ? 'bg-rose-100 text-rose-700 ring-1 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-800'
-                    : 'bg-gray-50 text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-gray-800 dark:text-gray-200'
+                    ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-300 dark:bg-sky-900/40 dark:text-sky-200 dark:ring-sky-800'
+                    : 'bg-gray-50 text-gray-700 hover:bg-sky-50 hover:text-sky-700 dark:bg-gray-800 dark:text-gray-200'
                 }`}
               >
                 {item.label}

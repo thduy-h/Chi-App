@@ -371,11 +371,11 @@ export const TasksPage = () => {
 
   return (
     <main className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-rose-100/80 via-white to-white dark:from-rose-950/20 dark:via-gray-900 dark:to-gray-900" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900" />
 
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
+          <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
             LoveHub Việc Chung
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
@@ -386,7 +386,7 @@ export const TasksPage = () => {
           </p>
         </div>
 
-        <div className="mb-5 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200">
+        <div className="mb-5 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200">
           <p>
             <span className="font-semibold">Chế độ:</span>{' '}
             {syncMode === 'supabase' ? 'Đồng bộ Supabase' : 'Local trên thiết bị'}
@@ -423,15 +423,15 @@ export const TasksPage = () => {
           </div>
         )}
 
-        <div className="mb-6 rounded-2xl border border-rose-100 bg-white p-2 shadow-sm dark:border-rose-900/40 dark:bg-gray-900">
+        <div className="mb-6 rounded-2xl border border-sky-100 bg-white p-2 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setActiveTab('shared')}
               className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
                 activeTab === 'shared'
-                  ? 'bg-rose-600 text-white shadow'
-                  : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
+                  ? 'bg-sky-600 text-white shadow'
+                  : 'text-gray-700 hover:bg-sky-50 dark:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
               Việc chung
@@ -441,8 +441,8 @@ export const TasksPage = () => {
               onClick={() => setActiveTab('travel')}
               className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
                 activeTab === 'travel'
-                  ? 'bg-rose-600 text-white shadow'
-                  : 'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800'
+                  ? 'bg-sky-600 text-white shadow'
+                  : 'text-gray-700 hover:bg-sky-50 dark:text-gray-200 dark:hover:bg-gray-800'
               }`}
             >
               Kế hoạch du lịch
@@ -450,7 +450,7 @@ export const TasksPage = () => {
           </div>
         </div>
 
-        <div className="mb-5 rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200">
+        <div className="mb-5 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200">
           <p className="font-semibold">{tabCopy[activeTab].title}</p>
           <p className="mt-1 text-gray-600 dark:text-gray-300">{tabCopy[activeTab].description}</p>
         </div>
