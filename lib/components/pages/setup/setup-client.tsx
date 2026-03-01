@@ -7,6 +7,7 @@ import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import {
+  emitCoupleChangedEvent,
   generateCoupleCode,
   getRpcRowType,
   logGetMyCoupleRawOnce,
@@ -493,6 +494,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         code: verifiedCouple.code ?? createdCouple.code,
         isOwner: true
       })
+      emitCoupleChangedEvent('create')
       setLatestRotatedCode(null)
       setLoadError(null)
 
@@ -526,7 +528,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'warning',
-          title: 'Missing code',
+          title: 'Thiếu mã',
           message: 'Vui lòng nhập mã ghép đôi.'
         })
       )
@@ -568,6 +570,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       setJoinCode('')
+      emitCoupleChangedEvent('join')
       void loadCoupleState({ expectedCoupleId: joinedCoupleId })
 
       dispatch(
@@ -608,6 +611,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       applyCoupleState({ status: 'none' })
+      emitCoupleChangedEvent('leave')
       setLatestRotatedCode(null)
       void loadCoupleState()
 
@@ -623,7 +627,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Leave failed',
+          title: 'Rời couple thất bại',
           message: `${leaveError.message} (${leaveError.code})`
         })
       )
@@ -657,6 +661,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       applyCoupleState({ status: 'none' })
+      emitCoupleChangedEvent('delete')
       setLatestRotatedCode(null)
       void loadCoupleState()
 
@@ -793,6 +798,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         code: createdCouple.code,
         isOwner: true
       })
+      emitCoupleChangedEvent('reset')
       setLatestRotatedCode(null)
 
       void loadCoupleState({ expectedCoupleId: createdCouple.id })
@@ -872,6 +878,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         code: newCode,
         isOwner: true
       })
+      emitCoupleChangedEvent('rotate')
 
       void loadCoupleState({ expectedCoupleId: coupleState.coupleId })
 

@@ -32,6 +32,8 @@ export interface NormalizedRpcCoupleRow {
   created_by: string | null
 }
 
+export const LOVEHUB_COUPLE_CHANGED_EVENT = 'lovehub:couple-changed'
+
 let hasLoggedGetMyCoupleRawOnce = false
 
 export function getRpcRowType(payload: unknown): RpcRowType {
@@ -283,6 +285,21 @@ export function clearLovehubLocalStorage() {
   })
 
   clearActiveCoupleCache()
+}
+
+export function emitCoupleChangedEvent(reason: string) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.dispatchEvent(
+    new CustomEvent(LOVEHUB_COUPLE_CHANGED_EVENT, {
+      detail: {
+        reason,
+        at: new Date().toISOString()
+      }
+    })
+  )
 }
 
 export function readActiveCoupleCache(): { id: string; code: string | null } | null {
