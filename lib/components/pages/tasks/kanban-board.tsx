@@ -160,6 +160,7 @@ export const KanbanBoard = ({
   syncMode,
   activeCoupleId,
   refreshToken = 0,
+  colorMode = 'blue',
   defaultColumns,
   defaultTasks
 }: {
@@ -169,6 +170,7 @@ export const KanbanBoard = ({
   syncMode: SyncMode
   activeCoupleId: string | null
   refreshToken?: number
+  colorMode?: 'blue' | 'pink'
   defaultColumns: KanbanColumn[]
   defaultTasks: KanbanTask[]
 }) => {
@@ -193,6 +195,41 @@ export const KanbanBoard = ({
   const [isSyncing, setIsSyncing] = useState(false)
 
   const isSupabaseMode = syncMode === 'supabase' && Boolean(activeCoupleId)
+  const theme = useMemo(
+    () =>
+      colorMode === 'pink'
+        ? {
+            frame: 'border-rose-100 dark:border-rose-900/40',
+            primaryButton: 'bg-rose-600 hover:bg-rose-700',
+            secondaryButton:
+              'border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300',
+            columnBg: 'bg-rose-50/60 dark:bg-rose-900/10',
+            dragOver: 'bg-rose-100/80 dark:bg-rose-900/20',
+            ring: 'ring-rose-300',
+            addColumn:
+              'border-rose-300 bg-rose-50/60 text-rose-700 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-900/10 dark:text-rose-300 dark:hover:bg-rose-900/20',
+            deleteAction:
+              'text-rose-600 hover:bg-rose-100 dark:text-rose-300 dark:hover:bg-rose-900/30',
+            deleteText:
+              'text-rose-600 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-900/20'
+          }
+        : {
+            frame: 'border-sky-100 dark:border-sky-900/40',
+            primaryButton: 'bg-sky-600 hover:bg-sky-700',
+            secondaryButton:
+              'border-sky-200 text-sky-700 hover:bg-sky-50 dark:border-sky-900 dark:text-sky-300',
+            columnBg: 'bg-sky-50/60 dark:bg-sky-900/10',
+            dragOver: 'bg-sky-100/80 dark:bg-sky-900/20',
+            ring: 'ring-sky-300',
+            addColumn:
+              'border-sky-300 bg-sky-50/60 text-sky-700 hover:bg-sky-100 dark:border-sky-900/60 dark:bg-sky-900/10 dark:text-sky-300 dark:hover:bg-sky-900/20',
+            deleteAction:
+              'text-sky-600 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-900/30',
+            deleteText:
+              'text-sky-600 hover:bg-sky-50 dark:text-sky-300 dark:hover:bg-sky-900/20'
+          },
+    [colorMode]
+  )
 
   const groupedTasks = useMemo(() => {
     const groups: Record<string, KanbanTask[]> = {}
@@ -273,8 +310,8 @@ export const KanbanBoard = ({
         logSupabaseError('persistTaskChanges', error)
         dispatch(
           setAlert({
-            title: 'Ð?ng b? th?t b?i',
-            message: toErrorMessage(error, 'Không th? d?ng b? task lên Supabase'),
+            title: 'Đồng bộ thất bại',
+            message: toErrorMessage(error, 'Không thể đồng bộ task lên Supabase'),
             type: 'warning'
           })
         )
@@ -360,8 +397,8 @@ export const KanbanBoard = ({
       setSyncStatus('LOCAL')
       dispatch(
         setAlert({
-          title: 'T?i d? li?u th?t b?i',
-          message: toErrorMessage(error, 'Không th? t?i task t? Supabase'),
+          title: 'Tải dữ liệu thất bại',
+          message: toErrorMessage(error, 'Không thể tải task từ Supabase'),
           type: 'warning'
         })
       )
@@ -531,8 +568,8 @@ export const KanbanBoard = ({
       if (ok) {
         dispatch(
           setAlert({
-            title: 'Ðã c?p nh?t',
-            message: 'Vi?c dã du?c c?p nh?t.',
+            title: 'Đã cập nhật',
+            message: 'Việc đã được cập nhật.',
             type: 'success'
           })
         )
@@ -563,8 +600,8 @@ export const KanbanBoard = ({
     if (ok) {
       dispatch(
         setAlert({
-          title: 'Ðã t?o vi?c',
-          message: 'Vi?c m?i dã du?c thêm vào b?ng.',
+          title: 'Đã tạo việc',
+          message: 'Việc mới đã được thêm vào bảng.',
           type: 'success'
         })
       )
@@ -589,8 +626,8 @@ export const KanbanBoard = ({
     if (ok) {
       dispatch(
         setAlert({
-          title: 'Ðã xóa vi?c',
-          message: 'Vi?c dã du?c xóa kh?i b?ng.',
+          title: 'Đã xóa việc',
+          message: 'Việc đã được xóa khỏi bảng.',
           type: 'info'
         })
       )
@@ -619,8 +656,8 @@ export const KanbanBoard = ({
 
       dispatch(
         setAlert({
-          title: 'Ðã c?p nh?t c?t',
-          message: 'Tên c?t dã du?c thay d?i.',
+          title: 'Đã cập nhật cột',
+          message: 'Tên cột đã được thay đổi.',
           type: 'success'
         })
       )
@@ -632,8 +669,8 @@ export const KanbanBoard = ({
     if (!status) {
       dispatch(
         setAlert({
-          title: 'Mã tr?ng thái không h?p l?',
-          message: 'Vui lòng nh?p mã tr?ng thái khác.',
+          title: 'Mã trạng thái không hợp lệ',
+          message: 'Vui lòng nhập mã trạng thái khác.',
           type: 'error'
         })
       )
@@ -643,8 +680,8 @@ export const KanbanBoard = ({
     if (columns.some((column) => column.status === status)) {
       dispatch(
         setAlert({
-          title: 'Mã tr?ng thái b? trùng',
-          message: 'Mã tr?ng thái dã t?n t?i, hãy ch?n mã khác.',
+          title: 'Mã trạng thái bị trùng',
+          message: 'Mã trạng thái đã tồn tại, hãy chọn mã khác.',
           type: 'error'
         })
       )
@@ -656,8 +693,8 @@ export const KanbanBoard = ({
 
     dispatch(
       setAlert({
-        title: 'Ðã t?o c?t',
-        message: `C?t "${input.title}" dã du?c thêm.`,
+        title: 'Đã tạo cột',
+        message: `Cột "${input.title}" đã được thêm.`,
         type: 'success'
       })
     )
@@ -667,8 +704,8 @@ export const KanbanBoard = ({
     if (columns.length === 1) {
       dispatch(
         setAlert({
-          title: 'Không th? xóa',
-          message: 'B?ng ph?i có ít nh?t m?t c?t.',
+          title: 'Không thể xóa',
+          message: 'Bảng phải có ít nhất một cột.',
           type: 'warning'
         })
       )
@@ -679,7 +716,7 @@ export const KanbanBoard = ({
     if (
       taskCount > 0 &&
       !window.confirm(
-        `C?t "${column.title}" có ${taskCount} vi?c. B?n có ch?c mu?n xóa c?t này?`
+        `Cột "${column.title}" có ${taskCount} việc. Bạn có chắc muốn xóa cột này?`
       )
     ) {
       return
@@ -699,8 +736,8 @@ export const KanbanBoard = ({
 
     dispatch(
       setAlert({
-        title: 'Ðã xóa c?t',
-        message: `C?t "${column.title}" dã du?c xóa.`,
+        title: 'Đã xóa cột',
+        message: `Cột "${column.title}" đã được xóa.`,
         type: 'info'
       })
     )
@@ -770,22 +807,22 @@ export const KanbanBoard = ({
         if (!ok) {
           setColumns(previousColumns)
           setTasks(previousTasks)
-          throw new Error('Không th? d?ng b? d? li?u import lên Supabase')
+          throw new Error('Không thể đồng bộ dữ liệu import lên Supabase')
         }
       }
 
       dispatch(
         setAlert({
-          title: 'Nh?p d? li?u thành công',
-          message: `Ðã n?p board "${boardLabel}" t? file JSON.`,
+          title: 'Nhập dữ liệu thành công',
+          message: `Đã nạp board "${boardLabel}" từ file JSON.`,
           type: 'success'
         })
       )
     } catch {
       dispatch(
         setAlert({
-          title: 'Nh?p d? li?u th?t b?i',
-          message: 'File JSON không h?p l? ho?c không dúng c?u trúc.',
+          title: 'Nhập dữ liệu thất bại',
+          message: 'File JSON không hợp lệ hoặc không đúng cấu trúc.',
           type: 'error'
         })
       )
@@ -798,8 +835,8 @@ export const KanbanBoard = ({
     if (!isSupabaseMode) {
       dispatch(
         setAlert({
-          title: 'Ðang ? ch? d? local',
-          message: 'Hãy dang nh?p và tham gia couple d? b?t d?ng b? Supabase.',
+          title: 'Đang ở chế độ local',
+          message: 'Hãy đăng nhập và tham gia couple để bật đồng bộ Supabase.',
           type: 'info'
         })
       )
@@ -810,8 +847,8 @@ export const KanbanBoard = ({
     const ok = await persistTaskChanges(snapshot, columns.map((column) => column.status))
     dispatch(
       setAlert({
-        title: ok ? 'Ð?ng b? thành công' : 'Ð?ng b? th?t b?i',
-        message: ok ? 'Vi?c dã du?c d?ng b? lên Supabase.' : 'Không th? d?ng b? lúc này.',
+        title: ok ? 'Đồng bộ thành công' : 'Đồng bộ thất bại',
+        message: ok ? 'Việc đã được đồng bộ lên Supabase.' : 'Không thể đồng bộ lúc này.',
         type: ok ? 'success' : 'warning'
       })
     )
@@ -819,8 +856,8 @@ export const KanbanBoard = ({
 
   if (!hydrated) {
     return (
-      <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
-        <p className="text-sm text-gray-500 dark:text-gray-300">Ðang t?i d? li?u board...</p>
+      <div className={`rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 ${theme.frame}`}>
+        <p className="text-sm text-gray-500 dark:text-gray-300">Đang tải dữ liệu board...</p>
       </div>
     )
   }
@@ -842,12 +879,12 @@ export const KanbanBoard = ({
 
   return (
     <>
-      <div className="rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
+      <div className={`rounded-2xl border bg-white shadow-sm dark:bg-gray-900 ${theme.frame}`}>
         <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">{boardLabel}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Kéo th? task gi?a các c?t. Trên mobile có th? dùng dropdown d? chuy?n c?t.
+              Kéo thả task giữa các cột. Trên mobile có thể dùng dropdown để chuyển cột.
             </p>
           </div>
 
@@ -858,7 +895,7 @@ export const KanbanBoard = ({
                 : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                 }`}
             >
-              Tr?ng thái: {syncStatus === 'SYNCED' ? 'ÐÃ Ð?NG B?' : 'C?C B?'}
+              Trạng thái: {syncStatus === 'SYNCED' ? 'ĐÃ ĐỒNG BỘ' : 'CỤC BỘ'}
             </span>
             <button
               type="button"
@@ -866,35 +903,35 @@ export const KanbanBoard = ({
               disabled={!isSupabaseMode || isSyncing}
               className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              {isSyncing ? 'Ðang d?ng b?...' : 'Ð?ng b? ngay'}
+              {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ ngay'}
             </button>
             <button
               type="button"
               onClick={() => openCreateTaskModal(columns[0]?.status || '')}
-              className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700"
+              className={`rounded-lg px-3 py-2 text-xs font-semibold text-white transition ${theme.primaryButton}`}
             >
-              + Vi?c m?i
+              + Việc mới
             </button>
             <button
               type="button"
               onClick={openCreateColumnModal}
-              className="rounded-lg border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50 dark:border-sky-900 dark:text-sky-300 dark:hover:bg-gray-800"
+              className={`rounded-lg border px-3 py-2 text-xs font-semibold transition dark:hover:bg-gray-800 ${theme.secondaryButton}`}
             >
-              + C?t
+              + Cột
             </button>
             <button
               type="button"
               onClick={handleExport}
               className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              Xu?t JSON
+              Xuất JSON
             </button>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              Nh?p JSON
+              Nhập JSON
             </button>
             <input
               ref={fileInputRef}
@@ -912,7 +949,7 @@ export const KanbanBoard = ({
               {columns.map((column) => (
                 <div
                   key={column.status}
-                  className="w-72 flex-shrink-0 rounded-xl border border-gray-100 bg-sky-50/60 p-3 dark:border-gray-800 dark:bg-gray-800/40"
+                  className={`w-72 flex-shrink-0 rounded-xl border border-gray-100 p-3 dark:border-gray-800 dark:bg-gray-800/40 ${theme.columnBg}`}
                 >
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -937,7 +974,7 @@ export const KanbanBoard = ({
                         type="button"
                         onClick={() => openEditColumnModal(column)}
                         className="rounded-md p-1 text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
-                        title="Ð?i tên c?t"
+                        title="Đổi tên cột"
                       >
                         <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path d="M17.414 2.586a2 2 0 010 2.828l-9.5 9.5a1 1 0 01-.39.242l-4 1.333a1 1 0 01-1.265-1.265l1.333-4a1 1 0 01.242-.39l9.5-9.5a2 2 0 012.828 0z" />
@@ -946,8 +983,8 @@ export const KanbanBoard = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteColumn(column)}
-                        className="rounded-md p-1 text-gray-500 hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-300"
-                        title="Xóa c?t"
+                        className={`rounded-md p-1 text-gray-500 ${theme.deleteAction}`}
+                        title="Xóa cột"
                       >
                         <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                           <path
@@ -965,7 +1002,7 @@ export const KanbanBoard = ({
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`min-h-[7rem] space-y-2 rounded-lg p-1 transition ${snapshot.isDraggingOver ? 'bg-sky-100/80 dark:bg-sky-900/20' : ''}`}
+                        className={`min-h-[7rem] space-y-2 rounded-lg p-1 transition ${snapshot.isDraggingOver ? theme.dragOver : ''}`}
                       >
                         {groupedTasks[column.status]?.map((task, index) => (
                           <Draggable key={task.id} draggableId={task.id} index={index}>
@@ -981,7 +1018,7 @@ export const KanbanBoard = ({
                                     type="button"
                                     {...draggableProvided.dragHandleProps}
                                     className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                                    title="Kéo d? di chuy?n"
+                                    title="Kéo để di chuyển"
                                   >
                                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                       <path d="M7 4a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm0 6a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm-1.5 7.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM16 4a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm-1.5 7.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm1.5 4.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
@@ -997,7 +1034,7 @@ export const KanbanBoard = ({
                                   <select
                                     value={task.status}
                                     onChange={(event) => handleQuickMove(task.id, event.target.value)}
-                                    className="rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
+                                    className={`rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 ${theme.ring}`}
                                   >
                                     {columns.map((option) => (
                                       <option key={`${task.id}-${option.status}`} value={option.status}>
@@ -1012,12 +1049,12 @@ export const KanbanBoard = ({
                                       onClick={() => openEditTaskModal(task)}
                                       className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                                     >
-                                      S?a
+                                      Sửa
                                     </button>
                                     <button
                                       type="button"
                                       onClick={() => handleDeleteTask(task.id)}
-                                      className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-900/20"
+                                      className={`rounded-md px-2 py-1 text-xs font-medium ${theme.deleteText}`}
                                     >
                                       Xóa
                                     </button>
@@ -1026,7 +1063,7 @@ export const KanbanBoard = ({
 
                                 {task.dueDate && (
                                   <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                                    H?n: {task.dueDate}
+                                    Hạn: {task.dueDate}
                                   </p>
                                 )}
                               </article>
@@ -1043,9 +1080,9 @@ export const KanbanBoard = ({
               <button
                 type="button"
                 onClick={openCreateColumnModal}
-                className="w-64 flex-shrink-0 rounded-xl border border-dashed border-sky-300 bg-sky-50/60 p-4 text-sm font-semibold text-sky-700 transition hover:bg-sky-100 dark:border-sky-900/60 dark:bg-sky-900/10 dark:text-sky-300 dark:hover:bg-sky-900/20"
+                className={`w-64 flex-shrink-0 rounded-xl border border-dashed p-4 text-sm font-semibold transition ${theme.addColumn}`}
               >
-                + Thêm c?t m?i
+                + Thêm cột mới
               </button>
             </div>
           </div>
@@ -1055,6 +1092,7 @@ export const KanbanBoard = ({
       {isTaskModalOpen && (
         <TaskModal
           mode={taskModalMode}
+          colorMode={colorMode}
           columns={columns}
           initialData={taskModalInitial}
           onClose={() => setIsTaskModalOpen(false)}
@@ -1065,6 +1103,7 @@ export const KanbanBoard = ({
       {isColumnModalOpen && (
         <ColumnModal
           mode={columnModalMode}
+          colorMode={colorMode}
           initialData={
             editingColumn
               ? {

@@ -9,14 +9,32 @@ const cloneDays = (days: ItineraryDay[]) => days.map((day) => ({ ...day }))
 
 export const ItineraryPlanner = ({
   storageKey,
-  defaultDays
+  defaultDays,
+  colorMode = 'blue'
 }: {
   storageKey: string
   defaultDays: ItineraryDay[]
+  colorMode?: 'blue' | 'pink'
 }) => {
   const dispatch = useDispatch()
   const [days, setDays] = useState<ItineraryDay[]>(cloneDays(defaultDays))
   const [hydrated, setHydrated] = useState(false)
+  const theme =
+    colorMode === 'pink'
+      ? {
+          frame: 'border-rose-100 dark:border-rose-900/40',
+          primary: 'bg-rose-600 hover:bg-rose-700',
+          card: 'bg-rose-50/50 dark:bg-rose-900/10',
+          ring: 'ring-rose-300',
+          delete: 'text-rose-600 hover:bg-rose-100 dark:text-rose-300 dark:hover:bg-rose-900/20'
+        }
+      : {
+          frame: 'border-sky-100 dark:border-sky-900/40',
+          primary: 'bg-sky-600 hover:bg-sky-700',
+          card: 'bg-sky-50/50 dark:bg-sky-900/10',
+          ring: 'ring-sky-300',
+          delete: 'text-sky-600 hover:bg-sky-100 dark:text-sky-300 dark:hover:bg-sky-900/20'
+        }
 
   useEffect(() => {
     const raw = localStorage.getItem(storageKey)
@@ -99,7 +117,7 @@ export const ItineraryPlanner = ({
       .then((text) => {
         const parsed = JSON.parse(text) as ItineraryDay[]
         if (!Array.isArray(parsed)) {
-          throw new Error('Ð?nh d?ng l?ch trình không h?p l?')
+          throw new Error('Định dạng lịch trình không hợp lệ')
         }
 
         const imported = parsed
@@ -115,14 +133,14 @@ export const ItineraryPlanner = ({
           .filter((day) => day.title)
 
         if (imported.length < 1) {
-          throw new Error('Không có ngày h?p l? trong file')
+          throw new Error('Không có ngày hợp lệ trong file')
         }
 
         setDays(imported)
         dispatch(
           setAlert({
-            title: 'Nh?p l?ch trình thành công',
-            message: 'Danh sách ngày du l?ch dã du?c c?p nh?t.',
+            title: 'Nhập lịch trình thành công',
+            message: 'Danh sách ngày du lịch đã được cập nhật.',
             type: 'success'
           })
         )
@@ -130,8 +148,8 @@ export const ItineraryPlanner = ({
       .catch(() => {
         dispatch(
           setAlert({
-            title: 'Nh?p l?ch trình th?t b?i',
-            message: 'File JSON không dúng d?nh d?ng.',
+            title: 'Nhập lịch trình thất bại',
+            message: 'File JSON không đúng định dạng.',
             type: 'error'
           })
         )
@@ -143,26 +161,26 @@ export const ItineraryPlanner = ({
 
   if (!hydrated) {
     return (
-      <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
-        <p className="text-sm text-gray-500 dark:text-gray-300">Ðang t?i l?ch trình...</p>
+      <div className={`rounded-2xl border bg-white p-6 shadow-sm dark:bg-gray-900 ${theme.frame}`}>
+        <p className="text-sm text-gray-500 dark:text-gray-300">Đang tải lịch trình...</p>
       </div>
     )
   }
 
   return (
-    <section className="rounded-2xl border border-sky-100 bg-white shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
+    <section className={`rounded-2xl border bg-white shadow-sm dark:bg-gray-900 ${theme.frame}`}>
       <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 dark:border-gray-800 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-white">L?ch trình theo ngày</h3>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Lịch trình theo ngày</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Ghi nhanh ho?t d?ng chính cho t?ng ngày c?a chuy?n di.
+            Ghi nhanh hoạt động chính cho từng ngày của chuyến đi.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={addDay}
-            className="rounded-lg bg-sky-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-sky-700"
+            className={`rounded-lg px-3 py-2 text-xs font-semibold text-white transition ${theme.primary}`}
           >
             + Thêm ngày
           </button>
@@ -171,10 +189,10 @@ export const ItineraryPlanner = ({
             onClick={exportDays}
             className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
           >
-            Xu?t JSON
+            Xuất JSON
           </button>
           <label className="cursor-pointer rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800">
-            Nh?p JSON
+            Nhập JSON
             <input type="file" accept="application/json" className="hidden" onChange={importDays} />
           </label>
         </div>
@@ -184,18 +202,18 @@ export const ItineraryPlanner = ({
         {days.map((day) => (
           <article
             key={day.id}
-            className="rounded-xl border border-gray-100 bg-sky-50/50 p-4 dark:border-gray-700 dark:bg-gray-800/40"
+            className={`rounded-xl border border-gray-100 p-4 dark:border-gray-700 dark:bg-gray-800/40 ${theme.card}`}
           >
             <div className="mb-3 flex items-center justify-between gap-2">
               <input
                 value={day.title}
                 onChange={(event) => updateDay(day.id, 'title', event.target.value)}
-                className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-800 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className={`w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-800 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               />
               <button
                 type="button"
                 onClick={() => removeDay(day.id)}
-                className="rounded-md p-1 text-red-600 hover:bg-red-100 dark:text-red-300 dark:hover:bg-red-900/20"
+                className={`rounded-md p-1 ${theme.delete}`}
               >
                 <span className="sr-only">Xoá ngày</span>
                 <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -216,20 +234,20 @@ export const ItineraryPlanner = ({
                 type="date"
                 value={day.date}
                 onChange={(event) => updateDay(day.id, 'date', event.target.value)}
-                className="w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-800 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className={`w-full rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-800 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                Ho?t d?ng
+                Hoạt động
               </label>
               <textarea
                 value={day.activities}
                 onChange={(event) => updateDay(day.id, 'activities', event.target.value)}
                 rows={4}
-                placeholder="- Check-in khách s?n&#10;- Cà phê sáng&#10;- Tham quan..."
-                className="w-full rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-800 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                placeholder="- Check-in khách sạn&#10;- Cà phê sáng&#10;- Tham quan..."
+                className={`w-full rounded-md border border-gray-300 px-2 py-2 text-sm text-gray-800 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               />
             </div>
           </article>

@@ -5,12 +5,14 @@ import { KanbanColumn, TaskModalInput } from '@/lib/components/pages/tasks/types
 
 export const TaskModal = ({
   mode = 'create',
+  colorMode = 'blue',
   columns,
   initialData,
   onClose,
   onSubmit
 }: {
   mode?: 'create' | 'edit'
+  colorMode?: 'blue' | 'pink'
   columns: KanbanColumn[]
   initialData?: TaskModalInput
   onClose: () => void
@@ -21,6 +23,18 @@ export const TaskModal = ({
   const [dueDate, setDueDate] = useState(initialData?.dueDate || '')
   const [status, setStatus] = useState(initialData?.status || columns[0]?.status || '')
   const [error, setError] = useState('')
+  const theme =
+    colorMode === 'pink'
+      ? {
+          ring: 'ring-rose-300',
+          primary: 'bg-rose-600 hover:bg-rose-700',
+          error: 'text-rose-500'
+        }
+      : {
+          ring: 'ring-sky-300',
+          primary: 'bg-sky-600 hover:bg-sky-700',
+          error: 'text-sky-600'
+        }
 
   useEffect(() => {
     const closeByEscape = (event: KeyboardEvent) => {
@@ -36,7 +50,7 @@ export const TaskModal = ({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!content.trim()) {
-      setError('Vui lòng nh?p n?i dung task.')
+      setError('Vui lòng nhập nội dung task.')
       return
     }
 
@@ -53,14 +67,14 @@ export const TaskModal = ({
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {mode === 'create' ? 'T?o task m?i' : 'Ch?nh s?a task'}
+            {mode === 'create' ? 'Tạo task mới' : 'Chỉnh sửa task'}
           </h3>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           >
-            <span className="sr-only">Ðóng</span>
+            <span className="sr-only">Đóng</span>
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
@@ -77,7 +91,7 @@ export const TaskModal = ({
               htmlFor="task-content"
               className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              N?i dung task
+              Nội dung task
             </label>
             <input
               id="task-content"
@@ -86,10 +100,10 @@ export const TaskModal = ({
                 setContent(event.target.value)
                 if (error) setError('')
               }}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              placeholder="Ví d?: Ch?t l?ch di Ðà L?t cu?i tu?n"
+              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
+              placeholder="Ví dụ: Chốt lịch đi Đà Lạt cuối tuần"
             />
-            {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+            {error && <p className={`mt-1 text-xs ${theme.error}`}>{error}</p>}
           </div>
 
           <div>
@@ -104,8 +118,8 @@ export const TaskModal = ({
               rows={3}
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              placeholder="Chi ti?t thêm cho task này..."
+              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
+              placeholder="Chi tiết thêm cho task này..."
             />
           </div>
 
@@ -115,13 +129,13 @@ export const TaskModal = ({
                 htmlFor="task-status"
                 className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                C?t
+                Cột
               </label>
               <select
                 id="task-status"
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               >
                 {columns.map((column) => (
                   <option key={column.status} value={column.status}>
@@ -136,14 +150,14 @@ export const TaskModal = ({
                 htmlFor="task-due-date"
                 className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
               >
-                H?n d? ki?n
+                Hạn dự kiến
               </label>
               <input
                 id="task-due-date"
                 type="date"
                 value={dueDate}
                 onChange={(event) => setDueDate(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
               />
             </div>
           </div>
@@ -154,13 +168,13 @@ export const TaskModal = ({
               onClick={onClose}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              Hu?
+              Huỷ
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+              className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${theme.primary}`}
             >
-              {mode === 'create' ? 'T?o task' : 'Luu thay d?i'}
+              {mode === 'create' ? 'Tạo task' : 'Lưu thay đổi'}
             </button>
           </div>
         </form>

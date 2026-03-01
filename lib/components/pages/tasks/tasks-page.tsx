@@ -7,6 +7,7 @@ import { ItineraryPlanner } from '@/lib/components/pages/tasks/itinerary-planner
 import { KanbanBoard } from '@/lib/components/pages/tasks/kanban-board'
 import { BoardState, ItineraryDay, KanbanColumn, KanbanTask } from '@/lib/components/pages/tasks/types'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import type { HomeMode } from '@/lib/home-mode'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { logGetMyCoupleRawOnce, normalizeRpcRow } from '@/lib/supabase/couples'
 import type { Database } from '@/lib/supabase/types'
@@ -14,6 +15,7 @@ import type { Database } from '@/lib/supabase/types'
 const SHARED_STORAGE_KEY = 'lovehub.tasks.shared.v1'
 const TRAVEL_STORAGE_KEY = 'lovehub.tasks.travel.v1'
 const IMPORT_FLAG_PREFIX = 'lovehub_tasks_imported_'
+type TaskColorMode = 'pink' | 'blue'
 
 const sharedColumns: KanbanColumn[] = [
   { id: 'todo', title: 'Cần làm', status: 'todo' },
@@ -153,7 +155,7 @@ const chunkRows = <T,>(items: T[], size: number): T[][] => {
   return chunks
 }
 
-export const TasksPage = () => {
+export const TasksPage = ({ mode = 'c' }: { mode?: HomeMode }) => {
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
@@ -166,6 +168,35 @@ export const TasksPage = () => {
   const [showImportBanner, setShowImportBanner] = useState(false)
   const [isImportingOffline, setIsImportingOffline] = useState(false)
   const [boardRefreshToken, setBoardRefreshToken] = useState(0)
+  const colorMode: TaskColorMode = mode === 'c' ? 'blue' : 'pink'
+
+  const palette = useMemo(
+    () =>
+      colorMode === 'blue'
+        ? {
+            heroBackdrop:
+              'pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900',
+            badge:
+              'inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300',
+            panel: 'rounded-xl border border-sky-100 bg-white shadow-sm dark:border-sky-900/40 dark:bg-gray-900',
+            tabActive: 'bg-sky-600 text-white shadow',
+            tabInactive: 'text-gray-700 hover:bg-sky-50 dark:text-gray-200 dark:hover:bg-gray-800',
+            badgeText: mode === 'a' ? 'Nhà Cáo Thỏ • Việc chung' : 'LoveHub • Việc chung'
+          }
+        : {
+            heroBackdrop:
+              'pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-rose-100/80 via-white to-white dark:from-rose-950/20 dark:via-gray-900 dark:to-gray-900',
+            badge:
+              'inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
+            panel:
+              'rounded-xl border border-rose-100 bg-white shadow-sm dark:border-rose-900/40 dark:bg-gray-900',
+            tabActive: 'bg-rose-600 text-white shadow',
+            tabInactive:
+              'text-gray-700 hover:bg-rose-50 dark:text-gray-200 dark:hover:bg-gray-800',
+            badgeText: mode === 'a' ? 'Nhà Cáo Thỏ • Việc chung' : 'LoveHub Premium • Việc chung'
+          },
+    [colorMode, mode]
+  )
 
   const logSupabaseError = useCallback((context: string, error: unknown) => {
     const candidate = error as {
@@ -371,13 +402,11 @@ export const TasksPage = () => {
 
   return (
     <main className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900" />
+      <div className={palette.heroBackdrop} />
 
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
-            LoveHub Việc Chung
-          </span>
+          <span className={palette.badge}>{palette.badgeText}</span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
             Quản lý việc chung và kế hoạch du lịch
           </h1>
@@ -386,7 +415,7 @@ export const TasksPage = () => {
           </p>
         </div>
 
-        <div className="mb-5 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200">
+        <div className={`mb-5 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 ${palette.panel}`}>
           <p>
             <span className="font-semibold">Chế độ:</span>{' '}
             {syncMode === 'supabase' ? 'Đồng bộ Supabase' : 'Local trên thiết bị'}
@@ -423,15 +452,13 @@ export const TasksPage = () => {
           </div>
         )}
 
-        <div className="mb-6 rounded-2xl border border-sky-100 bg-white p-2 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
+        <div className={`mb-6 rounded-2xl p-2 ${palette.panel}`}>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setActiveTab('shared')}
               className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                activeTab === 'shared'
-                  ? 'bg-sky-600 text-white shadow'
-                  : 'text-gray-700 hover:bg-sky-50 dark:text-gray-200 dark:hover:bg-gray-800'
+                activeTab === 'shared' ? palette.tabActive : palette.tabInactive
               }`}
             >
               Việc chung
@@ -440,9 +467,7 @@ export const TasksPage = () => {
               type="button"
               onClick={() => setActiveTab('travel')}
               className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
-                activeTab === 'travel'
-                  ? 'bg-sky-600 text-white shadow'
-                  : 'text-gray-700 hover:bg-sky-50 dark:text-gray-200 dark:hover:bg-gray-800'
+                activeTab === 'travel' ? palette.tabActive : palette.tabInactive
               }`}
             >
               Kế hoạch du lịch
@@ -450,7 +475,7 @@ export const TasksPage = () => {
           </div>
         </div>
 
-        <div className="mb-5 rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200">
+        <div className={`mb-5 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 ${palette.panel}`}>
           <p className="font-semibold">{tabCopy[activeTab].title}</p>
           <p className="mt-1 text-gray-600 dark:text-gray-300">{tabCopy[activeTab].description}</p>
         </div>
@@ -463,6 +488,7 @@ export const TasksPage = () => {
             syncMode={syncMode}
             activeCoupleId={activeCoupleId}
             refreshToken={boardRefreshToken}
+            colorMode={colorMode}
             defaultColumns={sharedColumns}
             defaultTasks={sharedTasks}
           />
@@ -472,15 +498,20 @@ export const TasksPage = () => {
           <div className="space-y-5">
             <KanbanBoard
               storageKey={TRAVEL_STORAGE_KEY}
-            boardLabel="Kế hoạch du lịch"
+              boardLabel="Kế hoạch du lịch"
               boardKey="travel"
               syncMode={syncMode}
               activeCoupleId={activeCoupleId}
               refreshToken={boardRefreshToken}
+              colorMode={colorMode}
               defaultColumns={travelColumns}
               defaultTasks={travelTasks}
             />
-            <ItineraryPlanner storageKey="lovehub.tasks.travel.itinerary.v1" defaultDays={itineraryDays} />
+            <ItineraryPlanner
+              storageKey="lovehub.tasks.travel.itinerary.v1"
+              defaultDays={itineraryDays}
+              colorMode={colorMode}
+            />
           </div>
         )}
       </section>

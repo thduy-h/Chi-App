@@ -35,6 +35,29 @@ Add these in `.env.local` (or Vercel project settings):
 
 \* For each feature (`/food`, `/letters`), set at least one destination URL so submit actions can forward successfully.
 
+### Home Mode / Premium
+LoveHub supports 3 home modes:
+- `a`: text A (Nhà Cáo Thỏ)
+- `b`: text B pink (premium)
+- `c`: text B blue (public/default)
+
+Mode priority:
+1. `LOVEHUB_HOME_MODE_A_EMAILS` or owner couple (`LOVEHUB_HOME_OWNER_USER_ID`) -> `a`
+2. `public.user_home_modes` row by `user_id` -> `a|b|c`
+3. Env fallback `LOVEHUB_HOME_MODE_B_EMAILS` / `LOVEHUB_HOME_MODE_C_EMAILS`
+4. `LOVEHUB_HOME_DEFAULT_MODE` (default `c`)
+
+Set premium (`mode = b`) via SQL:
+```sql
+insert into public.user_home_modes (user_id, mode)
+values ('<USER_UUID>', 'b')
+on conflict (user_id)
+do update set mode = excluded.mode, updated_at = now();
+```
+
+Migration for this table:
+`supabase/migrations/20260302_user_home_modes.sql`
+
 ### Supabase Couple RPC Notes
 - `create_couple(p_code)` must return `{ id, code }` and also insert membership for `auth.uid()` into `couple_members`.
 - `/setup` assumes the source of truth is `get_my_couple()`. If membership insert is missing in DB function, UI can show "Chưa có couple" right after create.

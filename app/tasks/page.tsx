@@ -1,6 +1,8 @@
 import { Metadata } from 'next'
 
+import { resolveHomeMode } from '@/lib/home-mode'
 import { TasksPage } from '@/lib/components/pages/tasks/tasks-page'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: 'LoveHub | Việc chung',
@@ -8,5 +10,6 @@ export const metadata: Metadata = {
 }
 
 export default async function Page() {
-  return <TasksPage />
+  const mode = await resolveHomeMode(createClient())
+  return <TasksPage mode={mode} />
 }

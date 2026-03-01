@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react'
 
 export const ColumnModal = ({
   mode = 'create',
+  colorMode = 'blue',
   initialData,
   onClose,
   onSubmit
 }: {
   mode?: 'create' | 'edit'
+  colorMode?: 'blue' | 'pink'
   initialData?: { title: string; status: string }
   onClose: () => void
   onSubmit: (input: { title: string; status: string }) => void
@@ -16,6 +18,18 @@ export const ColumnModal = ({
   const [title, setTitle] = useState(initialData?.title || '')
   const [status, setStatus] = useState(initialData?.status || '')
   const [error, setError] = useState('')
+  const theme =
+    colorMode === 'pink'
+      ? {
+          ring: 'ring-rose-300',
+          primary: 'bg-rose-600 hover:bg-rose-700',
+          error: 'text-rose-500'
+        }
+      : {
+          ring: 'ring-sky-300',
+          primary: 'bg-sky-600 hover:bg-sky-700',
+          error: 'text-sky-600'
+        }
 
   useEffect(() => {
     const closeByEscape = (event: KeyboardEvent) => {
@@ -31,12 +45,12 @@ export const ColumnModal = ({
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!title.trim()) {
-      setError('Vui lòng nh?p tên c?t.')
+      setError('Vui lòng nhập tên cột.')
       return
     }
 
     if (!status.trim()) {
-      setError('Vui lòng nh?p status key.')
+      setError('Vui lòng nhập status key.')
       return
     }
 
@@ -51,14 +65,14 @@ export const ColumnModal = ({
       <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl dark:bg-gray-900">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {mode === 'create' ? 'T?o c?t m?i' : 'Ð?i tên c?t'}
+            {mode === 'create' ? 'Tạo cột mới' : 'Đổi tên cột'}
           </h3>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           >
-            <span className="sr-only">Ðóng</span>
+            <span className="sr-only">Đóng</span>
             <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path
                 fillRule="evenodd"
@@ -75,7 +89,7 @@ export const ColumnModal = ({
               htmlFor="column-title"
               className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
-              Tên c?t
+              Tên cột
             </label>
             <input
               id="column-title"
@@ -84,8 +98,8 @@ export const ColumnModal = ({
                 setTitle(event.target.value)
                 if (error) setError('')
               }}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              placeholder="Ví d?: Ðang th?c hi?n"
+              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 ${theme.ring}`}
+              placeholder="Ví dụ: Đang thực hiện"
             />
           </div>
 
@@ -104,12 +118,12 @@ export const ColumnModal = ({
                 setStatus(event.target.value)
                 if (error) setError('')
               }}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:disabled:bg-gray-900/70"
+              className={`w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring disabled:cursor-not-allowed disabled:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:disabled:bg-gray-900/70 ${theme.ring}`}
               placeholder="dang-thuc-hien"
             />
           </div>
 
-          {error && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className={`text-xs ${theme.error}`}>{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
             <button
@@ -117,13 +131,13 @@ export const ColumnModal = ({
               onClick={onClose}
               className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
             >
-              Hu?
+              Huỷ
             </button>
             <button
               type="submit"
-              className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+              className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${theme.primary}`}
             >
-              {mode === 'create' ? 'T?o c?t' : 'Luu'}
+              {mode === 'create' ? 'Tạo cột' : 'Lưu'}
             </button>
           </div>
         </form>

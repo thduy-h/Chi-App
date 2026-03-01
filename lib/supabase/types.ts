@@ -303,6 +303,24 @@ export type Database = {
         }
         Relationships: []
       }
+      user_home_modes: {
+        Row: {
+          user_id: string
+          mode: 'a' | 'b' | 'c'
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          mode?: 'a' | 'b' | 'c'
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          mode?: 'a' | 'b' | 'c'
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_link_tokens: {
         Row: {
           token: string
