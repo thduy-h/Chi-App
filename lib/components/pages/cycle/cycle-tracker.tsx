@@ -410,7 +410,7 @@ export const CycleTracker = () => {
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
           <span className="inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300">
-            LoveHub Cycle
+            LoveHub Chu kỳ
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
             Theo dõi chu kỳ
@@ -491,7 +491,7 @@ export const CycleTracker = () => {
                 type="submit"
                 className="mt-4 w-full rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700"
               >
-                Luu cai dat
+                Lưu cài đặt
               </button>
             </form>
 
@@ -500,7 +500,7 @@ export const CycleTracker = () => {
                 Lịch sử cập nhật
               </h2>
               {history.length < 1 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Chua co ban ghi lich su.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Chưa có bản ghi lịch sử.</p>
               ) : (
                 <div className="space-y-2">
                   {history.slice(0, 5).map((item) => (

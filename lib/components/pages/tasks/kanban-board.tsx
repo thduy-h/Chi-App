@@ -531,8 +531,8 @@ export const KanbanBoard = ({
       if (ok) {
         dispatch(
           setAlert({
-            title: 'Da cap nhat',
-            message: 'Task da duoc cap nhat.',
+            title: 'Đã cập nhật',
+            message: 'Việc đã được cập nhật.',
             type: 'success'
           })
         )
@@ -563,8 +563,8 @@ export const KanbanBoard = ({
     if (ok) {
       dispatch(
         setAlert({
-          title: 'Da tao task',
-          message: 'Task moi da duoc them vao board.',
+          title: 'Đã tạo việc',
+          message: 'Việc mới đã được thêm vào bảng.',
           type: 'success'
         })
       )
@@ -589,8 +589,8 @@ export const KanbanBoard = ({
     if (ok) {
       dispatch(
         setAlert({
-          title: 'Da xoa task',
-          message: 'Task da duoc xoa khoi board.',
+          title: 'Đã xóa việc',
+          message: 'Việc đã được xóa khỏi bảng.',
           type: 'info'
         })
       )
@@ -619,8 +619,8 @@ export const KanbanBoard = ({
 
       dispatch(
         setAlert({
-          title: 'Da cap nhat cot',
-          message: 'Ten cot da duoc thay doi.',
+          title: 'Đã cập nhật cột',
+          message: 'Tên cột đã được thay đổi.',
           type: 'success'
         })
       )
@@ -632,8 +632,8 @@ export const KanbanBoard = ({
     if (!status) {
       dispatch(
         setAlert({
-          title: 'Status key khong hop le',
-          message: 'Vui long nhap status key khac.',
+          title: 'Mã trạng thái không hợp lệ',
+          message: 'Vui lòng nhập mã trạng thái khác.',
           type: 'error'
         })
       )
@@ -643,8 +643,8 @@ export const KanbanBoard = ({
     if (columns.some((column) => column.status === status)) {
       dispatch(
         setAlert({
-          title: 'Status key trung',
-          message: 'Status key da ton tai, hay chon key khac.',
+          title: 'Mã trạng thái bị trùng',
+          message: 'Mã trạng thái đã tồn tại, hãy chọn mã khác.',
           type: 'error'
         })
       )
@@ -656,8 +656,8 @@ export const KanbanBoard = ({
 
     dispatch(
       setAlert({
-        title: 'Da tao cot',
-        message: `Cot "${input.title}" da duoc them.`,
+        title: 'Đã tạo cột',
+        message: `Cột "${input.title}" đã được thêm.`,
         type: 'success'
       })
     )
@@ -667,8 +667,8 @@ export const KanbanBoard = ({
     if (columns.length === 1) {
       dispatch(
         setAlert({
-          title: 'Khong the xoa',
-          message: 'Board phai co it nhat mot cot.',
+          title: 'Không thể xóa',
+          message: 'Bảng phải có ít nhất một cột.',
           type: 'warning'
         })
       )
@@ -679,7 +679,7 @@ export const KanbanBoard = ({
     if (
       taskCount > 0 &&
       !window.confirm(
-        `Cot "${column.title}" co ${taskCount} task. Ban co chac muon xoa cot nay?`
+        `Cột "${column.title}" có ${taskCount} việc. Bạn có chắc muốn xóa cột này?`
       )
     ) {
       return
@@ -699,8 +699,8 @@ export const KanbanBoard = ({
 
     dispatch(
       setAlert({
-        title: 'Da xoa cot',
-        message: `Cot "${column.title}" da duoc xoa.`,
+        title: 'Đã xóa cột',
+        message: `Cột "${column.title}" đã được xóa.`,
         type: 'info'
       })
     )
@@ -811,7 +811,7 @@ export const KanbanBoard = ({
     dispatch(
       setAlert({
         title: ok ? 'Đồng bộ thành công' : 'Đồng bộ thất bại',
-        message: ok ? 'Task đã được đồng bộ lên Supabase.' : 'Không thể đồng bộ lúc này.',
+        message: ok ? 'Việc đã được đồng bộ lên Supabase.' : 'Không thể đồng bộ lúc này.',
         type: ok ? 'success' : 'warning'
       })
     )
@@ -858,7 +858,7 @@ export const KanbanBoard = ({
                 : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
                 }`}
             >
-              Trạng thái: {syncStatus === 'SYNCED' ? 'ĐÃ ĐỒNG BỘ' : 'LOCAL'}
+              Trạng thái: {syncStatus === 'SYNCED' ? 'ĐÃ ĐỒNG BỘ' : 'CỤC BỘ'}
             </span>
             <button
               type="button"
@@ -1026,7 +1026,7 @@ export const KanbanBoard = ({
 
                                 {task.dueDate && (
                                   <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                                    Háº¡n: {task.dueDate}
+                                    Hạn: {task.dueDate}
                                   </p>
                                 )}
                               </article>

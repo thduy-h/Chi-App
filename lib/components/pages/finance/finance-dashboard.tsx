@@ -24,8 +24,8 @@ interface FinanceEntry {
 const STORAGE_KEY = 'lovehub.finance.entries.v1'
 const IMPORT_FLAG_PREFIX = 'lovehub_finance_imported_'
 
-const INCOME_CATEGORIES = ['Luong', 'Thuong', 'Qua tang', 'Khac']
-const EXPENSE_CATEGORIES = ['An uong', 'Di chuyen', 'Mua sam', 'Hen ho', 'Du lich', 'Hoa don', 'Khac']
+const INCOME_CATEGORIES = ['Lương', 'Thưởng', 'Quà tặng', 'Khác']
+const EXPENSE_CATEGORIES = ['Ăn uống', 'Di chuyển', 'Mua sắm', 'Hẹn hò', 'Du lịch', 'Hóa đơn', 'Khác']
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('vi-VN', {
@@ -532,7 +532,7 @@ export const FinanceDashboard = () => {
       dispatch(
         setAlert({
           title: 'Import thành công',
-          message: `Da import ${localEntries.length} giao dich len cloud.`,
+          message: `Đã import ${localEntries.length} giao dịch lên cloud.`,
           type: 'success'
         })
       )
@@ -561,7 +561,7 @@ export const FinanceDashboard = () => {
     }
 
     if (!category.trim() || !date) {
-      setFormError('Vui long dien day du danh muc va ngay.')
+      setFormError('Vui lòng điền đầy đủ danh mục và ngày.')
       return
     }
 
@@ -589,10 +589,10 @@ export const FinanceDashboard = () => {
       }
       dispatch(
         setAlert({
-          title: existing ? 'Da cap nhat giao dich' : 'Da them giao dich',
+          title: existing ? 'Đã cập nhật giao dịch' : 'Đã thêm giao dịch',
           message: existing
-            ? 'Giao dich da duoc cap nhat.'
-            : 'Giao dich moi da duoc luu vao bang tai chinh.',
+            ? 'Giao dịch đã được cập nhật.'
+            : 'Giao dịch mới đã được lưu vào bảng tài chính.',
           type: 'success'
         })
       )
@@ -622,8 +622,8 @@ export const FinanceDashboard = () => {
       }
       dispatch(
         setAlert({
-          title: 'Da xoa',
-          message: 'Giao dich da duoc xoa.',
+          title: 'Đã xóa',
+          message: 'Giao dịch đã được xóa.',
           type: 'info'
         })
       )
@@ -791,15 +791,15 @@ export const FinanceDashboard = () => {
         <div className="grid gap-6 xl:grid-cols-3">
           <div className="space-y-6 xl:col-span-2">
             <div className="grid gap-4 sm:grid-cols-3">
-              <SummaryCard title="Thu nhap" value={monthIncome} color="green" />
-              <SummaryCard title="Chi tieu" value={monthExpense} color="rose" />
+              <SummaryCard title="Thu nhập" value={monthIncome} color="green" />
+              <SummaryCard title="Chi tiêu" value={monthExpense} color="rose" />
               <SummaryCard title="Số dư ròng" value={monthNet} color={monthNet >= 0 ? 'blue' : 'red'} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                  Chi tieu theo danh muc
+                  Chi tiêu theo danh mục
                 </h2>
                 {expenseByCategory.length < 1 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -831,7 +831,7 @@ export const FinanceDashboard = () => {
 
               <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
                 <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                  Xu huong 6 thang
+                  Xu hướng 6 tháng
                 </h2>
                 <div className="grid grid-cols-6 items-end gap-2">
                   {recentSeries.map((item) => {
@@ -850,7 +850,7 @@ export const FinanceDashboard = () => {
                   })}
                 </div>
                 <p className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                  Xanh la so du duong, do la am.
+                  Xanh là số dư dương, đỏ là âm.
                 </p>
               </div>
             </div>
@@ -858,10 +858,10 @@ export const FinanceDashboard = () => {
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
               <div className="mb-3 flex items-center justify-between">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                  Giao dich trong thang
+                  Giao dịch trong tháng
                 </h2>
                 <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {monthEntries.length} giao dich
+                  {monthEntries.length} giao dịch
                 </span>
               </div>
 
@@ -877,9 +877,9 @@ export const FinanceDashboard = () => {
                         <th className="py-2 pr-3">Ngày</th>
                         <th className="py-2 pr-3">Loại</th>
                         <th className="py-2 pr-3">Danh mục</th>
-                        <th className="py-2 pr-3">So tien</th>
-                        <th className="py-2 pr-3">Ghi chu</th>
-                        <th className="py-2 text-right">Tac vu</th>
+                        <th className="py-2 pr-3">Số tiền</th>
+                        <th className="py-2 pr-3">Ghi chú</th>
+                        <th className="py-2 text-right">Tác vụ</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -965,7 +965,7 @@ export const FinanceDashboard = () => {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    So tien
+                    Số tiền
                   </label>
                   <input
                     type="number"
@@ -1012,7 +1012,7 @@ export const FinanceDashboard = () => {
 
                 <div>
                   <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-300">
-                    Ghi chu
+                    Ghi chú
                   </label>
                   <textarea
                     rows={3}
@@ -1049,7 +1049,7 @@ export const FinanceDashboard = () => {
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900/70">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-700 dark:text-gray-200">
-                Backup JSON
+                Sao lưu JSON
               </h2>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -1130,7 +1130,7 @@ const SummaryCard = ({
         <span
           className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${colorMap[color].iconBg} ${colorMap[color].iconText}`}
         >
-          â‚«
+          ₫
         </span>
         <h3 className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-200">{title}</h3>
       </div>

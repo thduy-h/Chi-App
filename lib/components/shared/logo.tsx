@@ -1,13 +1,10 @@
-import Image from 'next/image'
-
 export const Logo = () => {
-	return (
-		<Image
-			src="/next.svg"
-			alt="logo"
-			width={120}
-			height={80}
-			className="max-w-[5rem] dark:invert dark:filter"
-		/>
-	)
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-pink-500 text-xs font-bold text-white shadow-sm"
+    >
+      LH
+    </span>
+  )
 }
