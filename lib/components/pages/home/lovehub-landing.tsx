@@ -68,7 +68,7 @@ const featureLinksB: FeatureLink[] = [
     title: 'Gợi Ý Món Ăn',
     subtitle: 'Chọn món nhanh',
     description: 'Lọc theo danh mục, tìm món theo tên và bấm random để chốt bữa ăn trong vài giây.',
-    color: 'from-amber-400 to-orange-500'
+    color: 'from-teal-400 to-cyan-500'
   },
   {
     href: '/cycle',
@@ -96,7 +96,7 @@ const featureLinksB: FeatureLink[] = [
     title: 'Hộp Thư Cặp Đôi',
     subtitle: 'Lưu điều muốn nói',
     description: 'Gửi thư tình hoặc góp ý tinh tế để giữ cuộc trò chuyện luôn mềm mại và chân thành.',
-    color: 'from-pink-400 to-rose-500'
+    color: 'from-indigo-400 to-fuchsia-500'
   }
 ]
 
