@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { Cart } from '@/lib/components/shared/cart'
 import { Logo } from '@/lib/components/shared/logo'
 import { CoupleAuthWidget } from '@/lib/components/shared/layout/header/couple-auth-widget'
@@ -18,7 +19,8 @@ const navLinks = [
   { href: '/letters', label: 'Lá thư' }
 ]
 
-export const Header = ({ mode = 'c' }: { mode?: HomeMode }) => {
+export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
+  const mode = useResolvedHomeMode(initialMode)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const pathname = usePathname()
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`)

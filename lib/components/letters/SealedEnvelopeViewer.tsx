@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { LetterPaper } from '@/lib/components/letters/LetterPaper'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import { getLetterDisplayTitle, type LetterRecord } from '@/lib/letters/types'
@@ -19,8 +20,9 @@ interface SealedEnvelopeViewerProps {
 export function SealedEnvelopeViewer({
   letter,
   canDelete,
-  mode = 'c'
+  mode: initialMode = 'c'
 }: SealedEnvelopeViewerProps) {
+  const mode = useResolvedHomeMode(initialMode)
   const router = useRouter()
   const dispatch = useDispatch()
 

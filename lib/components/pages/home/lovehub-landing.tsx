@@ -1,6 +1,9 @@
+ 'use client'
+
 import Link from 'next/link'
 
-type HomeMode = 'a' | 'b' | 'c'
+import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 
 interface LoveHubLandingProps {
   mode?: HomeMode
@@ -160,7 +163,8 @@ const stepsB: StepItem[] = [
   }
 ]
 
-export const LoveHubLanding = ({ mode = 'c' }: LoveHubLandingProps) => {
+export const LoveHubLanding = ({ mode: initialMode = 'c' }: LoveHubLandingProps) => {
+  const mode = useResolvedHomeMode(initialMode)
   const isModeA = mode === 'a'
   const isModeBPink = mode === 'b'
   const featureLinks = (isModeA ? featureLinksA : featureLinksB).map((item, index) => {

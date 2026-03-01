@@ -6,12 +6,14 @@ import { useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import type { LetterKind } from '@/lib/letters/types'
 
 const moodOptions = ['Vui vẻ', 'Bình yên', 'Nhớ nhung', 'Biết ơn', 'Lãng mạn', 'Hào hứng']
 
-export function LettersComposePage({ mode = 'c' }: { mode?: HomeMode }) {
+export function LettersComposePage({ mode: initialMode = 'c' }: { mode?: HomeMode }) {
+  const mode = useResolvedHomeMode(initialMode)
   const router = useRouter()
   const dispatch = useDispatch()
   const colorMode = mode === 'c' ? 'blue' : 'pink'

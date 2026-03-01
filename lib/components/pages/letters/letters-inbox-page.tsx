@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 
 import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { LetterEnvelopeCard } from '@/lib/components/letters/LetterEnvelopeCard'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import type { LetterKind, LetterRecord } from '@/lib/letters/types'
@@ -20,7 +21,8 @@ interface InboxPayload {
   coupleCode?: string | null
 }
 
-export function LettersInboxPage({ mode = 'c' }: { mode?: HomeMode }) {
+export function LettersInboxPage({ mode: initialMode = 'c' }: { mode?: HomeMode }) {
+  const mode = useResolvedHomeMode(initialMode)
   const dispatch = useDispatch()
   const colorMode = mode === 'c' ? 'blue' : 'pink'
 

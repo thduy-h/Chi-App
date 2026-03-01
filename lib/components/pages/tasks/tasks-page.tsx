@@ -8,6 +8,7 @@ import { KanbanBoard } from '@/lib/components/pages/tasks/kanban-board'
 import { BoardState, ItineraryDay, KanbanColumn, KanbanTask } from '@/lib/components/pages/tasks/types'
 import { setAlert } from '@/lib/features/alert/alertSlice'
 import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { logGetMyCoupleRawOnce, normalizeRpcRow } from '@/lib/supabase/couples'
 import type { Database } from '@/lib/supabase/types'
@@ -155,7 +156,8 @@ const chunkRows = <T,>(items: T[], size: number): T[][] => {
   return chunks
 }
 
-export const TasksPage = ({ mode = 'c' }: { mode?: HomeMode }) => {
+export const TasksPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
+  const mode = useResolvedHomeMode(initialMode)
   const dispatch = useDispatch()
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
 
