@@ -345,6 +345,28 @@ export function NotificationsSettingsPage() {
               <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/20 dark:text-amber-200">
                 <p className="font-semibold">Mã liên kết: {linkTokenInfo.token}</p>
                 <p className="mt-1">{linkTokenInfo.instructions}</p>
+                <p className="mt-2 text-xs">
+                  Bot Telegram:{' '}
+                  <a
+                    href="https://t.me/LoveSysBot"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold underline underline-offset-2 hover:opacity-80"
+                  >
+                    t.me/LoveSysBot
+                  </a>
+                </p>
+                <p className="mt-1 text-xs">
+                  Mở nhanh với mã:{' '}
+                  <a
+                    href={`https://t.me/LoveSysBot?start=${encodeURIComponent(linkTokenInfo.token)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold underline underline-offset-2 hover:opacity-80"
+                  >
+                    t.me/LoveSysBot?start=...
+                  </a>
+                </p>
                 <p className="mt-1 text-xs">
                   Hết hạn lúc: {new Date(linkTokenInfo.expiresAt).toLocaleString('vi-VN')}
                 </p>

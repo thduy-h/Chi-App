@@ -58,7 +58,7 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
 
   return (
     <nav
-      className={`sticky top-0 z-30 overflow-x-hidden border-b bg-white/90 shadow-sm backdrop-blur dark:bg-gray-900/90 ${theme.navWrap}`}
+      className={`sticky top-0 z-50 overflow-visible border-b bg-white/90 shadow-sm backdrop-blur dark:bg-gray-900/90 ${theme.navWrap}`}
     >
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-3">
@@ -91,7 +91,7 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <div className="hidden md:block">
+            <div className="relative z-[70] hidden md:block">
               <CoupleAuthWidget mode={mode} />
             </div>
             <DarkModeToggle />

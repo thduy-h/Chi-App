@@ -121,7 +121,7 @@ export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative z-[80]" ref={menuRef}>
       <button
         type="button"
         onClick={() => setMenuOpen((previous) => !previous)}
@@ -132,7 +132,7 @@ export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
       </button>
 
       {menuOpen ? (
-        <div className="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+        <div className="absolute right-0 z-[90] mt-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900">
           <p className="px-2 py-1 text-[11px] text-gray-500 dark:text-gray-400">{user.email}</p>
 
           {couple?.code ? (

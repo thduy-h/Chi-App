@@ -79,7 +79,7 @@ function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnost
 
     return {
       message: candidate.message ?? fallbackMessage,
-      code: candidate.code ?? 'không rõ',
+      code: candidate.code ?? 'khÃ´ng rÃµ',
       details: candidate.details ?? null,
       hint: candidate.hint ?? null
     }
@@ -87,7 +87,7 @@ function mapCreateError(error: unknown, fallbackMessage: string): CreateDiagnost
 
   return {
     message: fallbackMessage,
-    code: 'không rõ',
+    code: 'khÃ´ng rÃµ',
     details: null,
     hint: null
   }
@@ -221,6 +221,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   const [isDeletingCouple, setIsDeletingCouple] = useState(false)
   const [isResettingCouple, setIsResettingCouple] = useState(false)
   const [isRotatingCoupleCode, setIsRotatingCoupleCode] = useState(false)
+  const [deletingHistoryCoupleId, setDeletingHistoryCoupleId] = useState<string | null>(null)
 
   const activeCouple = coupleState.status === 'active' ? coupleState : null
   const whoamiInfo = useMemo(() => parseWhoami(whoamiDebug?.data), [whoamiDebug?.data])
@@ -230,6 +231,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     isDeletingCouple ||
     isResettingCouple ||
     isRotatingCoupleCode
+  const statusTextClass =
+    coupleState.status === 'active'
+      ? 'text-emerald-700 dark:text-emerald-300'
+      : coupleState.status === 'none'
+        ? 'text-amber-700 dark:text-amber-300'
+        : 'text-red-700 dark:text-red-300'
 
   const applyCoupleState = useCallback((next: CoupleState) => {
     setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
@@ -245,7 +252,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (!response.ok) {
-        throw new Error(payload.error || 'Không thể tải lịch sử couple đã tạo.')
+        throw new Error(payload.error || 'KhÃ´ng thá»ƒ táº£i lá»‹ch sá»­ couple Ä‘Ã£ táº¡o.')
       }
 
       setCreatedCouplesHistory(Array.isArray(payload.history) ? payload.history : [])
@@ -254,8 +261,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'warning',
-          title: 'Không tải được lịch sử couple',
-          message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
+          title: 'KhÃ´ng táº£i Ä‘Æ°á»£c lá»‹ch sá»­ couple',
+          message: error instanceof Error ? error.message : 'ÄÃ£ xáº£y ra lá»—i khÃ´ng xÃ¡c Ä‘á»‹nh.'
         })
       )
     } finally {
@@ -276,7 +283,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         if (isInitial) {
           applyCoupleState({ status: 'none' })
         }
-        setLoadError('Thiếu cấu hình Supabase')
+        setLoadError('Thiáº¿u cáº¥u hÃ¬nh Supabase')
         return null
       }
 
@@ -380,7 +387,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         return nextState
       } catch (error) {
-        const loadStateError = mapCreateError(error, 'Không thể tải trạng thái couple')
+        const loadStateError = mapCreateError(error, 'KhÃ´ng thá»ƒ táº£i tráº¡ng thÃ¡i couple')
         console.error('[setup/loadCoupleState] failed:', loadStateError)
         setLoadError(`${loadStateError.message}${loadStateError.code ? ` (${loadStateError.code})` : ''}`)
         return null
@@ -399,21 +406,43 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     void loadCreatedCouplesHistory()
   }, [loadCreatedCouplesHistory])
 
+  useEffect(() => {
+    setCreatedCouplesHistory((previous) => {
+      if (previous.length < 1) {
+        return previous
+      }
+
+      const activeCoupleId = coupleState.status === 'active' ? coupleState.coupleId : null
+      let changed = false
+
+      const next = previous.map((item) => {
+        const isCurrentMember = Boolean(activeCoupleId && item.id === activeCoupleId)
+        if (item.isCurrentMember === isCurrentMember) {
+          return item
+        }
+        changed = true
+        return { ...item, isCurrentMember }
+      })
+
+      return changed ? next : previous
+    })
+  }, [coupleState])
+
   const onCreateCouple = async () => {
     try {
       setIsSubmitting(true)
       setLoadError(null)
 
       if (!supabase) {
-        throw mapCreateError(null, 'Thiếu cấu hình Supabase')
+        throw mapCreateError(null, 'Thiáº¿u cáº¥u hÃ¬nh Supabase')
       }
 
       if (coupleState.status === 'active') {
         dispatch(
           setAlert({
             type: 'info',
-            title: 'Thông tin',
-            message: 'Bạn đã có couple.'
+            title: 'ThÃ´ng tin',
+            message: 'Báº¡n Ä‘Ã£ cÃ³ couple.'
           })
         )
         return
@@ -425,23 +454,23 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        throw mapCreateError(userError, 'Chưa đăng nhập')
+        throw mapCreateError(userError, 'ChÆ°a Ä‘Äƒng nháº­p')
       }
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) {
-        throw mapCreateError(sessionError, 'Không thể tải phiên đăng nhập')
+        throw mapCreateError(sessionError, 'KhÃ´ng thá»ƒ táº£i phiÃªn Ä‘Äƒng nháº­p')
       }
 
       if (!sessionData.session?.access_token) {
         throw mapCreateError(
           {
             code: 'missing_access_token',
-            message: 'Không có access token trong phiên Supabase',
+            message: 'KhÃ´ng cÃ³ access token trong phiÃªn Supabase',
             details: 'supabase.auth.getSession() returned no access_token',
-            hint: 'Hãy đăng nhập lại trước khi tạo couple.'
+            hint: 'HÃ£y Ä‘Äƒng nháº­p láº¡i trÆ°á»›c khi táº¡o couple.'
           },
-          'Không có access token trong phiên Supabase'
+          'KhÃ´ng cÃ³ access token trong phiÃªn Supabase'
         )
       }
 
@@ -474,7 +503,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         }
 
         if (error) {
-          lastCreateError = mapCreateError(error, 'Không thể tạo couple')
+          lastCreateError = mapCreateError(error, 'KhÃ´ng thá»ƒ táº¡o couple')
           continue
         }
 
@@ -484,9 +513,9 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               code: 'invalid_rpc_payload',
               message: 'create_couple did not return {id, code}',
               details: JSON.stringify(data ?? null),
-              hint: 'Đảm bảo RPC create_couple trả về đúng một object có id và code.'
+              hint: 'Äáº£m báº£o RPC create_couple tráº£ vá» Ä‘Ãºng má»™t object cÃ³ id vÃ  code.'
             },
-            'Không thể đọc kết quả create_couple'
+            'KhÃ´ng thá»ƒ Ä‘á»c káº¿t quáº£ create_couple'
           )
           continue
         }
@@ -496,7 +525,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (!createdCouple) {
-        throw lastCreateError ?? mapCreateError(null, 'Không thể tạo couple')
+        throw lastCreateError ?? mapCreateError(null, 'KhÃ´ng thá»ƒ táº¡o couple')
       }
 
       const { data: verifiedCoupleRaw, error: verifiedCoupleError } = await supabase.rpc('get_my_couple')
@@ -517,13 +546,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       if (verifiedCoupleError || !verifiedCouple?.id) {
         const blockingMessage =
-          'Tạo couple thành công nhưng chưa ghép vào couple. Vui lòng bấm làm mới hoặc Reset.'
+          'Táº¡o couple thÃ nh cÃ´ng nhÆ°ng chÆ°a ghÃ©p vÃ o couple. Vui lÃ²ng báº¥m lÃ m má»›i hoáº·c Reset.'
         setLoadError(blockingMessage)
         applyCoupleState({ status: 'none' })
         dispatch(
           setAlert({
             type: 'error',
-            title: 'Cần xử lý thêm',
+            title: 'Cáº§n xá»­ lÃ½ thÃªm',
             message: blockingMessage
           })
         )
@@ -546,16 +575,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Tạo couple thành công',
-          message: `Mã couple của bạn là ${createdCouple.code}`
+          title: 'Táº¡o couple thÃ nh cÃ´ng',
+          message: `MÃ£ couple cá»§a báº¡n lÃ  ${createdCouple.code}`
         })
       )
     } catch (error) {
-      const createError = mapCreateError(error, 'Không thể tạo couple')
+      const createError = mapCreateError(error, 'KhÃ´ng thá»ƒ táº¡o couple')
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Tạo couple thất bại',
+          title: 'Táº¡o couple tháº¥t báº¡i',
           message: `${createError.message} (${createError.code})`
         })
       )
@@ -571,8 +600,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'warning',
-          title: 'Thiếu mã',
-          message: 'Vui lòng nhập mã ghép đôi.'
+          title: 'Thiáº¿u mÃ£',
+          message: 'Vui lÃ²ng nháº­p mÃ£ ghÃ©p Ä‘Ã´i.'
         })
       )
       return
@@ -582,7 +611,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setIsSubmitting(true)
 
       if (!supabase) {
-        throw mapCreateError(null, 'Thiếu cấu hình Supabase')
+        throw mapCreateError(null, 'Thiáº¿u cáº¥u hÃ¬nh Supabase')
       }
 
       const {
@@ -591,25 +620,25 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        throw mapCreateError(userError, 'Không thể xác định người dùng hiện tại')
+        throw mapCreateError(userError, 'KhÃ´ng thá»ƒ xÃ¡c Ä‘á»‹nh ngÆ°á»i dÃ¹ng hiá»‡n táº¡i')
       }
 
       const { data, error } = await supabase.rpc('join_by_code', { p_code: code })
       if (error) {
-        const joinError = mapCreateError(error, 'Không thể tham gia couple')
+        const joinError = mapCreateError(error, 'KhÃ´ng thá»ƒ tham gia couple')
         const invalidCode =
           joinError.code === 'P0001' || /invalid|not found|khong ton tai|ma/i.test(joinError.message)
 
         throw new Error(
           invalidCode
-            ? 'Mã couple không hợp lệ. Vui lòng kiểm tra lại.'
+            ? 'MÃ£ couple khÃ´ng há»£p lá»‡. Vui lÃ²ng kiá»ƒm tra láº¡i.'
             : `${joinError.message} (${joinError.code})`
         )
       }
 
       const joinedCoupleId = parseJoinedCoupleId(data)
       if (!joinedCoupleId) {
-        throw new Error('Mã couple không hợp lệ. Vui lòng kiểm tra lại.')
+        throw new Error('MÃ£ couple khÃ´ng há»£p lá»‡. Vui lÃ²ng kiá»ƒm tra láº¡i.')
       }
 
       setJoinCode('')
@@ -619,16 +648,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Tham gia thành công',
-          message: 'Đã tham gia couple thành công.'
+          title: 'Tham gia thÃ nh cÃ´ng',
+          message: 'ÄÃ£ tham gia couple thÃ nh cÃ´ng.'
         })
       )
     } catch (error) {
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Tham gia thất bại',
-          message: error instanceof Error ? error.message : 'Không thể tham gia couple'
+          title: 'Tham gia tháº¥t báº¡i',
+          message: error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ tham gia couple'
         })
       )
     } finally {
@@ -645,12 +674,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setIsLeavingCouple(true)
 
       if (!supabase) {
-        throw mapCreateError(null, 'Thiếu cấu hình Supabase')
+        throw mapCreateError(null, 'Thiáº¿u cáº¥u hÃ¬nh Supabase')
       }
 
       const { error } = await supabase.rpc('leave_couple', { p_couple_id: coupleState.coupleId })
       if (error) {
-        throw mapCreateError(error, 'Không thể rời couple')
+        throw mapCreateError(error, 'KhÃ´ng thá»ƒ rá»i couple')
       }
 
       applyCoupleState({ status: 'none' })
@@ -662,16 +691,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Rời couple thành công',
-          message: 'Bạn đã rời couple.'
+          title: 'Rá»i couple thÃ nh cÃ´ng',
+          message: 'Báº¡n Ä‘Ã£ rá»i couple.'
         })
       )
     } catch (error) {
-      const leaveError = mapCreateError(error, 'Không thể rời couple')
+      const leaveError = mapCreateError(error, 'KhÃ´ng thá»ƒ rá»i couple')
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Rời couple thất bại',
+          title: 'Rá»i couple tháº¥t báº¡i',
           message: `${leaveError.message} (${leaveError.code})`
         })
       )
@@ -686,7 +715,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
 
     const confirmed = window.confirm(
-      'XÓA COUPLE sẽ xóa dữ liệu liên quan. Hành động này KHÔNG THỂ HOÀN TÁC. Bạn chắc chắn?'
+      'XÃ“A COUPLE sáº½ xÃ³a dá»¯ liá»‡u liÃªn quan. HÃ nh Ä‘á»™ng nÃ y KHÃ”NG THá»‚ HOÃ€N TÃC. Báº¡n cháº¯c cháº¯n?'
     )
     if (!confirmed) {
       return
@@ -696,12 +725,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       setIsDeletingCouple(true)
 
       if (!supabase) {
-        throw mapCreateError(null, 'Thiếu cấu hình Supabase')
+        throw mapCreateError(null, 'Thiáº¿u cáº¥u hÃ¬nh Supabase')
       }
 
       const { error } = await supabase.rpc('delete_my_couple', { p_couple_id: coupleState.coupleId })
       if (error) {
-        throw mapCreateError(error, 'Không thể xóa couple')
+        throw mapCreateError(error, 'KhÃ´ng thá»ƒ xÃ³a couple')
       }
 
       applyCoupleState({ status: 'none' })
@@ -713,18 +742,18 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Xóa couple thành công',
-          message: 'Couple đã được xóa.'
+          title: 'XÃ³a couple thÃ nh cÃ´ng',
+          message: 'Couple Ä‘Ã£ Ä‘Æ°á»£c xÃ³a.'
         })
       )
       router.replace('/setup')
       router.refresh()
     } catch (error) {
-      const deleteError = mapCreateError(error, 'Không thể xóa couple')
+      const deleteError = mapCreateError(error, 'KhÃ´ng thá»ƒ xÃ³a couple')
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Xóa couple thất bại',
+          title: 'XÃ³a couple tháº¥t báº¡i',
           message: `${deleteError.message} (${deleteError.code})`
         })
       )
@@ -733,13 +762,68 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     }
   }
 
+  const onDeleteCreatedCouple = async (item: CreatedCoupleHistoryItem) => {
+    if (item.isCurrentMember) {
+      dispatch(
+        setAlert({
+          type: 'warning',
+          title: 'KhÃ´ng thá»ƒ xoÃ¡',
+          message: 'Couple nÃ y Ä‘ang tham gia. Vui lÃ²ng rá»i hoáº·c xoÃ¡ báº±ng nÃºt trong khung quáº£n lÃ½ couple.'
+        })
+      )
+      return
+    }
+
+    const confirmed = window.confirm(
+      `XoÃ¡ vÄ©nh viá»…n couple ${item.code}? HÃ nh Ä‘á»™ng nÃ y khÃ´ng thá»ƒ hoÃ n tÃ¡c.`
+    )
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setDeletingHistoryCoupleId(item.id)
+      const response = await fetch('/api/couple/history', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ coupleId: item.id })
+      })
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string }
+      if (!response.ok) {
+        throw new Error(payload.error || 'KhÃ´ng thá»ƒ xoÃ¡ couple Ä‘Ã£ rá»i.')
+      }
+
+      setCreatedCouplesHistory((previous) => previous.filter((entry) => entry.id !== item.id))
+      dispatch(
+        setAlert({
+          type: 'success',
+          title: 'ÄÃ£ xoÃ¡ couple',
+          message: `ÄÃ£ xoÃ¡ couple ${item.code}.`
+        })
+      )
+    } catch (error) {
+      dispatch(
+        setAlert({
+          type: 'error',
+          title: 'XoÃ¡ tháº¥t báº¡i',
+          message: error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ xoÃ¡ couple Ä‘Ã£ rá»i.'
+        })
+      )
+    } finally {
+      setDeletingHistoryCoupleId(null)
+    }
+  }
+
   const onResetCouple = async () => {
     if (!supabase) {
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Đặt lại thất bại',
-          message: 'Thiếu cấu hình Supabase'
+          title: 'Äáº·t láº¡i tháº¥t báº¡i',
+          message: 'Thiáº¿u cáº¥u hÃ¬nh Supabase'
         })
       )
       return
@@ -754,22 +838,22 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       } = await supabase.auth.getUser()
 
       if (userError || !user) {
-        throw mapCreateError(userError, 'Chưa đăng nhập')
+        throw mapCreateError(userError, 'ChÆ°a Ä‘Äƒng nháº­p')
       }
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
       if (sessionError) {
-        throw mapCreateError(sessionError, 'Không thể tải phiên đăng nhập')
+        throw mapCreateError(sessionError, 'KhÃ´ng thá»ƒ táº£i phiÃªn Ä‘Äƒng nháº­p')
       }
 
       if (!sessionData.session?.access_token) {
-        throw new Error('Bạn cần đăng nhập lại để reset couple.')
+        throw new Error('Báº¡n cáº§n Ä‘Äƒng nháº­p láº¡i Ä‘á»ƒ reset couple.')
       }
 
       if (coupleState.status === 'active') {
         if (coupleState.isOwner) {
           const confirmDelete = window.confirm(
-            'CẢNH BÁO: Reset khi bạn là owner sẽ xóa toàn bộ dữ liệu chung của couple hiện tại. Tiếp tục?'
+            'Cáº¢NH BÃO: Reset khi báº¡n lÃ  owner sáº½ xÃ³a toÃ n bá»™ dá»¯ liá»‡u chung cá»§a couple hiá»‡n táº¡i. Tiáº¿p tá»¥c?'
           )
           if (!confirmDelete) {
             return
@@ -779,10 +863,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             p_couple_id: coupleState.coupleId
           })
           if (deleteError) {
-            throw mapCreateError(deleteError, 'Không thể xóa couple hiện tại')
+            throw mapCreateError(deleteError, 'KhÃ´ng thá»ƒ xÃ³a couple hiá»‡n táº¡i')
           }
         } else {
-          const confirmLeave = window.confirm('Bạn sẽ rời couple hiện tại và tạo couple mới. Tiếp tục?')
+          const confirmLeave = window.confirm('Báº¡n sáº½ rá»i couple hiá»‡n táº¡i vÃ  táº¡o couple má»›i. Tiáº¿p tá»¥c?')
           if (!confirmLeave) {
             return
           }
@@ -791,7 +875,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             p_couple_id: coupleState.coupleId
           })
           if (leaveError) {
-            throw mapCreateError(leaveError, 'Không thể rời couple hiện tại')
+            throw mapCreateError(leaveError, 'KhÃ´ng thá»ƒ rá»i couple hiá»‡n táº¡i')
           }
         }
       }
@@ -803,7 +887,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         const code = generateCoupleCode()
         const { data, error } = await supabase.rpc('create_couple', { p_code: code })
         if (error) {
-          lastCreateError = mapCreateError(error, 'Không thể tạo couple mới')
+          lastCreateError = mapCreateError(error, 'KhÃ´ng thá»ƒ táº¡o couple má»›i')
           continue
         }
 
@@ -814,9 +898,9 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               code: 'invalid_rpc_payload',
               message: 'create_couple did not return {id, code}',
               details: JSON.stringify(data ?? null),
-              hint: 'Đảm bảo RPC create_couple trả về đúng một object có id và code.'
+              hint: 'Äáº£m báº£o RPC create_couple tráº£ vá» Ä‘Ãºng má»™t object cÃ³ id vÃ  code.'
             },
-            'Không thể đọc kết quả create_couple'
+            'KhÃ´ng thá»ƒ Ä‘á»c káº¿t quáº£ create_couple'
           )
           continue
         }
@@ -826,7 +910,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       }
 
       if (!createdCouple) {
-        throw lastCreateError ?? mapCreateError(null, 'Không thể tạo couple mới')
+        throw lastCreateError ?? mapCreateError(null, 'KhÃ´ng thá»ƒ táº¡o couple má»›i')
       }
 
       let copied = false
@@ -852,16 +936,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Đặt lại thành công',
-          message: copied ? `Couple mới: ${createdCouple.code} (đã copy)` : `Couple mới: ${createdCouple.code}`
+          title: 'Äáº·t láº¡i thÃ nh cÃ´ng',
+          message: copied ? `Couple má»›i: ${createdCouple.code} (Ä‘Ã£ copy)` : `Couple má»›i: ${createdCouple.code}`
         })
       )
     } catch (error) {
-      const resetError = mapCreateError(error, 'Không thể đặt lại couple')
+      const resetError = mapCreateError(error, 'KhÃ´ng thá»ƒ Ä‘áº·t láº¡i couple')
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Đặt lại thất bại',
+          title: 'Äáº·t láº¡i tháº¥t báº¡i',
           message: `${resetError.message} (${resetError.code})`
         })
       )
@@ -879,15 +963,15 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'warning',
-          title: 'Không có quyền',
-          message: 'Chỉ người tạo couple mới đổi mã.'
+          title: 'KhÃ´ng cÃ³ quyá»n',
+          message: 'Chá»‰ ngÆ°á»i táº¡o couple má»›i Ä‘á»•i mÃ£.'
         })
       )
       return
     }
 
     const confirmed = window.confirm(
-      'Đổi mã couple? Mã cũ sẽ KHÔNG còn hợp lệ. Dữ liệu chung vẫn được giữ nguyên.'
+      'Äá»•i mÃ£ couple? MÃ£ cÅ© sáº½ KHÃ”NG cÃ²n há»£p lá»‡. Dá»¯ liá»‡u chung váº«n Ä‘Æ°á»£c giá»¯ nguyÃªn.'
     )
     if (!confirmed) {
       return
@@ -896,17 +980,17 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     try {
       setIsRotatingCoupleCode(true)
       if (!supabase) {
-        throw mapCreateError(null, 'Thiếu cấu hình Supabase')
+        throw mapCreateError(null, 'Thiáº¿u cáº¥u hÃ¬nh Supabase')
       }
 
       const { data, error } = await supabase.rpc('rotate_couple_code', { p_couple_id: coupleState.coupleId })
       if (error) {
-        throw mapCreateError(error, 'Không thể đổi mã couple')
+        throw mapCreateError(error, 'KhÃ´ng thá»ƒ Ä‘á»•i mÃ£ couple')
       }
 
       const newCode = parseRotatedCoupleCode(data)
       if (!newCode) {
-        throw mapCreateError(null, 'RPC không trả về mã couple hợp lệ')
+        throw mapCreateError(null, 'RPC khÃ´ng tráº£ vá» mÃ£ couple há»£p lá»‡')
       }
 
       let copied = false
@@ -932,16 +1016,16 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       dispatch(
         setAlert({
           type: 'success',
-          title: 'Đổi mã thành công',
-          message: copied ? `Mã mới: ${newCode} (đã copy)` : `Mã mới: ${newCode}`
+          title: 'Äá»•i mÃ£ thÃ nh cÃ´ng',
+          message: copied ? `MÃ£ má»›i: ${newCode} (Ä‘Ã£ copy)` : `MÃ£ má»›i: ${newCode}`
         })
       )
     } catch (error) {
-      const rotateError = mapCreateError(error, 'Không thể đổi mã couple')
+      const rotateError = mapCreateError(error, 'KhÃ´ng thá»ƒ Ä‘á»•i mÃ£ couple')
       dispatch(
         setAlert({
           type: 'error',
-          title: 'Đổi mã thất bại',
+          title: 'Äá»•i mÃ£ tháº¥t báº¡i',
           message: `${rotateError.message} (${rotateError.code})`
         })
       )
@@ -953,8 +1037,8 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   if (coupleState.status === 'loading' && !loadError) {
     return (
       <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
-          <p className="text-sm text-gray-600 dark:text-gray-300">Đang tải trạng thái couple...</p>
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+          <p className="text-sm text-gray-600 dark:text-gray-300">Äang táº£i tráº¡ng thÃ¡i couple...</p>
         </div>
       </section>
     )
@@ -962,37 +1046,37 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
   return (
     <section className="container mx-auto max-w-4xl px-4 py-10 sm:px-6">
-      <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Thiết lập couple</h1>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Thiáº¿t láº­p couple</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Đăng nhập: <span className="font-medium">{email || 'không rõ'}</span>
+          ÄÄƒng nháº­p: <span className="font-medium">{email || 'khÃ´ng rÃµ'}</span>
         </p>
         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Có access_token trong phiên: {String(hasAccessToken)}
+          CÃ³ access_token trong phiÃªn: {String(hasAccessToken)}
         </p>
 
-        <div className="mt-5 rounded-xl border border-sky-100 bg-sky-50/70 p-4 dark:border-sky-900/40 dark:bg-gray-800">
+        <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/80">
           <p className="text-sm text-gray-700 dark:text-gray-200">
-            Trạng thái:{' '}
-            <span className="font-semibold text-sky-700 dark:text-sky-200">
+            Tráº¡ng thÃ¡i:{' '}
+            <span className={`font-semibold ${statusTextClass}`}>
               {coupleState.status === 'active'
-                ? 'Đã ghép đôi'
+                ? 'ÄÃ£ ghÃ©p Ä‘Ã´i'
                 : coupleState.status === 'none'
-                  ? 'Chưa ghép đôi'
-                  : 'Lỗi tải trạng thái'}
+                  ? 'ChÆ°a ghÃ©p Ä‘Ã´i'
+                  : 'Lá»—i táº£i tráº¡ng thÃ¡i'}
             </span>
           </p>
           {activeCouple ? (
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <span className="text-sm text-gray-700 dark:text-gray-200">
-                Mã couple: <span className="font-semibold text-sky-700 dark:text-sky-200">{activeCouple.code}</span>
+                MÃ£ couple: <span className={`font-semibold ${statusTextClass}`}>{activeCouple.code}</span>
               </span>
               <button
                 type="button"
                 onClick={() => void navigator.clipboard.writeText(activeCouple.code)}
-                className="rounded-md border border-sky-200 bg-white px-2 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-50 dark:border-sky-800 dark:bg-gray-900 dark:text-sky-200 dark:hover:bg-gray-700"
+                className="rounded-md border border-indigo-200 bg-white px-2 py-1 text-xs font-medium text-indigo-700 transition hover:bg-indigo-50 dark:border-indigo-800 dark:bg-gray-900 dark:text-indigo-200 dark:hover:bg-gray-700"
               >
-                Sao chép mã
+                Sao chÃ©p mÃ£
               </button>
             </div>
           ) : null}
@@ -1006,7 +1090,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         {isDev ? (
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-200">
-            <p className="font-semibold">Bảng debug (chỉ hiện ở môi trường dev)</p>
+            <p className="font-semibold">Báº£ng debug (chá»‰ hiá»‡n á»Ÿ mÃ´i trÆ°á»ng dev)</p>
             <p className="mt-2">whoami uid: {whoamiInfo.uid ?? '-'}</p>
             <p>whoami role: {whoamiInfo.role ?? '-'}</p>
             <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words">
@@ -1034,17 +1118,17 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 disabled={isBusy}
                 className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
               >
-                {isLeavingCouple ? 'Đang rời...' : 'Rời couple'}
+                {isLeavingCouple ? 'Äang rá»i...' : 'Rá»i couple'}
               </button>
 
               <button
                 type="button"
                 onClick={activeCouple.isOwner ? onRotateCoupleCode : undefined}
-                title={activeCouple.isOwner ? 'Đổi mã couple' : 'Chỉ người tạo couple mới đổi mã'}
+                title={activeCouple.isOwner ? 'Äá»•i mÃ£ couple' : 'Chá»‰ ngÆ°á»i táº¡o couple má»›i Ä‘á»•i mÃ£'}
                 disabled={!activeCouple.isOwner || isBusy}
                 className="rounded-xl border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-900/20"
               >
-                {isRotatingCoupleCode ? 'Đang đổi mã...' : 'Đổi mã couple'}
+                {isRotatingCoupleCode ? 'Äang Ä‘á»•i mÃ£...' : 'Äá»•i mÃ£ couple'}
               </button>
 
               {activeCouple.isOwner ? (
@@ -1054,19 +1138,19 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                   disabled={isBusy}
                   className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isDeletingCouple ? 'Đang xóa...' : 'Xóa couple'}
+                  {isDeletingCouple ? 'Äang xÃ³a...' : 'XÃ³a couple'}
                 </button>
               ) : null}
             </div>
             {latestRotatedCode ? (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                <span>Mã mới: {latestRotatedCode}</span>
+                <span>MÃ£ má»›i: {latestRotatedCode}</span>
                 <button
                   type="button"
                   onClick={() => void navigator.clipboard.writeText(latestRotatedCode)}
                   className="rounded-md border border-gray-300 px-2 py-1 font-medium text-gray-700 transition hover:bg-white dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                 >
-                  Sao chép
+                  Sao chÃ©p
                 </button>
               </div>
             ) : null}
@@ -1076,10 +1160,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         {authUser.id ? (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-800/60 dark:bg-amber-900/10">
             <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-              Đặt lại couple (xóa và tạo mới)
+              Äáº·t láº¡i couple (xÃ³a vÃ  táº¡o má»›i)
             </p>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-              Nếu bạn là owner, reset sẽ xóa toàn bộ dữ liệu chia sẻ của couple hiện tại.
+              Náº¿u báº¡n lÃ  owner, reset sáº½ xÃ³a toÃ n bá»™ dá»¯ liá»‡u chia sáº» cá»§a couple hiá»‡n táº¡i.
             </p>
             <button
               type="button"
@@ -1087,28 +1171,28 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               disabled={isBusy}
               className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isResettingCouple ? 'Đang đặt lại...' : 'Đặt lại couple'}
+              {isResettingCouple ? 'Äang Ä‘áº·t láº¡i...' : 'Äáº·t láº¡i couple'}
             </button>
           </div>
         ) : null}
 
         {coupleState.status === 'active' ? (
           <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-900/10 dark:text-emerald-200">
-            Bạn đã có couple. Nút tạo/tham gia sẽ khóa cho tới khi bạn rời hoặc đặt lại couple.
+            Báº¡n Ä‘Ã£ cÃ³ couple. NÃºt táº¡o/tham gia sáº½ khÃ³a cho tá»›i khi báº¡n rá»i hoáº·c Ä‘áº·t láº¡i couple.
           </div>
         ) : null}
 
         <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Couple mình đã từng tạo</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Couple mÃ¬nh Ä‘Ã£ tá»«ng táº¡o</h2>
           <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-            Danh sách các couple do bạn tạo và chưa bị xóa.
+            Danh sÃ¡ch cÃ¡c couple do báº¡n táº¡o vÃ  chÆ°a bá»‹ xÃ³a.
           </p>
 
           {historyLoading ? (
-            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">Đang tải lịch sử...</p>
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">Äang táº£i lá»‹ch sá»­...</p>
           ) : createdCouplesHistory.length < 1 ? (
             <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-              Bạn chưa có couple nào đã tạo (hoặc đã bị xóa hết).
+              Báº¡n chÆ°a cÃ³ couple nÃ o Ä‘Ã£ táº¡o (hoáº·c Ä‘Ã£ bá»‹ xÃ³a háº¿t).
             </p>
           ) : (
             <div className="mt-3 space-y-2">
@@ -1118,22 +1202,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                   className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 dark:text-gray-100">Mã: {item.code}</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">MÃ£: {item.code}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Tạo lúc:{' '}
-                      {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : 'không rõ'} · Thành viên:{' '}
+                      Táº¡o lÃºc:{' '}
+                      {item.created_at ? new Date(item.created_at).toLocaleString('vi-VN') : 'khÃ´ng rÃµ'} Â· ThÃ nh viÃªn:{' '}
                       {item.memberCount}
                     </p>
                   </div>
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                      item.isCurrentMember
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200'
-                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
-                    }`}
-                  >
-                    {item.isCurrentMember ? 'Đang tham gia' : 'Đã rời'}
-                  </span>
                 </div>
               ))}
             </div>
@@ -1142,31 +1217,31 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         <div className="mt-6 grid gap-5 md:grid-cols-2">
           <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tạo couple mới</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Táº¡o couple má»›i</h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              Hệ thống sẽ tạo một mã 6 ký tự để bạn chia sẻ với người kia.
+              Há»‡ thá»‘ng sáº½ táº¡o má»™t mÃ£ 6 kÃ½ tá»± Ä‘á»ƒ báº¡n chia sáº» vá»›i ngÆ°á»i kia.
             </p>
             <button
               type="button"
               onClick={onCreateCouple}
               disabled={isBusy || coupleState.status === 'active'}
-              className="mt-4 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:bg-sky-300"
+              className="mt-4 rounded-xl bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-sky-300 disabled:text-white/90"
             >
-              {isSubmitting ? 'Đang xử lý...' : 'Tạo mã couple'}
+              {isSubmitting ? 'Äang xá»­ lÃ½...' : 'Táº¡o mÃ£ couple'}
             </button>
           </div>
 
           <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tham gia bằng mã</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tham gia báº±ng mÃ£</h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-              Nhập mã 6 ký tự để tham gia couple hiện có.
+              Nháº­p mÃ£ 6 kÃ½ tá»± Ä‘á»ƒ tham gia couple hiá»‡n cÃ³.
             </p>
 
             <form className="mt-4 space-y-3" onSubmit={onJoinCouple}>
               <input
                 value={joinCode}
                 onChange={(event) => setJoinCode(event.target.value)}
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-sky-200 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none ring-sky-400 transition focus:ring dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 placeholder="VD: A9K2QX"
                 maxLength={12}
                 disabled={isBusy || coupleState.status === 'active'}
@@ -1176,7 +1251,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 disabled={isBusy || coupleState.status === 'active'}
                 className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-500 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
               >
-                {isSubmitting ? 'Đang xử lý...' : 'Tham gia couple'}
+                {isSubmitting ? 'Äang xá»­ lÃ½...' : 'Tham gia couple'}
               </button>
             </form>
           </div>
@@ -1188,7 +1263,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           disabled={isRefreshing || isBusy}
           className="mt-6 text-sm font-medium text-sky-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-sky-300"
         >
-          {isRefreshing ? 'Đang làm mới...' : 'Làm mới trạng thái từ server'}
+          {isRefreshing ? 'Äang lÃ m má»›i...' : 'LÃ m má»›i tráº¡ng thÃ¡i tá»« server'}
         </button>
       </div>
     </section>
