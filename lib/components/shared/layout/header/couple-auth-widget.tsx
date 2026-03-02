@@ -40,7 +40,7 @@ export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
             'border-rose-100 bg-rose-50 hover:bg-rose-100 dark:border-rose-900/40 dark:bg-gray-800 dark:hover:bg-gray-700',
           coupleText: 'text-rose-600 dark:text-rose-300',
           coupleButton:
-            'border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-200 dark:hover:bg-gray-800',
+            'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-gray-800',
           setupLink: 'text-rose-600 hover:underline dark:text-rose-300'
         }
       : {
@@ -193,3 +193,4 @@ export function CoupleAuthWidget({ mode = 'c' }: { mode?: HomeMode }) {
     </div>
   )
 }
+

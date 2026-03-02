@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FormEvent, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -61,7 +61,7 @@ export const FoodPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
     ? 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400'
     : 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400'
   const accentPriceClass = isPremiumMode
-    ? 'text-rose-800 dark:text-rose-200'
+    ? 'text-rose-600 dark:text-rose-300'
     : 'text-sky-800 dark:text-sky-200'
 
   const filteredFoods = useMemo(() => {
@@ -528,3 +528,4 @@ const FoodFilters = ({
     </div>
   )
 }
+

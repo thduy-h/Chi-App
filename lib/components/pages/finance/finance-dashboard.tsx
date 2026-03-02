@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -937,7 +937,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-medium ${entry.type === 'income'
                                 ? 'border border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100'
-                                : 'border border-rose-300 bg-rose-100 text-rose-900 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-100'
+                                : 'border border-rose-300 bg-rose-100 text-rose-600 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-100'
                                 }`}
                             >
                               {entry.type === 'income' ? 'Thu' : 'Chi'}
@@ -947,7 +947,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                           <td
                             className={`py-2 pr-3 font-semibold ${entry.type === 'income'
                               ? 'text-emerald-800 dark:text-emerald-200'
-                              : 'text-rose-700 dark:text-rose-300'
+                              : 'text-rose-600 dark:text-rose-300'
                               }`}
                           >
                             {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
@@ -1156,8 +1156,8 @@ const SummaryCard = ({
     },
     rose: {
       iconBg: 'bg-rose-100 dark:bg-rose-900/30',
-      iconText: 'text-rose-700 dark:text-rose-300',
-      valueText: 'text-rose-700 dark:text-rose-300'
+      iconText: 'text-rose-600 dark:text-rose-300',
+      valueText: 'text-rose-600 dark:text-rose-300'
     },
     blue: {
       iconBg: 'bg-blue-100 dark:bg-blue-900/30',
@@ -1187,4 +1187,5 @@ const SummaryCard = ({
     </div>
   )
 }
+
 

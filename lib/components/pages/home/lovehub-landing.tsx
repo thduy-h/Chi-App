@@ -1,4 +1,4 @@
- 'use client'
+﻿ 'use client'
 
 import Link from 'next/link'
 
@@ -185,32 +185,32 @@ export const LoveHubLanding = ({ mode: initialMode = 'c' }: LoveHubLandingProps)
         glowPrimary: 'bg-rose-300/30 dark:bg-rose-900/20',
         glowSecondary: 'bg-fuchsia-200/50 dark:bg-fuchsia-900/20',
         badge:
-          'border border-rose-200 bg-white text-rose-700 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
+          'border border-rose-200 bg-white text-rose-600 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
         heroAccent: 'from-rose-600 to-fuchsia-500',
         primaryButton: 'bg-rose-600 hover:bg-rose-700',
         secondaryButton:
-          'border border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-200 dark:hover:bg-gray-800',
+          'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300 dark:hover:bg-gray-800',
         panelGlow: 'bg-rose-200/60 dark:bg-rose-900/30',
         panelCard: 'border border-rose-100 bg-white/90 dark:border-rose-900/50 dark:bg-gray-900/90',
-        panelTag: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-        check: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+        panelTag: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
+        check: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
         planNote: 'from-rose-100 to-fuchsia-100 dark:from-rose-900/30 dark:to-fuchsia-900/20',
-        planNoteText: 'text-rose-700 dark:text-rose-300',
+        planNoteText: 'text-rose-600 dark:text-rose-300',
         statCard: 'border border-rose-100 bg-white/80 dark:border-rose-900/40 dark:bg-gray-900/70',
         featureCard:
           'border border-rose-100 bg-white hover:border-rose-300 dark:border-rose-900/40 dark:bg-gray-900',
         featureLink:
-          'text-rose-700 group-hover:text-rose-800 dark:text-rose-300 dark:group-hover:text-rose-200',
+          'text-rose-600 group-hover:text-rose-600 dark:text-rose-300 dark:group-hover:text-rose-200',
         flowBg: 'from-rose-50/70 to-white dark:from-rose-950/10 dark:to-gray-900',
         stepCard: 'border border-rose-100 bg-white dark:border-rose-900/40 dark:bg-gray-900',
-        stepIndex: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+        stepIndex: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
         reasonCard: 'border border-rose-100 bg-white dark:border-rose-900/40 dark:bg-gray-900',
         reasonLabel: 'text-rose-600 dark:text-rose-300',
         reasonBullet: 'bg-rose-500',
         ctaCard: 'border border-rose-100 bg-gradient-to-br from-rose-600 to-fuchsia-500',
         ctaTag: 'text-rose-100',
         ctaDescription: 'text-rose-50',
-        ctaPrimaryButton: 'text-rose-700 hover:bg-rose-50',
+        ctaPrimaryButton: 'text-rose-600 hover:bg-rose-50',
         ctaSecondaryButton: 'border-rose-200/50'
       }
     : isModeBPink
@@ -218,32 +218,32 @@ export const LoveHubLanding = ({ mode: initialMode = 'c' }: LoveHubLandingProps)
           glowPrimary: 'bg-rose-300/30 dark:bg-rose-900/20',
           glowSecondary: 'bg-fuchsia-200/50 dark:bg-fuchsia-900/20',
           badge:
-            'border border-rose-200 bg-white text-rose-700 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
+            'border border-rose-200 bg-white text-rose-600 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
           heroAccent: 'from-rose-600 to-fuchsia-500',
           primaryButton: 'bg-rose-600 hover:bg-rose-700',
           secondaryButton:
-            'border border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-200 dark:hover:bg-gray-800',
+            'border border-rose-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300 dark:hover:bg-gray-800',
           panelGlow: 'bg-rose-200/60 dark:bg-rose-900/30',
           panelCard: 'border border-rose-100 bg-white/90 dark:border-rose-900/50 dark:bg-gray-900/90',
-          panelTag: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-          check: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+          panelTag: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
+          check: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
           planNote: 'from-rose-100 to-fuchsia-100 dark:from-rose-900/30 dark:to-fuchsia-900/20',
-          planNoteText: 'text-rose-700 dark:text-rose-300',
+          planNoteText: 'text-rose-600 dark:text-rose-300',
           statCard: 'border border-rose-100 bg-white/80 dark:border-rose-900/40 dark:bg-gray-900/70',
           featureCard:
             'border border-rose-100 bg-white hover:border-rose-300 dark:border-rose-900/40 dark:bg-gray-900',
           featureLink:
-            'text-rose-700 group-hover:text-rose-800 dark:text-rose-300 dark:group-hover:text-rose-200',
+            'text-rose-600 group-hover:text-rose-600 dark:text-rose-300 dark:group-hover:text-rose-200',
           flowBg: 'from-rose-50/70 to-white dark:from-rose-950/10 dark:to-gray-900',
           stepCard: 'border border-rose-100 bg-white dark:border-rose-900/40 dark:bg-gray-900',
-          stepIndex: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+          stepIndex: 'bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
           reasonCard: 'border border-rose-100 bg-white dark:border-rose-900/40 dark:bg-gray-900',
           reasonLabel: 'text-rose-600 dark:text-rose-300',
           reasonBullet: 'bg-rose-500',
           ctaCard: 'border border-rose-100 bg-gradient-to-br from-rose-600 to-fuchsia-500',
           ctaTag: 'text-rose-100',
           ctaDescription: 'text-rose-50',
-          ctaPrimaryButton: 'text-rose-700 hover:bg-rose-50',
+          ctaPrimaryButton: 'text-rose-600 hover:bg-rose-50',
           ctaSecondaryButton: 'border-rose-200/50'
         }
       : {
@@ -566,3 +566,4 @@ export const LoveHubLanding = ({ mode: initialMode = 'c' }: LoveHubLandingProps)
     </main>
   )
 }
+

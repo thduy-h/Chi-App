@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -40,11 +40,11 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
       ? {
           navWrap: 'border-rose-100/70 dark:border-rose-900/40',
           navActive:
-            'bg-rose-100 text-rose-700 ring-1 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-200 dark:ring-rose-800',
-          navIdle: 'text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:text-gray-200 dark:hover:bg-gray-800',
+            'bg-rose-100 text-rose-600 ring-1 ring-rose-300 dark:bg-rose-900/40 dark:text-rose-300 dark:ring-rose-800',
+          navIdle: 'text-gray-700 hover:bg-rose-50 hover:text-rose-600 dark:text-gray-200 dark:hover:bg-gray-800',
           mobileWrap: 'border-rose-100/80 dark:border-rose-900/30',
           mobileIdle:
-            'bg-gray-50 text-gray-700 hover:bg-rose-50 hover:text-rose-700 dark:bg-gray-800 dark:text-gray-200'
+            'bg-gray-50 text-gray-700 hover:bg-rose-50 hover:text-rose-600 dark:bg-gray-800 dark:text-gray-200'
         }
       : {
           navWrap: 'border-sky-100/70 dark:border-sky-900/40',
@@ -159,3 +159,4 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
     </nav>
   )
 }
+

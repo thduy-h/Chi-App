@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -241,7 +241,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     coupleState.status === 'active'
       ? 'text-emerald-700 dark:text-emerald-300'
       : coupleState.status === 'none'
-        ? 'text-rose-700 dark:text-rose-300'
+        ? 'text-rose-600 dark:text-rose-300'
         : 'text-red-700 dark:text-red-300'
 
   const applyCoupleState = useCallback((next: CoupleState) => {
@@ -1149,7 +1149,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 onClick={activeCouple.isOwner ? onRotateCoupleCode : undefined}
                 title={activeCouple.isOwner ? 'Đổi mã couple' : 'Chỉ người tạo couple mới đổi mã'}
                 disabled={!activeCouple.isOwner || isBusy}
-                className="rounded-xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-400 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
+                className="rounded-xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:border-rose-400 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
               >
                 {isRotatingCoupleCode ? 'Đang đổi mã...' : 'Đổi mã couple'}
               </button>
@@ -1248,7 +1248,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                         type="button"
                         onClick={() => void onDeleteCreatedCouple(item)}
                         disabled={deletingHistoryCoupleId === item.id}
-                        className="rounded-md border border-rose-300 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                        className="rounded-md border border-rose-300 px-2.5 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/20"
                       >
                         {deletingHistoryCoupleId === item.id ? 'Đang xoá...' : 'Xoá'}
                       </button>
@@ -1309,7 +1309,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
             void loadCreatedCouplesHistory({ silent: true })
           }}
           disabled={isRefreshing || isBusy}
-          className="mt-6 text-sm font-semibold text-rose-700 transition hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
+          className="mt-6 text-sm font-semibold text-rose-600 transition hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
         >
           {isRefreshing ? 'Đang làm mới...' : 'Làm mới trạng thái từ server'}
         </button>
@@ -1317,4 +1317,5 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     </section>
   )
 }
+
 

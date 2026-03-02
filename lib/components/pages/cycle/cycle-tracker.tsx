@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
@@ -111,7 +111,7 @@ export const CycleTracker = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) =
             primaryButton: 'bg-rose-600 hover:bg-rose-700',
             periodDay: 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20',
             nextStartChip: 'bg-rose-600 text-white',
-            periodChip: 'bg-rose-200 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
+            periodChip: 'bg-rose-200 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300',
             disclaimer: 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-900/20',
             modePanel:
               'rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200'
@@ -686,3 +686,4 @@ const formatDateSafe = (value: string) => {
   if (Number.isNaN(parsed.getTime())) return value
   return format(parsed, 'dd/MM/yyyy')
 }
+

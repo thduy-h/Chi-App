@@ -1,4 +1,4 @@
-import Link from 'next/link'
+﻿import Link from 'next/link'
 
 import {
   formatLetterDate,
@@ -34,7 +34,7 @@ export function LetterEnvelopeCard({
           iconBg: 'from-rose-200 to-fuchsia-200 dark:from-rose-900/50 dark:to-fuchsia-900/50',
           dot: 'bg-rose-500',
           kind:
-            'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200'
+            'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-300'
         }
       : {
           frame:
@@ -85,3 +85,4 @@ export function LetterEnvelopeCard({
     </Link>
   )
 }
+

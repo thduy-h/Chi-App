@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -40,7 +40,7 @@ export function SealedEnvelopeViewer({
           icon: 'bg-rose-100 dark:bg-rose-900/30',
           primary: 'bg-rose-600 hover:bg-rose-700',
           danger:
-            'border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-900/30'
+            'border-rose-300 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-800/70 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/30'
         }
       : {
           panel: 'border-sky-200 from-sky-50 to-indigo-50 dark:border-sky-900/60 dark:from-sky-950/20 dark:to-indigo-950/20',
@@ -205,3 +205,4 @@ export function SealedEnvelopeViewer({
     </section>
   )
 }
+

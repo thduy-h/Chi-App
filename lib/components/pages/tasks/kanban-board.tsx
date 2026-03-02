@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -202,12 +202,12 @@ export const KanbanBoard = ({
             frame: 'border-rose-100 dark:border-rose-900/40',
             primaryButton: 'bg-rose-600 hover:bg-rose-700',
             secondaryButton:
-              'border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300',
+              'border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300',
             columnBg: 'bg-rose-50/60 dark:bg-rose-900/10',
             dragOver: 'bg-rose-100/80 dark:bg-rose-900/20',
             ring: 'ring-rose-300',
             addColumn:
-              'border-rose-300 bg-rose-50/60 text-rose-700 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-900/10 dark:text-rose-300 dark:hover:bg-rose-900/20',
+              'border-rose-300 bg-rose-50/60 text-rose-600 hover:bg-rose-100 dark:border-rose-900/60 dark:bg-rose-900/10 dark:text-rose-300 dark:hover:bg-rose-900/20',
             deleteAction:
               'text-rose-600 hover:bg-rose-100 dark:text-rose-300 dark:hover:bg-rose-900/30',
             deleteText:
@@ -1121,6 +1121,7 @@ export const KanbanBoard = ({
     </>
   )
 }
+
 
 
 
