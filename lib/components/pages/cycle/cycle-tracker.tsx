@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import { DataModeIndicator, SyncStatusIndicator } from '@/lib/components/shared/data-sync-indicator'
 import type { HomeMode } from '@/lib/home-mode'
 import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -462,18 +463,8 @@ export const CycleTracker = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) =
             Theo dõi chu kỳ cơ bản với dự đoán ngày bắt đầu kỳ tiếp theo và lịch tháng.
           </p>
           <div className={`mt-3 ${palette.modePanel}`}>
-            <p>
-              <span className="font-semibold">Chế độ dữ liệu:</span> {isSupabaseMode ? 'Đồng bộ' : 'Cục bộ'}
-            </p>
-            <span
-              className={`mt-2 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
-                isSupabaseMode
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
-                  : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
-              }`}
-            >
-              Trạng thái: {isSupabaseMode ? 'ĐÃ ĐỒNG BỘ' : 'CỤC BỘ'}
-            </span>
+            <DataModeIndicator mode={isSupabaseMode ? 'supabase' : 'local'} />
+            <SyncStatusIndicator status={isSupabaseMode ? 'SYNCED' : 'LOCAL'} className="mt-2" />
           </div>
         </div>
 
