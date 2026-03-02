@@ -891,6 +891,9 @@ export const KanbanBoard = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-[11px] text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+              <span className="font-semibold">Chế độ dữ liệu:</span> {isSupabaseMode ? 'Đồng bộ' : 'Cục bộ'}
+            </span>
             <span
               className={`rounded-full px-3 py-1 text-[11px] font-semibold ${syncStatus === 'SYNCED'
                 ? theme.syncedBadge

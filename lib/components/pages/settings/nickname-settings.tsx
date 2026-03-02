@@ -214,7 +214,7 @@ export function NicknameSettingsPage() {
 
       <section className="relative container mx-auto max-w-3xl px-4 pb-16 pt-10 sm:px-6">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-200">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-600 dark:text-rose-300">
             Settings
           </p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">

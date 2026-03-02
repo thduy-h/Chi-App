@@ -426,10 +426,14 @@ export const TasksPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
         </div>
 
         <div className={`mb-5 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 ${palette.panel}`}>
-          <p>
-            <span className="font-semibold">Chế độ dữ liệu:</span> {syncMode === 'supabase' ? 'Đồng bộ' : 'Cục bộ'}
-          </p>
-          {isContextLoading && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Đang kiểm tra phiên đăng nhập...</p>}
+          <p className="font-semibold">Thông tin kết nối</p>
+          {isContextLoading ? (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Đang kiểm tra phiên đăng nhập...</p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {syncMode === 'supabase' ? 'Đã kết nối couple và cloud.' : 'Đang dùng dữ liệu cục bộ trên thiết bị.'}
+            </p>
+          )}
           {currentEmail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>}
           {activeCoupleCode && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>

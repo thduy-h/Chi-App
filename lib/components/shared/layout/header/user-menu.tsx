@@ -128,7 +128,7 @@ export const UserMenu = () => {
 
 						<Link
 							href="/settings"
-							className="flex transform items-center p-3 text-sm capitalize text-gray-600 transition-colors duration-300 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
+							className="flex transform items-center p-3 text-sm capitalize text-rose-600 transition-colors duration-300 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-gray-700 dark:hover:text-white"
 						>
 							<svg className="mx-1 h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
 								<path
