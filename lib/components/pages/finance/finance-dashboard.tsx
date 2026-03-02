@@ -776,6 +776,15 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
               <p>
                 <span className="font-semibold">Chế độ dữ liệu:</span> {isSupabaseMode ? 'Đồng bộ' : 'Cục bộ'}
               </p>
+              <span
+                className={`mt-2 inline-flex rounded-full px-3 py-1 text-[11px] font-semibold ${
+                  isSupabaseMode
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                }`}
+              >
+                Trạng thái: {isSupabaseMode ? 'ĐÃ ĐỒNG BỘ' : 'CỤC BỘ'}
+              </span>
               {currentEmail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>}
               {activeCoupleCode && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>
