@@ -91,7 +91,9 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <CoupleAuthWidget mode={mode} />
+            <div className="hidden md:block">
+              <CoupleAuthWidget mode={mode} />
+            </div>
             <DarkModeToggle />
             <Cart />
 
@@ -136,6 +138,9 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
         } ${isMenuOpen ? 'max-h-80 opacity-100' : 'max-h-0 overflow-hidden opacity-0'}`}
       >
         <div className="container mx-auto grid grid-cols-2 gap-2 px-4 py-3 sm:px-6">
+          <div className="col-span-2 mb-1 flex justify-end">
+            <CoupleAuthWidget mode={mode} />
+          </div>
           {navLinks.map((item) => (
             <Link
               key={`mobile-${item.href}`}
