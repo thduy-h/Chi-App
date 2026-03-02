@@ -822,7 +822,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
             <div className="grid gap-4 sm:grid-cols-3">
               <SummaryCard title="Thu nhập" value={monthIncome} color="green" />
               <SummaryCard title="Chi tiêu" value={monthExpense} color="rose" />
-              <SummaryCard title="Số dư ròng" value={monthNet} color={monthNet >= 0 ? 'blue' : 'red'} />
+              <SummaryCard title="Số dư ròng" value={monthNet} color={monthNet > 0 ? 'blue' : 'rose'} />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -934,7 +934,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                           <td
                             className={`py-2 pr-3 font-semibold ${entry.type === 'income'
                               ? 'text-emerald-800 dark:text-emerald-200'
-                              : 'text-rose-900 dark:text-rose-100'
+                              : 'text-rose-700 dark:text-rose-300'
                               }`}
                           >
                             {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
@@ -1143,8 +1143,8 @@ const SummaryCard = ({
     },
     rose: {
       iconBg: 'bg-rose-100 dark:bg-rose-900/30',
-      iconText: 'text-rose-800 dark:text-rose-200',
-      valueText: 'text-rose-800 dark:text-rose-200'
+      iconText: 'text-rose-700 dark:text-rose-300',
+      valueText: 'text-rose-700 dark:text-rose-300'
     },
     blue: {
       iconBg: 'bg-blue-100 dark:bg-blue-900/30',

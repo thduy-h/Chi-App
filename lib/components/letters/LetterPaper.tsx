@@ -21,16 +21,16 @@ export function LetterPaper({
   const theme =
     colorMode === 'pink'
       ? {
-          frame: 'border-rose-100 dark:border-rose-900/40',
+          frame: 'border-rose-200 dark:border-rose-900/60',
           kind:
             'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-200',
-          paper: 'border-rose-200 bg-rose-50/40 dark:border-rose-900/40 dark:bg-rose-950/20'
+          paper: 'border-rose-300 bg-rose-50/40 dark:border-rose-800/60 dark:bg-rose-950/20'
         }
       : {
-          frame: 'border-sky-100 dark:border-sky-900/40',
+          frame: 'border-sky-200 dark:border-sky-900/60',
           kind:
             'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-200',
-          paper: 'border-sky-200 bg-sky-50/40 dark:border-sky-900/40 dark:bg-sky-950/20'
+          paper: 'border-sky-300 bg-sky-50/40 dark:border-sky-800/60 dark:bg-sky-950/20'
         }
 
   return (

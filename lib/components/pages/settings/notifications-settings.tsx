@@ -280,7 +280,7 @@ export function NotificationsSettingsPage() {
   if (coupleLoading || loading) {
     return (
       <main className="container mx-auto max-w-4xl px-4 py-12 sm:px-6">
-        <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-300">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200">
           Đang tải cài đặt thông báo...
         </div>
       </main>
@@ -301,7 +301,7 @@ export function NotificationsSettingsPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
             Thông báo & Telegram
           </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
             Quản lý kênh nhận thông báo theo từng couple.
           </p>
         </div>
@@ -309,14 +309,14 @@ export function NotificationsSettingsPage() {
         <div className="space-y-4">
           <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Kết nối Telegram</h2>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
               Trạng thái: {telegramLinked ? 'Đã liên kết' : 'Chưa liên kết'}
             </p>
             {telegramChatId ? (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">chat_id: {telegramChatId}</p>
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">chat_id: {telegramChatId}</p>
             ) : null}
             {telegramLinkedAt ? (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
                 Liên kết lúc: {new Date(telegramLinkedAt).toLocaleString('vi-VN')}
               </p>
             ) : null}
@@ -376,7 +376,7 @@ export function NotificationsSettingsPage() {
 
           <div className="rounded-2xl border border-sky-100 bg-white p-5 shadow-sm dark:border-sky-900/40 dark:bg-gray-900">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tùy chọn thông báo</h2>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
               {couple?.id
                 ? `Áp dụng cho couple #${couple.code ?? '—'}`
                 : 'Bạn chưa có couple. Chỉ có thể chỉnh sau khi ghép đôi.'}

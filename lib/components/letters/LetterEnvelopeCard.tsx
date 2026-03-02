@@ -30,7 +30,7 @@ export function LetterEnvelopeCard({
     colorMode === 'pink'
       ? {
           frame:
-            'border-rose-100 hover:border-rose-200 dark:border-rose-900/40 dark:hover:border-rose-800',
+            'border-rose-200 hover:border-rose-300 dark:border-rose-900/60 dark:hover:border-rose-700',
           iconBg: 'from-rose-200 to-fuchsia-200 dark:from-rose-900/50 dark:to-fuchsia-900/50',
           dot: 'bg-rose-500',
           kind:
@@ -38,7 +38,7 @@ export function LetterEnvelopeCard({
         }
       : {
           frame:
-            'border-sky-100 hover:border-sky-200 dark:border-sky-900/40 dark:hover:border-sky-800',
+            'border-sky-200 hover:border-sky-300 dark:border-sky-900/60 dark:hover:border-sky-700',
           iconBg: 'from-sky-200 to-indigo-200 dark:from-sky-900/50 dark:to-indigo-900/50',
           dot: 'bg-sky-500',
           kind:

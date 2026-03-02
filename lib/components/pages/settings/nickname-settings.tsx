@@ -199,7 +199,7 @@ export function NicknameSettingsPage() {
   if (coupleLoading || loading) {
     return (
       <main className="container mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-600 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-300">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200">
           Đang tải cài đặt biệt danh...
         </div>
       </main>
@@ -220,7 +220,7 @@ export function NicknameSettingsPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
             Biệt danh couple
           </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
             Cập nhật biệt danh để hộp thư hiển thị đồng bộ giữa hai người.
           </p>
         </div>
