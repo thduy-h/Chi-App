@@ -818,7 +818,7 @@ export const FinanceDashboard = () => {
                           </div>
                           <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700">
                             <div
-                              className="h-2 rounded-full bg-sky-500"
+                              className="h-2 rounded-full bg-rose-500 dark:bg-rose-400"
                               style={{ width: `${width}%` }}
                             />
                           </div>
@@ -890,7 +890,7 @@ export const FinanceDashboard = () => {
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-medium ${entry.type === 'income'
                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300'
+                                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200'
                                 }`}
                             >
                               {entry.type === 'income' ? 'Thu' : 'Chi'}
@@ -900,7 +900,7 @@ export const FinanceDashboard = () => {
                           <td
                             className={`py-2 pr-3 font-semibold ${entry.type === 'income'
                               ? 'text-emerald-700 dark:text-emerald-300'
-                              : 'text-sky-700 dark:text-sky-300'
+                              : 'text-rose-800 dark:text-rose-200'
                               }`}
                           >
                             {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
@@ -955,7 +955,7 @@ export const FinanceDashboard = () => {
                     type="button"
                     onClick={() => setType('expense')}
                     className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${type === 'expense'
-                      ? 'bg-sky-600 text-white'
+                      ? 'bg-rose-600 text-white'
                       : 'border border-gray-300 text-gray-700 hover:bg-white dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800'
                       }`}
                   >
@@ -1108,9 +1108,9 @@ const SummaryCard = ({
       valueText: 'text-emerald-700 dark:text-emerald-300'
     },
     rose: {
-      iconBg: 'bg-sky-100 dark:bg-sky-900/30',
-      iconText: 'text-sky-700 dark:text-sky-300',
-      valueText: 'text-sky-700 dark:text-sky-300'
+      iconBg: 'bg-rose-100 dark:bg-rose-900/30',
+      iconText: 'text-rose-800 dark:text-rose-200',
+      valueText: 'text-rose-800 dark:text-rose-200'
     },
     blue: {
       iconBg: 'bg-blue-100 dark:bg-blue-900/30',

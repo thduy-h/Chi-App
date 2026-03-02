@@ -58,18 +58,19 @@ export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
 
   return (
     <nav
-      className={`sticky top-0 z-30 border-b bg-white/90 shadow-sm backdrop-blur dark:bg-gray-900/90 ${theme.navWrap}`}
+      className={`sticky top-0 z-30 overflow-x-hidden border-b bg-white/90 shadow-sm backdrop-blur dark:bg-gray-900/90 ${theme.navWrap}`}
     >
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex min-w-0 max-w-[52vw] items-center gap-2 sm:max-w-none">
             <Logo colorMode={colorMode} />
-            <span className="text-sm font-semibold tracking-wide text-gray-800 dark:text-white sm:text-base">
+            <span className="truncate text-sm font-semibold tracking-wide text-gray-800 dark:text-white sm:text-base">
               {brandLabel}
             </span>
             {isPremiumMode ? (
-              <span className="inline-flex rounded-full border border-amber-300 bg-amber-200 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-900 shadow-sm">
-                Premium
+              <span className="inline-flex shrink-0 rounded-full border border-amber-300 bg-amber-200 px-1.5 py-0.5 text-[9px] font-semibold text-amber-900 shadow-sm md:px-2.5 md:py-1 md:text-[10px] md:uppercase md:tracking-[0.16em]">
+                <span className="md:hidden">PRE</span>
+                <span className="hidden md:inline">Premium</span>
               </span>
             ) : null}
           </Link>

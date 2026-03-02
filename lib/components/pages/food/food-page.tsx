@@ -310,8 +310,8 @@ export const FoodPage = () => {
 
           {randomFood && (
             <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 dark:border-sky-900/50 dark:bg-sky-950/10">
-              <p className="text-sm text-sky-700 dark:text-sky-300">
-                Gợi ý hôm nay: <span className="font-semibold">{randomFood.name}</span> ({randomFood.priceRange})
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+                Gợi ý hôm nay: <span className="font-semibold text-gray-900 dark:text-white">{randomFood.name}</span> ({randomFood.priceRange})
               </p>
             </div>
           )}
@@ -349,7 +349,7 @@ export const FoodPage = () => {
                     {FOOD_CATEGORIES.find((category) => category.value === food.category)?.label}
                   </p>
 
-                  <p className="mt-4 text-base font-semibold text-sky-700 dark:text-sky-300">{food.priceRange}</p>
+                  <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{food.priceRange}</p>
 
                   {food.note && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{food.note}</p>}
 
