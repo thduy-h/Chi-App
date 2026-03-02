@@ -873,7 +873,7 @@ export const FinanceDashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
-                      <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      <tr className="text-left text-xs uppercase tracking-wide text-gray-600 dark:text-gray-300">
                         <th className="py-2 pr-3">Ngày</th>
                         <th className="py-2 pr-3">Loại</th>
                         <th className="py-2 pr-3">Danh mục</th>
@@ -883,14 +883,19 @@ export const FinanceDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {monthEntries.map((entry) => (
-                        <tr key={entry.id} className="border-t border-gray-200 dark:border-gray-700">
+                      {monthEntries.map((entry, index) => (
+                        <tr
+                          key={entry.id}
+                          className={`border-t border-gray-200 dark:border-gray-700 ${
+                            index % 2 === 0 ? 'bg-white/80 dark:bg-gray-800/20' : 'bg-gray-50/70 dark:bg-gray-900/20'
+                          }`}
+                        >
                           <td className="py-2 pr-3 text-gray-700 dark:text-gray-200">{formatDate(entry.date)}</td>
                           <td className="py-2 pr-3">
                             <span
                               className={`rounded-full px-2 py-1 text-xs font-medium ${entry.type === 'income'
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-200'
+                                ? 'border border-emerald-300 bg-emerald-100 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-100'
+                                : 'border border-rose-300 bg-rose-100 text-rose-900 dark:border-rose-700 dark:bg-rose-900/30 dark:text-rose-100'
                                 }`}
                             >
                               {entry.type === 'income' ? 'Thu' : 'Chi'}
@@ -899,19 +904,19 @@ export const FinanceDashboard = () => {
                           <td className="py-2 pr-3 text-gray-700 dark:text-gray-200">{entry.category}</td>
                           <td
                             className={`py-2 pr-3 font-semibold ${entry.type === 'income'
-                              ? 'text-emerald-700 dark:text-emerald-300'
-                              : 'text-rose-800 dark:text-rose-200'
+                              ? 'text-emerald-800 dark:text-emerald-200'
+                              : 'text-rose-900 dark:text-rose-100'
                               }`}
                           >
                             {entry.type === 'income' ? '+' : '-'} {formatCurrency(entry.amount)}
                           </td>
-                          <td className="py-2 pr-3 text-gray-500 dark:text-gray-400">{entry.note || '-'}</td>
+                          <td className="py-2 pr-3 text-gray-700 dark:text-gray-300">{entry.note || '-'}</td>
                           <td className="py-2 text-right">
                             <div className="flex justify-end gap-1">
                               <button
                                 type="button"
                                 onClick={() => handleEditEntry(entry)}
-                                className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-300 dark:hover:bg-blue-900/20"
+                                className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                               >
                                 Sửa
                               </button>
