@@ -4,6 +4,8 @@ import { FormEvent, useMemo, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { FOODS, FOOD_CATEGORIES, FoodCategory, FoodItem } from '@/lib/data/foods'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 
 const DELIVERY_TIME_OPTIONS = [
   { value: 'ngay', label: 'Ngay bây giờ' },
@@ -39,8 +41,10 @@ const FoodImage = ({ src, alt }: { src?: string; alt: string }) => {
   )
 }
 
-export const FoodPage = () => {
+export const FoodPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
   const dispatch = useDispatch()
+  const mode = useResolvedHomeMode(initialMode)
+  const isPremiumMode = mode === 'a' || mode === 'b'
 
   const [selectedCategories, setSelectedCategories] = useState<FoodCategory[]>([])
   const [keyword, setKeyword] = useState('')
@@ -53,6 +57,12 @@ export const FoodPage = () => {
   const [orderName, setOrderName] = useState('')
   const [orderNotes, setOrderNotes] = useState('')
   const [deliveryTime, setDeliveryTime] = useState(DELIVERY_TIME_OPTIONS[0].value)
+  const accentButtonClass = isPremiumMode
+    ? 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400'
+    : 'bg-sky-600 hover:bg-sky-700 dark:bg-sky-500 dark:hover:bg-sky-400'
+  const accentPriceClass = isPremiumMode
+    ? 'text-rose-800 dark:text-rose-200'
+    : 'text-sky-800 dark:text-sky-200'
 
   const filteredFoods = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase()
@@ -268,7 +278,7 @@ export const FoodPage = () => {
               <button
                 type="button"
                 onClick={handleRandomFood}
-                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
+                className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${accentButtonClass}`}
               >
                 Random món
               </button>
@@ -349,14 +359,14 @@ export const FoodPage = () => {
                     {FOOD_CATEGORIES.find((category) => category.value === food.category)?.label}
                   </p>
 
-                  <p className="mt-4 text-base font-semibold text-rose-800 dark:text-rose-200">{food.priceRange}</p>
+                  <p className={`mt-4 text-base font-semibold ${accentPriceClass}`}>{food.priceRange}</p>
 
                   {food.note && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{food.note}</p>}
 
                   <button
                     type="button"
                     onClick={() => openOrderModal(food)}
-                    className="mt-auto rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
+                    className={`mt-auto rounded-lg px-4 py-2 text-sm font-semibold text-white transition ${accentButtonClass}`}
                   >
                     Đặt món này
                   </button>
@@ -458,7 +468,7 @@ export const FoodPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-400"
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${accentButtonClass}`}
                 >
                   {isSubmitting ? 'Đang gửi...' : 'Gửi đơn'}
                 </button>
