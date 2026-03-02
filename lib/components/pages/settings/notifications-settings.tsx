@@ -393,10 +393,10 @@ export function NotificationsSettingsPage() {
                       return (
                         <label
                           key={channel.id}
-                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                             checked
-                              ? 'border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-200'
-                              : 'border-gray-300 bg-white text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300'
+                              ? 'border-sky-600 bg-sky-600 text-white shadow-sm dark:border-sky-500 dark:bg-sky-500 dark:text-gray-900'
+                              : 'border-gray-300 bg-white text-gray-700 hover:border-sky-400 hover:bg-sky-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:border-sky-700 dark:hover:bg-sky-900/20'
                           } ${disableTelegram ? 'opacity-60' : ''}`}
                         >
                           <input
@@ -406,7 +406,7 @@ export function NotificationsSettingsPage() {
                             onChange={(eventInput) =>
                               void onTogglePref(event.id, channel.id, eventInput.target.checked)
                             }
-                            className="h-3.5 w-3.5 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+                            className="h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-2 focus:ring-sky-500"
                           />
                           {channel.label}
                         </label>
