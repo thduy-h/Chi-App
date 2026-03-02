@@ -427,8 +427,7 @@ export const TasksPage = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
 
         <div className={`mb-5 px-4 py-3 text-sm text-gray-700 dark:text-gray-200 ${palette.panel}`}>
           <p>
-            <span className="font-semibold">Chế độ:</span>{' '}
-            {syncMode === 'supabase' ? 'Đồng bộ Supabase' : 'Local trên thiết bị'}
+            <span className="font-semibold">Chế độ dữ liệu:</span> {syncMode === 'supabase' ? 'Đồng bộ' : 'Cục bộ'}
           </p>
           {isContextLoading && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Đang kiểm tra phiên đăng nhập...</p>}
           {currentEmail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>}

@@ -112,7 +112,9 @@ export const CycleTracker = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) =
             periodDay: 'border-rose-200 bg-rose-50 dark:border-rose-800 dark:bg-rose-900/20',
             nextStartChip: 'bg-rose-600 text-white',
             periodChip: 'bg-rose-200 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300',
-            disclaimer: 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-900/20'
+            disclaimer: 'border-rose-200 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-900/20',
+            modePanel:
+              'rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200'
           }
         : {
             heroBackdrop:
@@ -124,7 +126,9 @@ export const CycleTracker = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) =
             periodDay: 'border-sky-200 bg-sky-50 dark:border-sky-800 dark:bg-sky-900/20',
             nextStartChip: 'bg-sky-600 text-white',
             periodChip: 'bg-sky-200 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300',
-            disclaimer: 'border-sky-200 bg-sky-50/70 dark:border-sky-900/50 dark:bg-sky-900/20'
+            disclaimer: 'border-sky-200 bg-sky-50/70 dark:border-sky-900/50 dark:bg-sky-900/20',
+            modePanel:
+              'rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200'
           },
     [isPremiumMode]
   )
@@ -457,9 +461,11 @@ export const CycleTracker = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) =
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Theo dõi chu kỳ cơ bản với dự đoán ngày bắt đầu kỳ tiếp theo và lịch tháng.
           </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Chế độ dữ liệu: {isSupabaseMode ? 'Đồng bộ Supabase' : 'Lưu local trên thiết bị'}
-          </p>
+          <div className={`mt-3 ${palette.modePanel}`}>
+            <p>
+              <span className="font-semibold">Chế độ dữ liệu:</span> {isSupabaseMode ? 'Đồng bộ' : 'Cục bộ'}
+            </p>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">

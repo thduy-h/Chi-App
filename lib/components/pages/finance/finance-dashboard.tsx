@@ -182,14 +182,18 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
               'pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-rose-100/80 via-white to-white dark:from-rose-950/20 dark:via-gray-900 dark:to-gray-900',
             badge:
               'inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
-            inputRing: 'ring-rose-300 focus:ring-rose-300'
+            inputRing: 'ring-rose-300 focus:ring-rose-300',
+            modePanel:
+              'rounded-xl border border-rose-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-rose-900/40 dark:bg-gray-900 dark:text-gray-200'
           }
         : {
             heroBackdrop:
               'pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900',
             badge:
               'inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300',
-            inputRing: 'ring-sky-300 focus:ring-sky-300'
+            inputRing: 'ring-sky-300 focus:ring-sky-300',
+            modePanel:
+              'rounded-xl border border-sky-100 bg-white px-4 py-3 text-sm text-gray-700 shadow-sm dark:border-sky-900/40 dark:bg-gray-900 dark:text-gray-200'
           },
     [isPremiumMode]
   )
@@ -768,15 +772,15 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               Giao diện dashboard gọn nhẹ, tối ưu cho theo dõi thu chi hằng ngày.
             </p>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Chế độ dữ liệu: {isSupabaseMode ? 'Đồng bộ Supabase' : 'Lưu local trên thiết bị'}
-            </p>
-            {currentEmail && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>
-            )}
-            {activeCoupleCode && (
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Mã couple: #{activeCoupleCode}</p>
-            )}
+            <div className={`mt-3 ${palette.modePanel}`}>
+              <p>
+                <span className="font-semibold">Chế độ dữ liệu:</span> {isSupabaseMode ? 'Đồng bộ' : 'Cục bộ'}
+              </p>
+              {currentEmail && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email: {currentEmail}</p>}
+              {activeCoupleCode && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Couple: #{activeCoupleCode}</p>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

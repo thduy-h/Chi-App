@@ -203,7 +203,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     id: null,
     email: initialEmail || null
   })
-  const [hasAccessToken, setHasAccessToken] = useState(false)
   const [coupleState, setCoupleState] = useState<CoupleState>({ status: 'loading' })
   const [loadError, setLoadError] = useState<string | null>(null)
   const [debugUserId, setDebugUserId] = useState<string | null>(null)
@@ -231,6 +230,13 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     isDeletingCouple ||
     isResettingCouple ||
     isRotatingCoupleCode
+  const canResetCouple = coupleState.status === 'active' && coupleState.isOwner
+  const resetDisabled = isBusy || !canResetCouple
+  const resetTitle = canResetCouple
+    ? 'Đặt lại couple'
+    : coupleState.status !== 'active'
+      ? 'Chỉ khả dụng khi bạn đang tham gia couple'
+      : 'Chỉ owner mới có thể đặt lại couple'
   const statusTextClass =
     coupleState.status === 'active'
       ? 'text-emerald-700 dark:text-emerald-300'
@@ -242,9 +248,12 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     setCoupleState((current) => (isSameCoupleState(current, next) ? current : next))
   }, [])
 
-  const loadCreatedCouplesHistory = useCallback(async () => {
+  const loadCreatedCouplesHistory = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = Boolean(options?.silent)
     try {
-      setHistoryLoading(true)
+      if (!silent) {
+        setHistoryLoading(true)
+      }
       const response = await fetch('/api/couple/history', { method: 'GET', cache: 'no-store' })
       const payload = (await response.json().catch(() => ({}))) as {
         history?: CreatedCoupleHistoryItem[]
@@ -257,16 +266,20 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       setCreatedCouplesHistory(Array.isArray(payload.history) ? payload.history : [])
     } catch (error) {
-      setCreatedCouplesHistory([])
-      dispatch(
-        setAlert({
-          type: 'warning',
-          title: 'Không tải được lịch sử couple',
-          message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
-        })
-      )
+      if (!silent) {
+        setCreatedCouplesHistory([])
+        dispatch(
+          setAlert({
+            type: 'warning',
+            title: 'Không tải được lịch sử couple',
+            message: error instanceof Error ? error.message : 'Đã xảy ra lỗi không xác định.'
+          })
+        )
+      }
     } finally {
-      setHistoryLoading(false)
+      if (!silent) {
+        setHistoryLoading(false)
+      }
     }
   }, [dispatch])
 
@@ -290,13 +303,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
       try {
         setIsRefreshing(true)
 
-        const [{ data: userData, error: userError }, { data: sessionData, error: sessionError }] =
-          await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()])
-
-        if (sessionError) {
-          console.error('[setup/loadCoupleState] getSession error:', sessionError)
-        }
-        setHasAccessToken(Boolean(sessionData.session?.access_token))
+        const { data: userData, error: userError } = await supabase.auth.getUser()
 
         const user = userData.user
         if (userError || !user) {
@@ -407,6 +414,31 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   }, [loadCreatedCouplesHistory])
 
   useEffect(() => {
+    if (!authUser.id) {
+      return
+    }
+
+    const timer = window.setInterval(() => {
+      void loadCreatedCouplesHistory({ silent: true })
+    }, 15000)
+
+    return () => {
+      window.clearInterval(timer)
+    }
+  }, [authUser.id, loadCreatedCouplesHistory])
+
+  useEffect(() => {
+    const handleWindowFocus = () => {
+      void loadCreatedCouplesHistory({ silent: true })
+    }
+
+    window.addEventListener('focus', handleWindowFocus)
+    return () => {
+      window.removeEventListener('focus', handleWindowFocus)
+    }
+  }, [loadCreatedCouplesHistory])
+
+  useEffect(() => {
     setCreatedCouplesHistory((previous) => {
       if (previous.length < 1) {
         return previous
@@ -473,8 +505,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           'Không có access token trong phiên Supabase'
         )
       }
-
-      setHasAccessToken(true)
 
       let createdCouple: CouplePayload | null = null
       let lastCreateError: CreateDiagnosticsError | null = null
@@ -643,6 +673,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
       setJoinCode('')
       emitCoupleChangedEvent('join')
+      void loadCreatedCouplesHistory({ silent: true })
       void loadCoupleState({ expectedCoupleId: joinedCoupleId })
 
       dispatch(
@@ -818,6 +849,17 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
   }
 
   const onResetCouple = async () => {
+    if (coupleState.status !== 'active' || !coupleState.isOwner) {
+      dispatch(
+        setAlert({
+          type: 'info',
+          title: 'Không khả dụng',
+          message: 'Chỉ owner đang tham gia couple mới có thể đặt lại couple.'
+        })
+      )
+      return
+    }
+
     if (!supabase) {
       dispatch(
         setAlert({
@@ -850,34 +892,18 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         throw new Error('Bạn cần đăng nhập lại để reset couple.')
       }
 
-      if (coupleState.status === 'active') {
-        if (coupleState.isOwner) {
-          const confirmDelete = window.confirm(
-            'CẢNH BÁO: Reset khi bạn là owner sẽ xóa toàn bộ dữ liệu chung của couple hiện tại. Tiếp tục?'
-          )
-          if (!confirmDelete) {
-            return
-          }
+      const confirmDelete = window.confirm(
+        'CẢNH BÁO: Reset khi bạn là owner sẽ xóa toàn bộ dữ liệu chung của couple hiện tại. Tiếp tục?'
+      )
+      if (!confirmDelete) {
+        return
+      }
 
-          const { error: deleteError } = await supabase.rpc('delete_my_couple', {
-            p_couple_id: coupleState.coupleId
-          })
-          if (deleteError) {
-            throw mapCreateError(deleteError, 'Không thể xóa couple hiện tại')
-          }
-        } else {
-          const confirmLeave = window.confirm('Bạn sẽ rời couple hiện tại và tạo couple mới. Tiếp tục?')
-          if (!confirmLeave) {
-            return
-          }
-
-          const { error: leaveError } = await supabase.rpc('leave_couple', {
-            p_couple_id: coupleState.coupleId
-          })
-          if (leaveError) {
-            throw mapCreateError(leaveError, 'Không thể rời couple hiện tại')
-          }
-        }
+      const { error: deleteError } = await supabase.rpc('delete_my_couple', {
+        p_couple_id: coupleState.coupleId
+      })
+      if (deleteError) {
+        throw mapCreateError(deleteError, 'Không thể xóa couple hiện tại')
       }
 
       let createdCouple: CouplePayload | null = null
@@ -1051,9 +1077,6 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           Đăng nhập: <span className="font-medium">{email || 'không rõ'}</span>
         </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Có access_token trong phiên: {String(hasAccessToken)}
-        </p>
 
         <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/80">
           <p className="text-sm text-gray-700 dark:text-gray-200">
@@ -1163,13 +1186,14 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
               Đặt lại couple (xóa và tạo mới)
             </p>
             <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
-              Nếu bạn là owner, reset sẽ xóa toàn bộ dữ liệu chia sẻ của couple hiện tại.
+              Chỉ owner đang tham gia mới có thể đặt lại couple. Khi reset, dữ liệu chia sẻ của couple hiện tại sẽ bị xóa.
             </p>
             <button
               type="button"
               onClick={onResetCouple}
-              disabled={isBusy}
-              className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-60"
+              title={resetTitle}
+              disabled={resetDisabled}
+              className="mt-3 rounded-xl bg-amber-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-amber-300 disabled:text-white/85 dark:disabled:bg-amber-900/40 dark:disabled:text-amber-200/70"
             >
               {isResettingCouple ? 'Đang đặt lại...' : 'Đặt lại couple'}
             </button>
@@ -1280,7 +1304,10 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
 
         <button
           type="button"
-          onClick={() => void loadCoupleState()}
+          onClick={() => {
+            void loadCoupleState()
+            void loadCreatedCouplesHistory({ silent: true })
+          }}
           disabled={isRefreshing || isBusy}
           className="mt-6 text-sm font-semibold text-rose-700 transition hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
         >
