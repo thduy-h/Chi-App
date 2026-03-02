@@ -173,6 +173,26 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
   const importRef = useRef<HTMLInputElement>(null)
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
   const mode = useResolvedHomeMode(initialMode)
+  const isPremiumMode = mode === 'a' || mode === 'b'
+  const palette = useMemo(
+    () =>
+      isPremiumMode
+        ? {
+            heroBackdrop:
+              'pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-rose-100/80 via-white to-white dark:from-rose-950/20 dark:via-gray-900 dark:to-gray-900',
+            badge:
+              'inline-flex rounded-full border border-rose-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-rose-600 shadow-sm dark:border-rose-900 dark:bg-gray-900 dark:text-rose-300',
+            inputRing: 'ring-rose-300 focus:ring-rose-300'
+          }
+        : {
+            heroBackdrop:
+              'pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900',
+            badge:
+              'inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300',
+            inputRing: 'ring-sky-300 focus:ring-sky-300'
+          },
+    [isPremiumMode]
+  )
   const badgeLabel = `${mode === 'a' ? 'Nhà Cáo Thỏ' : 'LoveHub'} • Tài chính`
 
   const [entries, setEntries] = useState<FinanceEntry[]>([])
@@ -729,14 +749,19 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
 
   return (
     <main className="relative overflow-hidden">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-sky-100/80 via-white to-white dark:from-sky-950/20 dark:via-gray-900 dark:to-gray-900" />
+      <div className={palette.heroBackdrop} />
 
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
+            <span className={palette.badge}>
               {badgeLabel}
             </span>
+            {isPremiumMode ? (
+              <span className="ml-2 inline-flex rounded-full border border-amber-300 bg-amber-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-amber-900 shadow-sm">
+                Premium
+              </span>
+            ) : null}
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               Bảng theo dõi tài chính
             </h1>
@@ -760,7 +785,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
               type="month"
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+              className={`rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${palette.inputRing}`}
             />
           </div>
         </div>
@@ -986,7 +1011,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                       if (formError) setFormError('')
                     }}
                     placeholder="500000"
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${palette.inputRing}`}
                   />
                 </div>
 
@@ -997,7 +1022,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                   <select
                     value={category}
                     onChange={(event) => setCategory(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${palette.inputRing}`}
                   >
                     {categoryOptions.map((option) => (
                       <option key={option} value={option}>
@@ -1015,7 +1040,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                     type="date"
                     value={date}
                     onChange={(event) => setDate(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${palette.inputRing}`}
                   />
                 </div>
 
@@ -1027,7 +1052,7 @@ export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode 
                     rows={3}
                     value={note}
                     onChange={(event) => setNote(event.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none ring-sky-300 transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                    className={`w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none transition focus:ring dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 ${palette.inputRing}`}
                     placeholder="Thêm ghi chú nếu cần..."
                   />
                 </div>
