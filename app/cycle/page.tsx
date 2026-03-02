@@ -1,4 +1,5 @@
 ﻿import { Metadata } from 'next'
+import { resolveHomeMode } from '@/lib/home-mode'
 import { AuthRequired } from '@/lib/components/shared/auth-required'
 import { CycleTracker } from '@/lib/components/pages/cycle/cycle-tracker'
 import { createClient } from '@/lib/supabase/server'
@@ -32,5 +33,6 @@ export default async function Page() {
     )
   }
 
-  return <CycleTracker />
+  const mode = await resolveHomeMode(supabase)
+  return <CycleTracker mode={mode} />
 }

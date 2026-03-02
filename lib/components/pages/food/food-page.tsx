@@ -268,7 +268,7 @@ export const FoodPage = () => {
               <button
                 type="button"
                 onClick={handleRandomFood}
-                className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700"
+                className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
               >
                 Random món
               </button>
@@ -349,14 +349,14 @@ export const FoodPage = () => {
                     {FOOD_CATEGORIES.find((category) => category.value === food.category)?.label}
                   </p>
 
-                  <p className="mt-4 text-base font-semibold text-gray-900 dark:text-white">{food.priceRange}</p>
+                  <p className="mt-4 text-base font-semibold text-rose-800 dark:text-rose-200">{food.priceRange}</p>
 
                   {food.note && <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{food.note}</p>}
 
                   <button
                     type="button"
                     onClick={() => openOrderModal(food)}
-                    className="mt-auto rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-black dark:bg-gray-200 dark:text-gray-900 dark:hover:bg-white"
+                    className="mt-auto rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
                   >
                     Đặt món này
                   </button>
@@ -458,7 +458,7 @@ export const FoodPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-rose-500 dark:hover:bg-rose-400"
                 >
                   {isSubmitting ? 'Đang gửi...' : 'Gửi đơn'}
                 </button>

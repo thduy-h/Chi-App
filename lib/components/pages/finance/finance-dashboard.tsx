@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { logGetMyCoupleRawOnce, normalizeRpcRow } from '@/lib/supabase/couples'
 import type { Database } from '@/lib/supabase/types'
@@ -166,10 +168,12 @@ const parseImportEntries = (parsed: unknown): FinanceEntry[] => {
     .filter((entry): entry is FinanceEntry => Boolean(entry))
 }
 
-export const FinanceDashboard = () => {
+export const FinanceDashboard = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
   const dispatch = useDispatch()
   const importRef = useRef<HTMLInputElement>(null)
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const mode = useResolvedHomeMode(initialMode)
+  const badgeLabel = `${mode === 'a' ? 'Nhà Cáo Thỏ' : 'LoveHub'} • Tài chính`
 
   const [entries, setEntries] = useState<FinanceEntry[]>([])
   const [hydrated, setHydrated] = useState(false)
@@ -731,7 +735,7 @@ export const FinanceDashboard = () => {
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
-              LoveHub Tài Chính
+              {badgeLabel}
             </span>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
               Bảng theo dõi tài chính

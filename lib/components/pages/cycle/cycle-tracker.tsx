@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { setAlert } from '@/lib/features/alert/alertSlice'
+import type { HomeMode } from '@/lib/home-mode'
+import { useResolvedHomeMode } from '@/lib/hooks/use-resolved-home-mode'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import type { Database } from '@/lib/supabase/types'
 import {
@@ -92,9 +94,11 @@ const toCycleSettingsFromRow = (row: CycleSettingsRow): CycleSettings =>
     periodLength: row.period_length
   })
 
-export const CycleTracker = () => {
+export const CycleTracker = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
   const dispatch = useDispatch()
+  const mode = useResolvedHomeMode(initialMode)
   const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const badgeLabel = `${mode === 'a' ? 'Nhà Cáo Thỏ' : 'LoveHub'} • Chu kỳ`
   const [settings, setSettings] = useState<CycleSettings>(DEFAULT_SETTINGS)
   const [history, setHistory] = useState<CycleHistoryItem[]>([])
   const [hydrated, setHydrated] = useState(false)
@@ -410,7 +414,7 @@ export const CycleTracker = () => {
       <section className="relative container mx-auto px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <div className="mb-6">
           <span className="inline-flex rounded-full border border-sky-200 bg-white px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-sky-600 shadow-sm dark:border-sky-900 dark:bg-gray-900 dark:text-sky-300">
-            LoveHub Chu kỳ
+            {badgeLabel}
           </span>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
             Theo dõi chu kỳ
