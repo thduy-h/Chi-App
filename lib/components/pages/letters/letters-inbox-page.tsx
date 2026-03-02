@@ -38,8 +38,7 @@ export function LettersInboxPage({ mode: initialMode = 'c' }: { mode?: HomeMode 
       colorMode === 'pink'
         ? {
             glow: 'bg-rose-200/60 dark:bg-rose-900/20',
-            badge:
-              'inline-flex rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200',
+            badge: 'text-rose-600 dark:text-rose-300',
             primary: 'bg-rose-600 hover:bg-rose-700',
             panel: 'border-rose-100 dark:border-rose-900/40',
             activeChip: 'bg-rose-600 text-white',
@@ -49,8 +48,7 @@ export function LettersInboxPage({ mode: initialMode = 'c' }: { mode?: HomeMode 
           }
         : {
             glow: 'bg-sky-200/60 dark:bg-sky-900/20',
-            badge:
-              'inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700 dark:border-sky-800/60 dark:bg-sky-900/20 dark:text-sky-200',
+            badge: 'text-sky-600 dark:text-sky-300',
             primary: 'bg-sky-600 hover:bg-sky-700',
             panel: 'border-sky-100 dark:border-sky-900/40',
             activeChip: 'bg-sky-600 text-white',

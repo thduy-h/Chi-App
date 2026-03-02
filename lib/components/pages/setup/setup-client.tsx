@@ -235,7 +235,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
     coupleState.status === 'active'
       ? 'text-emerald-700 dark:text-emerald-300'
       : coupleState.status === 'none'
-        ? 'text-amber-700 dark:text-amber-300'
+        ? 'text-rose-700 dark:text-rose-300'
         : 'text-red-700 dark:text-red-300'
 
   const applyCoupleState = useCallback((next: CoupleState) => {
@@ -1126,7 +1126,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 onClick={activeCouple.isOwner ? onRotateCoupleCode : undefined}
                 title={activeCouple.isOwner ? 'Đổi mã couple' : 'Chỉ người tạo couple mới đổi mã'}
                 disabled={!activeCouple.isOwner || isBusy}
-                className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-700 dark:bg-sky-900/20 dark:text-sky-200 dark:hover:bg-sky-900/35"
+                className="rounded-xl border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:border-rose-400 hover:text-rose-800 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
               >
                 {isRotatingCoupleCode ? 'Đang đổi mã...' : 'Đổi mã couple'}
               </button>
@@ -1209,6 +1209,27 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                       {item.memberCount}
                     </p>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                        item.isCurrentMember
+                          ? 'border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300'
+                          : 'border-gray-300 text-gray-600 dark:border-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {item.isCurrentMember ? 'Đang tham gia' : 'Đã rời'}
+                    </span>
+                    {!item.isCurrentMember ? (
+                      <button
+                        type="button"
+                        onClick={() => void onDeleteCreatedCouple(item)}
+                        disabled={deletingHistoryCoupleId === item.id}
+                        className="rounded-md border border-rose-300 px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-700 dark:text-rose-300 dark:hover:bg-rose-900/20"
+                      >
+                        {deletingHistoryCoupleId === item.id ? 'Đang xoá...' : 'Xoá'}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -1261,7 +1282,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           type="button"
           onClick={() => void loadCoupleState()}
           disabled={isRefreshing || isBusy}
-          className="mt-6 inline-flex rounded-lg border border-sky-300 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 dark:border-sky-700 dark:bg-sky-900/20 dark:text-sky-200 dark:hover:bg-sky-900/35 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
+          className="mt-6 text-sm font-semibold text-rose-700 transition hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-rose-300"
         >
           {isRefreshing ? 'Đang làm mới...' : 'Làm mới trạng thái từ server'}
         </button>

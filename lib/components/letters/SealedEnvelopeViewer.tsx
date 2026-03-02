@@ -35,8 +35,7 @@ export function SealedEnvelopeViewer({
     colorMode === 'pink'
       ? {
           panel: 'border-rose-200 from-rose-50 to-fuchsia-50 dark:border-rose-900/60 dark:from-rose-950/20 dark:to-fuchsia-950/20',
-          badge:
-            'inline-flex rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200',
+          badge: 'text-rose-600 dark:text-rose-300',
           envelope: 'border-rose-300 dark:border-rose-800/70',
           icon: 'bg-rose-100 dark:bg-rose-900/30',
           primary: 'bg-rose-600 hover:bg-rose-700',
@@ -45,8 +44,7 @@ export function SealedEnvelopeViewer({
         }
       : {
           panel: 'border-sky-200 from-sky-50 to-indigo-50 dark:border-sky-900/60 dark:from-sky-950/20 dark:to-indigo-950/20',
-          badge:
-            'inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700 dark:border-sky-800/60 dark:bg-sky-900/20 dark:text-sky-200',
+          badge: 'text-sky-600 dark:text-sky-300',
           envelope: 'border-sky-300 dark:border-sky-800/70',
           icon: 'bg-sky-100 dark:bg-sky-900/30',
           primary: 'bg-sky-600 hover:bg-sky-700',

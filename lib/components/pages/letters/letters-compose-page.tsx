@@ -30,8 +30,7 @@ export function LettersComposePage({ mode: initialMode = 'c' }: { mode?: HomeMod
   const theme =
     colorMode === 'pink'
       ? {
-          badge:
-            'inline-flex rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-rose-700 dark:border-rose-800/60 dark:bg-rose-900/20 dark:text-rose-200',
+          badge: 'text-rose-600 dark:text-rose-300',
           panel: 'border-rose-100 dark:border-rose-900/40',
           tabsWrap: 'border-rose-100 bg-rose-50/70 dark:border-rose-900/50 dark:bg-rose-950/20',
           activeTab: 'bg-rose-600 text-white',
@@ -41,8 +40,7 @@ export function LettersComposePage({ mode: initialMode = 'c' }: { mode?: HomeMod
           primary: 'bg-rose-600 hover:bg-rose-700'
         }
       : {
-          badge:
-            'inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sky-700 dark:border-sky-800/60 dark:bg-sky-900/20 dark:text-sky-200',
+          badge: 'text-sky-600 dark:text-sky-300',
           panel: 'border-sky-100 dark:border-sky-900/40',
           tabsWrap: 'border-sky-100 bg-sky-50/70 dark:border-sky-900/50 dark:bg-sky-950/20',
           activeTab: 'bg-sky-600 text-white',
