@@ -1126,7 +1126,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
                 onClick={activeCouple.isOwner ? onRotateCoupleCode : undefined}
                 title={activeCouple.isOwner ? 'Đổi mã couple' : 'Chỉ người tạo couple mới đổi mã'}
                 disabled={!activeCouple.isOwner || isBusy}
-                className="rounded-xl border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-900/20"
+                className="rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-sky-700 dark:bg-sky-900/20 dark:text-sky-200 dark:hover:bg-sky-900/35"
               >
                 {isRotatingCoupleCode ? 'Đang đổi mã...' : 'Đổi mã couple'}
               </button>
@@ -1261,7 +1261,7 @@ export function SetupClient({ initialEmail, initialCouple }: SetupClientProps) {
           type="button"
           onClick={() => void loadCoupleState()}
           disabled={isRefreshing || isBusy}
-          className="mt-6 text-sm font-medium text-sky-600 hover:underline disabled:cursor-not-allowed disabled:text-gray-400 dark:text-sky-300"
+          className="mt-6 inline-flex rounded-lg border border-sky-300 bg-sky-50 px-3 py-1.5 text-sm font-semibold text-sky-800 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-100 disabled:text-gray-400 dark:border-sky-700 dark:bg-sky-900/20 dark:text-sky-200 dark:hover:bg-sky-900/35 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
         >
           {isRefreshing ? 'Đang làm mới...' : 'Làm mới trạng thái từ server'}
         </button>
