@@ -16,7 +16,7 @@ const navLinks = [
   { href: '/cycle', label: 'Chu kỳ' },
   { href: '/tasks', label: 'Việc chung' },
   { href: '/finance', label: 'Tài chính' },
-  { href: '/letters', label: 'Lá thư' }
+  { href: '/letters', label: 'Thư tình' }
 ]
 
 export const Header = ({ mode: initialMode = 'c' }: { mode?: HomeMode }) => {
